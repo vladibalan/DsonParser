@@ -7,10 +7,11 @@
 
 #pragma comment(lib, "DsonParser.lib")
 
-std::string GetCurrentDirectory() {
+std::string GetWorkingDirectory() {
     char buffer[MAX_PATH];
-    GetCurrentDirectoryA(MAX_PATH, buffer);
-    return std::string(buffer);
+    DWORD len = GetCurrentDirectoryA(MAX_PATH, buffer);
+    if (len == 0) return "";
+    return std::string(buffer, len);
 }
 
 bool FileExists(const char* filepath) {
@@ -18,14 +19,14 @@ bool FileExists(const char* filepath) {
     return (attrib != INVALID_FILE_ATTRIBUTES && !(attrib & FILE_ATTRIBUTE_DIRECTORY));
 }
 
-// Test assets live in DsonTest2/TestFiles. Depending on how the program is
-// launched the working directory is either the project dir or the build output
-// dir (x64/Debug), so try the candidate locations and return the first hit.
+// Test assets are loaded only from DsonTest2/TestFiles. Depending on how the
+// program is launched the working directory is either the project dir or the
+// build output dir (x64/Debug), so try those TestFiles locations and return the
+// first hit.
 std::string ResolveTestFile(const std::string& name) {
     const std::string candidates[] = {
         "TestFiles/" + name,                       // cwd = project dir
-        "../../DsonTest2/TestFiles/" + name,       // cwd = x64/<Config>
-        name                                       // cwd already contains it
+        "../../DsonTest2/TestFiles/" + name        // cwd = x64/<Config>
     };
     for (const std::string& path : candidates) {
         if (FileExists(path.c_str())) {
@@ -35,13 +36,13 @@ std::string ResolveTestFile(const std::string& name) {
     return std::string();
 }
 
-int main()
+int main(int argc, char* argv[])
 {
     std::cout << "DSON Parser Test\n";
     std::cout << "================\n\n";
 
     // Display current working directory
-    std::cout << "Current working directory: " << GetCurrentDirectory() << "\n\n";
+    std::cout << "Current working directory: " << GetWorkingDirectory() << "\n\n";
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();
@@ -50,14 +51,16 @@ int main()
         return 1;
     }
 
-    // Resolve the test file from the TestFiles folder
-    const std::string fileName = "G9.duf";
+    // File to load: first command-line argument, or a default test asset.
+    // Always resolved from the TestFiles folder (the argument is a file name).
+    const std::string fileName = (argc > 1) ? argv[1] : "G9.duf";
     std::cout << "Looking for: " << fileName << " (in TestFiles)\n";
 
     std::string filepath = ResolveTestFile(fileName);
     if (filepath.empty()) {
         std::cerr << "Error: " << fileName << " not found in TestFiles.\n";
-        std::cerr << "Current working directory: " << GetCurrentDirectory() << "\n";
+        std::cerr << "Current working directory: " << GetWorkingDirectory() << "\n";
+        std::cerr << "Usage: DsonTest2 [filename-in-TestFiles]\n";
         DsonDocument_Destroy(doc);
         std::cout << "\nPress Enter to exit...";
         std::cin.get();
@@ -145,7 +148,11 @@ int main()
 
     // Display material information
     int matCount = DsonDocument_GetMaterialCount(doc);
-    std::cout << "Materials (" << matCount << "):\n\n";
+    std::cout << "Materials (" << matCount << "):\n";
+    for (int i = 0; i < matCount; i++) {
+        std::cout << "  [" << i << "] ID: " << DsonDocument_GetMaterialId(doc, i) << "\n";
+    }
+    std::cout << "\n";
 
     // Display modifier information
     int modCount = DsonDocument_GetModifierCount(doc);

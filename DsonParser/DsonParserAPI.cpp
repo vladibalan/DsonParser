@@ -15,6 +15,7 @@ struct DsonContext {
     Dson::DsonDocument document;
     std::vector<std::string> contextCache;
     std::vector<std::string> unknownKeysCache;
+    std::string unknownKeysCacheContext;
 };
 
 // errno-style last error: each thread gets its own slot, so concurrent loads on
@@ -29,7 +30,7 @@ Dson::DsonDocument* GetDocument(DsonDocumentHandle handle) {
     return &GetContext(handle)->document;
 }
 
-void SetLastError(const std::string& error) {
+void StoreLastError(const std::string& error) {
     t_lastError = error;
 }
 
@@ -40,14 +41,14 @@ DsonDocumentHandle DsonDocument_Create() {
         return new DsonContext();
     }
     catch (...) {
-        SetLastError("Failed to create DsonDocument");
+        StoreLastError("Failed to create DsonDocument");
         return nullptr;
     }
 }
 
 int DsonDocument_LoadFromFile(DsonDocumentHandle handle, const char* filepath) {
     if (!handle || !filepath) {
-        SetLastError("Invalid handle or filepath");
+        StoreLastError("Invalid handle or filepath");
         return 0;
     }
     
@@ -55,25 +56,29 @@ int DsonDocument_LoadFromFile(DsonDocumentHandle handle, const char* filepath) {
         Dson::DsonDocument* doc = GetDocument(handle);
         std::string errorMsg;
         if (doc->LoadFromFile(filepath, errorMsg)) {
-            SetLastError("");
+            StoreLastError("");
+            DsonContext* ctx = GetContext(handle);
+            ctx->contextCache = ctx->document.GetAllContextsWithUnknownKeys();
+            ctx->unknownKeysCache.clear();
+            ctx->unknownKeysCacheContext.clear();
             return 1;
         }
-        SetLastError(errorMsg);
+        StoreLastError(errorMsg);
         return 0;
     }
     catch (const std::exception& e) {
-        SetLastError(std::string("Exception: ") + e.what());
+        StoreLastError(std::string("Exception: ") + e.what());
         return 0;
     }
     catch (...) {
-        SetLastError("Unknown exception occurred");
+        StoreLastError("Unknown exception occurred");
         return 0;
     }
 }
 
 int DsonDocument_LoadFromString(DsonDocumentHandle handle, const char* jsonString) {
     if (!handle || !jsonString) {
-        SetLastError("Invalid handle or string");
+        StoreLastError("Invalid handle or string");
         return 0;
     }
     
@@ -81,18 +86,22 @@ int DsonDocument_LoadFromString(DsonDocumentHandle handle, const char* jsonStrin
         Dson::DsonDocument* doc = GetDocument(handle);
         std::string errorMsg;
         if (doc->LoadFromString(jsonString, errorMsg)) {
-            SetLastError("");
+            StoreLastError("");
+            DsonContext* ctx = GetContext(handle);
+            ctx->contextCache = ctx->document.GetAllContextsWithUnknownKeys();
+            ctx->unknownKeysCache.clear();
+            ctx->unknownKeysCacheContext.clear();
             return 1;
         }
-        SetLastError(errorMsg);
+        StoreLastError(errorMsg);
         return 0;
     }
     catch (const std::exception& e) {
-        SetLastError(std::string("Exception: ") + e.what());
+        StoreLastError(std::string("Exception: ") + e.what());
         return 0;
     }
     catch (...) {
-        SetLastError("Unknown exception occurred");
+        StoreLastError("Unknown exception occurred");
         return 0;
     }
 }
@@ -299,6 +308,13 @@ const char* DsonDocument_GetSceneUVSetUrl(DsonDocumentHandle handle, int index) 
     return doc->scene.uvs[index].url.c_str();
 }
 
+const char* DsonDocument_GetMaterialId(DsonDocumentHandle handle, int index) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (index < 0 || index >= static_cast<int>(doc->materials.size())) return "";
+    return doc->materials[index].id.c_str();
+}
+
 const char* DsonDocument_GetGeometryId(DsonDocumentHandle handle, int index) {
     if (!handle) return "";
     Dson::DsonDocument* doc = GetDocument(handle);
@@ -365,9 +381,7 @@ int DsonDocument_GetModifierSkinJointCount(DsonDocumentHandle handle, int index)
 // Unknown keys diagnostics
 int DsonDocument_GetContextCount(DsonDocumentHandle handle) {
     if (!handle) return 0;
-    DsonContext* ctx = GetContext(handle);
-    ctx->contextCache = ctx->document.GetAllContextsWithUnknownKeys();
-    return static_cast<int>(ctx->contextCache.size());
+    return static_cast<int>(GetContext(handle)->contextCache.size());
 }
 
 const char* DsonDocument_GetContextName(DsonDocumentHandle handle, int index) {
@@ -380,13 +394,20 @@ const char* DsonDocument_GetContextName(DsonDocumentHandle handle, int index) {
 int DsonDocument_GetUnknownKeyCount(DsonDocumentHandle handle, const char* context) {
     if (!handle || !context) return 0;
     DsonContext* ctx = GetContext(handle);
-    ctx->unknownKeysCache = ctx->document.GetUnknownKeys(context);
+    if (ctx->unknownKeysCacheContext != context) {
+        ctx->unknownKeysCache = ctx->document.GetUnknownKeys(context);
+        ctx->unknownKeysCacheContext = context;
+    }
     return static_cast<int>(ctx->unknownKeysCache.size());
 }
 
 const char* DsonDocument_GetUnknownKey(DsonDocumentHandle handle, const char* context, int index) {
     if (!handle || !context) return "";
     DsonContext* ctx = GetContext(handle);
+    if (ctx->unknownKeysCacheContext != context) {
+        ctx->unknownKeysCache = ctx->document.GetUnknownKeys(context);
+        ctx->unknownKeysCacheContext = context;
+    }
     if (index < 0 || index >= static_cast<int>(ctx->unknownKeysCache.size())) return "";
     return ctx->unknownKeysCache[index].c_str();
 }
@@ -397,6 +418,7 @@ void DsonDocument_Clear(DsonDocumentHandle handle) {
     ctx->document.Clear();
     ctx->contextCache.clear();
     ctx->unknownKeysCache.clear();
+    ctx->unknownKeysCacheContext.clear();
 }
 
 void DsonDocument_Destroy(DsonDocumentHandle handle) {

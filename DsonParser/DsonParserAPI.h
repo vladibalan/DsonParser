@@ -69,6 +69,9 @@ DSONPARSER_API int DsonDocument_GetSceneUVSetCount(DsonDocumentHandle handle);
 DSONPARSER_API const char* DsonDocument_GetSceneUVSetId(DsonDocumentHandle handle, int index);
 DSONPARSER_API const char* DsonDocument_GetSceneUVSetUrl(DsonDocumentHandle handle, int index);
 
+// Get material info by index
+DSONPARSER_API const char* DsonDocument_GetMaterialId(DsonDocumentHandle handle, int index);
+
 // Get geometry info by index
 DSONPARSER_API const char* DsonDocument_GetGeometryId(DsonDocumentHandle handle, int index);
 DSONPARSER_API const char* DsonDocument_GetGeometryName(DsonDocumentHandle handle, int index);

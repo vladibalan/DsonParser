@@ -167,6 +167,7 @@ struct DsonDocument {
     std::vector<Material> materials;
     std::vector<Modifier> modifiers;
     std::vector<Image> images;
+    
     std::vector<UVSet> uv_sets;
     
     // Track unrecognized keys
