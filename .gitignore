@@ -1,0 +1,60 @@
+# ---- Build output ----
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+build/
+bld/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# ---- Visual Studio / Rider user files ----
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.VC.db
+*.VC.VC.opendb
+
+# ---- Compiler / linker intermediates ----
+*.obj
+*.o
+*.pch
+*.ipch
+*.ilk
+*.idb
+*.pdb
+*.tlog
+*.lastbuildstate
+*.exp
+*.lib
+*.dll
+*.exe
+*.iobj
+*.ipdb
+*.res
+*.tli
+*.tlh
+*.log
+
+# ---- NuGet / packages ----
+packages/
+*.nupkg
+
+# ---- OS noise ----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
