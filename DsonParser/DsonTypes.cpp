@@ -1011,28 +1011,28 @@ bool DsonDocument::LoadFromFile(const char* filepath, std::string& errorMsg) {
         errorMsg = oss.str();
         return false;
     }
-    
+
     char* readBuffer = new char[65536];
     rapidjson::FileReadStream is(fp, readBuffer, 65536);
-    
+
     rapidjson::Document doc;
     doc.ParseStream(is);
     fclose(fp);
     delete[] readBuffer;
-    
+
     if (doc.HasParseError()) {
         std::ostringstream oss;
-        oss << "JSON parse error at offset " << doc.GetErrorOffset() 
+        oss << "JSON parse error at offset " << doc.GetErrorOffset()
             << ": " << rapidjson::GetParseError_En(doc.GetParseError());
         errorMsg = oss.str();
         return false;
     }
-    
+
     if (!ParseFromJson(doc)) {
         errorMsg = "Failed to parse DSON structure from JSON";
         return false;
     }
-    
+
     errorMsg.clear();
     return true;
 }

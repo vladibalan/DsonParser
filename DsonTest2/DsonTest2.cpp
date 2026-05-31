@@ -19,12 +19,15 @@ bool FileExists(const char* filepath) {
     return (attrib != INVALID_FILE_ATTRIBUTES && !(attrib & FILE_ATTRIBUTE_DIRECTORY));
 }
 
-// Test assets are loaded only from DsonTest2/TestFiles. Depending on how the
-// program is launched the working directory is either the project dir or the
-// build output dir (x64/Debug), so try those TestFiles locations and return the
-// first hit.
+// Resolve a file path for loading. Accepts either:
+//   - an absolute path (e.g. D:/Content/file.duf)
+//   - a filename that lives inside DsonTest2/TestFiles
+// Depending on how the program is launched the working directory is either the
+// project dir or the build output dir (x64/Debug), so try both TestFiles
+// locations. The direct/absolute path is always tried first.
 std::string ResolveTestFile(const std::string& name) {
     const std::string candidates[] = {
+        name,                                      // direct or absolute path
         "TestFiles/" + name,                       // cwd = project dir
         "../../DsonTest2/TestFiles/" + name        // cwd = x64/<Config>
     };
@@ -54,13 +57,13 @@ int main(int argc, char* argv[])
     // File to load: first command-line argument, or a default test asset.
     // Always resolved from the TestFiles folder (the argument is a file name).
     const std::string fileName = (argc > 1) ? argv[1] : "G9.duf";
-    std::cout << "Looking for: " << fileName << " (in TestFiles)\n";
+    std::cout << "Looking for: " << fileName << "\n";
 
     std::string filepath = ResolveTestFile(fileName);
     if (filepath.empty()) {
-        std::cerr << "Error: " << fileName << " not found in TestFiles.\n";
+        std::cerr << "Error: " << fileName << " not found (tried direct path and TestFiles).\n";
         std::cerr << "Current working directory: " << GetWorkingDirectory() << "\n";
-        std::cerr << "Usage: DsonTest2 [filename-in-TestFiles]\n";
+        std::cerr << "Usage: DsonTest2 [filepath-or-filename-in-TestFiles]\n";
         DsonDocument_Destroy(doc);
         std::cout << "\nPress Enter to exit...";
         std::cin.get();
