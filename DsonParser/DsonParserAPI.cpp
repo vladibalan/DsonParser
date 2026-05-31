@@ -918,6 +918,24 @@ bool DsonDocument_GetVertexBoneInfluence(DsonDocumentHandle handle, int modifier
     return true;
 }
 
+bool DsonDocument_GetVertexBoneInfluenceCapped(DsonDocumentHandle handle, int modifierIndex, int vertexIndex, int influenceIndex, int maxInfluences, const char** boneNodeId, double* weight) {
+    if (boneNodeId) *boneNodeId = "";
+    if (weight) *weight = 0.0;
+    if (!handle || !boneNodeId || !weight || maxInfluences < 1) return false;
+    DsonContext* ctx = GetContext(handle);
+    EnsureSkinCache(ctx, modifierIndex);
+    auto it = ctx->skinCache.data.find(vertexIndex);
+    if (it == ctx->skinCache.data.end()) return false;
+    const std::vector<VertexInfluence>& influences = it->second;
+    int cap = static_cast<int>(influences.size()) < maxInfluences ? static_cast<int>(influences.size()) : maxInfluences;
+    if (influenceIndex < 0 || influenceIndex >= cap) return false;
+    double sum = 0.0;
+    for (int i = 0; i < cap; ++i) sum += influences[i].weight;
+    *boneNodeId = influences[influenceIndex].boneNodeId.c_str();
+    *weight = (sum > 0.0) ? influences[influenceIndex].weight / sum : 0.0;
+    return true;
+}
+
 // ============================================================
 // D. UV Sets (library uv_sets)
 // ============================================================

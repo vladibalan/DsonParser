@@ -155,6 +155,11 @@ DSONPARSER_API int  DsonDocument_GetVertexInfluenceCount(DsonDocumentHandle hand
 // Sets *boneNodeId="" and *weight=0.0 and returns false if influenceIndex is out of range.
 DSONPARSER_API bool DsonDocument_GetVertexBoneInfluence(DsonDocumentHandle handle, int modifierIndex, int vertexIndex, int influenceIndex, const char** boneNodeId, double* weight);
 
+// Same as GetVertexBoneInfluence but weights are renormalized over the top
+// min(totalInfluences, maxInfluences) influences so they sum to 1.0.
+// Use this instead of GetVertexBoneInfluence when building FSoftSkinVertex.
+DSONPARSER_API bool DsonDocument_GetVertexBoneInfluenceCapped(DsonDocumentHandle handle, int modifierIndex, int vertexIndex, int influenceIndex, int maxInfluences, const char** boneNodeId, double* weight);
+
 // ---- D. UV Sets (library uv_sets, not scene instances) ----
 DSONPARSER_API const char* DsonDocument_GetUVSetId(DsonDocumentHandle handle, int uvSetIndex);
 DSONPARSER_API int         DsonDocument_GetUVCount(DsonDocumentHandle handle, int uvSetIndex);
