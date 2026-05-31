@@ -311,9 +311,17 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
         }
     }
 
-    const rapidjson::Value* polyArray = nullptr;
-    if (JsonHelper::GetArray(json, "polygons", polyArray)) {
-        polygons.ParseFromJson(*polyArray);
+    if (JsonHelper::HasMember(json, "polygons")) {
+        const rapidjson::Value& poly = json["polygons"];
+        const rapidjson::Value* polyArray = nullptr;
+        if (poly.IsObject()) {
+            JsonHelper::GetArray(poly, "values", polyArray);
+        } else if (poly.IsArray()) {
+            polyArray = &poly;
+        }
+        if (polyArray) {
+            polygons.ParseFromJson(*polyArray);
+        }
     }
 
     // Polylist: an array of faces (legacy) or a { count, values:[[g,m,v0,v1,...],...] } object.
@@ -589,26 +597,42 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
         url.ParseFromJson(json["url"]);
     }
     
-    // Parse UVs - array of [u,v] pairs
-    const rapidjson::Value* uvsArray = nullptr;
-    if (JsonHelper::GetArray(json, "uvs", uvsArray)) {
-        uvs.values.reserve(uvsArray->Size() * 2);
-        for (rapidjson::SizeType i = 0; i < uvsArray->Size(); i++) {
-            if ((*uvsArray)[i].IsArray()) {
-                const auto& uv = (*uvsArray)[i];
-                if (uv.Size() >= 2) {
-                    if (uv[0].IsNumber() && uv[1].IsNumber()) {
-                        uvs.values.push_back(uv[0].GetDouble());
-                        uvs.values.push_back(uv[1].GetDouble());
+    // Parse UVs - plain [[u,v],...] array or {"count":N,"values":[[u,v],...]} object
+    if (JsonHelper::HasMember(json, "uvs")) {
+        const rapidjson::Value& uvsVal = json["uvs"];
+        const rapidjson::Value* uvsArray = nullptr;
+        if (uvsVal.IsObject()) {
+            JsonHelper::GetArray(uvsVal, "values", uvsArray);
+        } else if (uvsVal.IsArray()) {
+            uvsArray = &uvsVal;
+        }
+        if (uvsArray) {
+            uvs.values.reserve(uvsArray->Size() * 2);
+            for (rapidjson::SizeType i = 0; i < uvsArray->Size(); i++) {
+                if ((*uvsArray)[i].IsArray()) {
+                    const auto& uv = (*uvsArray)[i];
+                    if (uv.Size() >= 2) {
+                        if (uv[0].IsNumber() && uv[1].IsNumber()) {
+                            uvs.values.push_back(uv[0].GetDouble());
+                            uvs.values.push_back(uv[1].GetDouble());
+                        }
                     }
                 }
             }
         }
     }
     
-    const rapidjson::Value* polyVertIndices = nullptr;
-    if (JsonHelper::GetArray(json, "polygon_vertex_indices", polyVertIndices)) {
-        polygon_vertex_indices.ParseFromJson(*polyVertIndices);
+    if (JsonHelper::HasMember(json, "polygon_vertex_indices")) {
+        const rapidjson::Value& pviVal = json["polygon_vertex_indices"];
+        const rapidjson::Value* polyVertIndices = nullptr;
+        if (pviVal.IsObject()) {
+            JsonHelper::GetArray(pviVal, "values", polyVertIndices);
+        } else if (pviVal.IsArray()) {
+            polyVertIndices = &pviVal;
+        }
+        if (polyVertIndices) {
+            polygon_vertex_indices.ParseFromJson(*polyVertIndices);
+        }
     }
     
     TrackUnknownKeys(json, knownKeys, unknownKeys);
