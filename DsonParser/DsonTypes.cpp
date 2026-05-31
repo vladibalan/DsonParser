@@ -505,13 +505,12 @@ bool SkinJoint::ParseFromJson(const rapidjson::Value& json) {
     }
 
     // node_weights = { count, values:[[vertexIndex, weight], ...] }
-    const rapidjson::Value* nw = nullptr;
-    if (JsonHelper::GetObject(json, "node_weights", nw)) {
-        if (nw->HasMember("count") && (*nw)["count"].IsInt()) {
-            weight_count.value = (*nw)["count"].GetInt();
+    auto parseWeightBlock = [&](const rapidjson::Value& block) {
+        if (block.HasMember("count") && block["count"].IsInt()) {
+            weight_count.value = block["count"].GetInt();
         }
         const rapidjson::Value* values = nullptr;
-        if (JsonHelper::GetArray(*nw, "values", values)) {
+        if (JsonHelper::GetArray(block, "values", values)) {
             weight_indices.reserve(values->Size());
             weights.reserve(values->Size());
             for (rapidjson::SizeType i = 0; i < values->Size(); i++) {
@@ -526,7 +525,21 @@ bool SkinJoint::ParseFromJson(const rapidjson::Value& json) {
                 weight_count.value = static_cast<int>(weights.size());
             }
         }
+    };
+
+    const rapidjson::Value* nw = nullptr;
+    if (JsonHelper::GetObject(json, "node_weights", nw)) {
+        parseWeightBlock(*nw);
     }
+
+    // Fallback: some DAZ assets use local_weights with the same format
+    if (weight_indices.empty()) {
+        const rapidjson::Value* lw = nullptr;
+        if (JsonHelper::GetObject(json, "local_weights", lw)) {
+            parseWeightBlock(*lw);
+        }
+    }
+
     return true;
 }
 
