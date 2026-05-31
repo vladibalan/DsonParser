@@ -28,6 +28,7 @@ DSONPARSER_API const char* DsonDocument_GetFileVersion(DsonDocumentHandle handle
 // Get asset info
 DSONPARSER_API const char* DsonDocument_GetAssetId(DsonDocumentHandle handle);
 DSONPARSER_API const char* DsonDocument_GetAssetType(DsonDocumentHandle handle);
+DSONPARSER_API double      DsonDocument_GetUnitScale(DsonDocumentHandle handle);
 
 // Get counts
 DSONPARSER_API int DsonDocument_GetNodeCount(DsonDocumentHandle handle);
@@ -153,6 +154,12 @@ DSONPARSER_API int         DsonDocument_GetMorphDeltaVertexIndex(DsonDocumentHan
 DSONPARSER_API double      DsonDocument_GetMorphDeltaX(DsonDocumentHandle handle, int morphIndex, int deltaIndex);
 DSONPARSER_API double      DsonDocument_GetMorphDeltaY(DsonDocumentHandle handle, int morphIndex, int deltaIndex);
 DSONPARSER_API double      DsonDocument_GetMorphDeltaZ(DsonDocumentHandle handle, int morphIndex, int deltaIndex);
+
+DSONPARSER_API int         DsonDocument_GetMorphNormalDeltaCount(DsonDocumentHandle handle, int morphIndex);
+DSONPARSER_API int         DsonDocument_GetMorphNormalDeltaVertexIndex(DsonDocumentHandle handle, int morphIndex, int deltaIndex);
+DSONPARSER_API double      DsonDocument_GetMorphNormalDeltaX(DsonDocumentHandle handle, int morphIndex, int deltaIndex);
+DSONPARSER_API double      DsonDocument_GetMorphNormalDeltaY(DsonDocumentHandle handle, int morphIndex, int deltaIndex);
+DSONPARSER_API double      DsonDocument_GetMorphNormalDeltaZ(DsonDocumentHandle handle, int morphIndex, int deltaIndex);
 
 // Unknown keys diagnostics
 DSONPARSER_API int DsonDocument_GetContextCount(DsonDocumentHandle handle);

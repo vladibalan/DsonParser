@@ -150,7 +150,7 @@ bool AssetInfo::ParseFromJson(const rapidjson::Value& json, std::set<std::string
     }
     
     static const std::set<std::string> knownKeys = {
-        "id", "type", "contributor", "revision", "modified"
+        "id", "type", "contributor", "revision", "modified", "unit_scale"
     };
     
     if (JsonHelper::HasMember(json, "id")) {
@@ -176,7 +176,9 @@ bool AssetInfo::ParseFromJson(const rapidjson::Value& json, std::set<std::string
     if (JsonHelper::HasMember(json, "modified")) {
         modified.ParseFromJson(json["modified"]);
     }
-    
+
+    unit_scale = JsonHelper::GetDoubleOrDefault(json, "unit_scale", 1.0);
+
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
 }
@@ -586,7 +588,7 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     
     static const std::set<std::string> knownKeys = {
         "id", "name", "type", "url", "parent", "skin_binding", "channel",
-        "deltas", "vertex_count", "formulas", "region", "group", "skin"
+        "deltas", "normal_deltas", "vertex_count", "formulas", "region", "group", "skin"
     };
     
     if (JsonHelper::HasMember(json, "id")) {
@@ -617,12 +619,19 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     const rapidjson::Value* channelObj = nullptr;
     if (JsonHelper::GetObject(json, "channel", channelObj)) {
         channel.value = JsonHelper::GetStringOrDefault(*channelObj, "id");
+        channel_label = JsonHelper::GetStringOrDefault(*channelObj, "label");
     }
-    
+
     // Parse morph deltas as indexed array
     const rapidjson::Value* deltasObj = nullptr;
     if (JsonHelper::GetObject(json, "deltas", deltasObj)) {
         morph_deltas.ParseFromJson(*deltasObj);
+    }
+
+    // Parse normal deltas (same format as deltas)
+    const rapidjson::Value* normalDeltasObj = nullptr;
+    if (JsonHelper::GetObject(json, "normal_deltas", normalDeltasObj)) {
+        normal_deltas.ParseFromJson(*normalDeltasObj);
     }
 
     // Parse skin binding payload (the actual key is "skin", not "skin_binding")

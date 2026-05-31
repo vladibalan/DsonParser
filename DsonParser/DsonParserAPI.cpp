@@ -152,6 +152,12 @@ const char* DsonDocument_GetAssetType(DsonDocumentHandle handle) {
     return doc->asset_info.type.c_str();
 }
 
+double DsonDocument_GetUnitScale(DsonDocumentHandle handle) {
+    if (!handle) return 1.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    return doc->asset_info.unit_scale;
+}
+
 int DsonDocument_GetNodeCount(DsonDocumentHandle handle) {
     if (!handle) return 0;
     Dson::DsonDocument* doc = GetDocument(handle);
@@ -846,8 +852,9 @@ const char* DsonDocument_GetMorphLabel(DsonDocumentHandle handle, int morphIndex
     DsonContext* ctx = GetContext(handle);
     EnsureMorphCache(ctx);
     if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return "";
-    // Modifier has no separate label field; name serves as the closest equivalent
-    return ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].name.c_str();
+    const auto& mod = ctx->document.modifiers[ctx->morphIndexCache[morphIndex]];
+    if (!mod.channel_label.empty()) return mod.channel_label.c_str();
+    return mod.name.c_str();
 }
 
 int DsonDocument_GetMorphDeltaCount(DsonDocumentHandle handle, int morphIndex) {
@@ -894,6 +901,54 @@ double DsonDocument_GetMorphDeltaZ(DsonDocumentHandle handle, int morphIndex, in
     EnsureMorphCache(ctx);
     if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return 0.0;
     const auto& deltas = ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].morph_deltas;
+    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
+    return deltas.GetValue(deltaIndex).z;
+}
+
+int DsonDocument_GetMorphNormalDeltaCount(DsonDocumentHandle handle, int morphIndex) {
+    if (!handle) return -1;
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return -1;
+    return static_cast<int>(ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].normal_deltas.size());
+}
+
+int DsonDocument_GetMorphNormalDeltaVertexIndex(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
+    if (!handle) return -1;
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return -1;
+    const auto& deltas = ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].normal_deltas;
+    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return -1;
+    return deltas.GetIndex(deltaIndex);
+}
+
+double DsonDocument_GetMorphNormalDeltaX(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
+    if (!handle) return 0.0;
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return 0.0;
+    const auto& deltas = ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].normal_deltas;
+    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
+    return deltas.GetValue(deltaIndex).x;
+}
+
+double DsonDocument_GetMorphNormalDeltaY(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
+    if (!handle) return 0.0;
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return 0.0;
+    const auto& deltas = ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].normal_deltas;
+    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
+    return deltas.GetValue(deltaIndex).y;
+}
+
+double DsonDocument_GetMorphNormalDeltaZ(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
+    if (!handle) return 0.0;
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return 0.0;
+    const auto& deltas = ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].normal_deltas;
     if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
     return deltas.GetValue(deltaIndex).z;
 }

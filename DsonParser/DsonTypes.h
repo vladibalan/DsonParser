@@ -25,7 +25,8 @@ struct AssetInfo {
     String contributor_email;
     String revision;
     String modified;
-    
+    double unit_scale = 1.0;
+
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
 
@@ -125,9 +126,11 @@ struct Modifier {
     String parent;
     String skin_binding;
     String channel;
+    std::string channel_label;
 
     // For morph modifiers - indexed deltas
     IndexedVector3Array morph_deltas;
+    IndexedVector3Array normal_deltas;
 
     // For skin_binding modifiers - the "skin" payload
     bool has_skin = false;
