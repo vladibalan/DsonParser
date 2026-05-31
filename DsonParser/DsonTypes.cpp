@@ -666,9 +666,18 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
         url.ParseFromJson(json["url"]);
     }
     
-    // Try "map" key first
+    // Try "map" key first — can be a bare string or an object {"url":"..."} / {"file":"..."}
     if (JsonHelper::HasMember(json, "map")) {
-        map_file.ParseFromJson(json["map"]);
+        const rapidjson::Value& mapVal = json["map"];
+        if (mapVal.IsString()) {
+            map_file.value = mapVal.GetString();
+        } else if (mapVal.IsObject()) {
+            std::string path;
+            if (!JsonHelper::GetString(mapVal, "url", path)) {
+                JsonHelper::GetString(mapVal, "file", path);
+            }
+            map_file.value = path;
+        }
     }
     // Try alternate key
     else if (JsonHelper::HasMember(json, "map_file")) {
