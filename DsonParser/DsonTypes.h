@@ -42,6 +42,8 @@ struct Node {
     Vector3 scale;
     Vector3 center_point; // joint origin (DSF rigs store the real position here)
     Vector3 end_point;
+    Vector3 orientation;                  // local axis alignment in rest pose (XYZ Euler degrees); default {0,0,0}
+    std::string rotation_order = "YXZ";  // Euler rotation order; default matches DAZ Genesis 9
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
@@ -63,6 +65,16 @@ struct Geometry {
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
 
+// One PBR material channel: scalar/color value plus optional texture reference
+struct MaterialChannel {
+    double value = 0.0;      // scalar (roughness, opacity strength, normal strength, etc.)
+    Vector3 color = {};      // RGB color; meaningful only when has_color == true
+    bool has_color = false;  // true for float_color channels (diffuse, emission, subsurface, etc.)
+
+    std::string image_url;     // raw image reference from JSON (e.g. "#img-0" or a path); empty = no texture
+    std::string texture_path;  // resolved absolute file path (filled by the post-parse linkage pass)
+};
+
 // Material data
 struct Material {
     String id;
@@ -70,9 +82,16 @@ struct Material {
     String type;
     Url url;
     String geometry;
-    Color diffuse_color;
-    std::map<std::string, std::string> textures;
-    
+    String uv_set_id;
+
+    MaterialChannel diffuse;
+    MaterialChannel specular;
+    MaterialChannel roughness;
+    MaterialChannel normal;
+    MaterialChannel opacity;
+    MaterialChannel subsurface;
+    MaterialChannel emission;
+
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
 

@@ -243,6 +243,13 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
         ParseTransformVector3(*endArray, end_point);
     }
 
+    const rapidjson::Value* orientArray = nullptr;
+    if (JsonHelper::GetArray(json, "orientation", orientArray)) {
+        ParseTransformVector3(*orientArray, orientation);
+    }
+
+    JsonHelper::GetString(json, "rotation_order", rotation_order);
+
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
 }
@@ -362,45 +369,124 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     return true;
 }
 
+// Parse one material channel container object (has "channel" sub-object with value + image).
+// Works for both the top-level "diffuse" key and entries inside extra.studio_material_channels.channels[].
+static MaterialChannel ParseMaterialChannel(const rapidjson::Value& container) {
+    MaterialChannel result;
+    if (!container.IsObject()) return result;
+
+    const rapidjson::Value* ch = nullptr;
+    if (!JsonHelper::GetObject(container, "channel", ch)) return result;
+
+    // Value: [r,g,b] array → color channel; single number → scalar channel
+    if (ch->HasMember("value")) {
+        const rapidjson::Value& val = (*ch)["value"];
+        if (val.IsArray() && val.Size() >= 3 &&
+            val[0].IsNumber() && val[1].IsNumber() && val[2].IsNumber()) {
+            result.color.x = val[0].GetDouble();
+            result.color.y = val[1].GetDouble();
+            result.color.z = val[2].GetDouble();
+            result.has_color = true;
+        } else if (val.IsNumber()) {
+            result.value = val.GetDouble();
+        }
+    }
+
+    // Image reference is stored inside the channel sub-object
+    if (ch->HasMember("image") && (*ch)["image"].IsString()) {
+        result.image_url = (*ch)["image"].GetString();
+    }
+
+    return result;
+}
+
 // Material implementation
 bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
     }
-    
+
     static const std::set<std::string> knownKeys = {
         "id", "name", "type", "url", "geometry", "uv_set", "groups", "extra", "diffuse"
     };
-    
+
     if (JsonHelper::HasMember(json, "id")) {
         id.ParseFromJson(json["id"]);
     }
-    
+
     if (JsonHelper::HasMember(json, "name")) {
         name.ParseFromJson(json["name"]);
     }
-    
+
     if (JsonHelper::HasMember(json, "type")) {
         type.ParseFromJson(json["type"]);
     }
-    
+
     if (JsonHelper::HasMember(json, "url")) {
         url.ParseFromJson(json["url"]);
     }
-    
+
     if (JsonHelper::HasMember(json, "geometry")) {
         geometry.ParseFromJson(json["geometry"]);
     }
-    
-    // Parse diffuse color if present
+
+    if (json.HasMember("uv_set") && json["uv_set"].IsString()) {
+        uv_set_id.value = json["uv_set"].GetString();
+    }
+
+    // Top-level "diffuse" channel
     const rapidjson::Value* diffuseObj = nullptr;
     if (JsonHelper::GetObject(json, "diffuse", diffuseObj)) {
-        if (JsonHelper::HasMember(*diffuseObj, "color")) {
-            const rapidjson::Value& colorVal = (*diffuseObj)["color"];
-            diffuse_color.ParseFromJson(colorVal);
+        diffuse = ParseMaterialChannel(*diffuseObj);
+    }
+
+    // Remaining PBR channels live in extra[?].channels[] (type == "studio_material_channels")
+    const rapidjson::Value* extraArr = nullptr;
+    if (JsonHelper::GetArray(json, "extra", extraArr)) {
+        for (rapidjson::SizeType i = 0; i < extraArr->Size(); i++) {
+            const auto& extraItem = (*extraArr)[i];
+            if (!extraItem.IsObject()) continue;
+            if (JsonHelper::GetStringOrDefault(extraItem, "type") != "studio_material_channels") continue;
+
+            const rapidjson::Value* channelsArr = nullptr;
+            if (!JsonHelper::GetArray(extraItem, "channels", channelsArr)) continue;
+
+            // Track priority for specular: Glossy Color (2) > Specular Color (1) > Metallic Weight (0)
+            int specularPriority = -1;
+
+            for (rapidjson::SizeType j = 0; j < channelsArr->Size(); j++) {
+                const auto& entry = (*channelsArr)[j];
+                if (!entry.IsObject()) continue;
+
+                const rapidjson::Value* chObj = nullptr;
+                if (!JsonHelper::GetObject(entry, "channel", chObj)) continue;
+                const std::string chId = JsonHelper::GetStringOrDefault(*chObj, "id");
+
+                if (chId == "Glossy Color") {
+                    specular = ParseMaterialChannel(entry);
+                    specularPriority = 2;
+                } else if (chId == "Specular Color" && specularPriority < 1) {
+                    specular = ParseMaterialChannel(entry);
+                    specularPriority = 1;
+                } else if (chId == "Metallic Weight" && specularPriority < 0) {
+                    specular = ParseMaterialChannel(entry);
+                    specularPriority = 0;
+                } else if (chId == "Glossy Roughness" || chId == "Roughness") {
+                    roughness = ParseMaterialChannel(entry);
+                } else if (chId == "Normal Map" || chId == "Bump Strength") {
+                    normal = ParseMaterialChannel(entry);
+                } else if (chId == "Cutout Opacity" || chId == "Opacity Strength") {
+                    opacity = ParseMaterialChannel(entry);
+                } else if (chId == "Transmitted Color" || chId == "Subsurface Color") {
+                    subsurface = ParseMaterialChannel(entry);
+                } else if (chId == "Emission Color") {
+                    emission = ParseMaterialChannel(entry);
+                }
+            }
+            break; // Only one studio_material_channels block per material
         }
     }
-    
+
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
 }
@@ -799,6 +885,41 @@ bool DsonDocument::ParseFromJson(const rapidjson::Document& doc) {
         }
     }
     
+    // Post-parse: resolve image_url → texture_path for every material channel in every collection.
+    // Matching order: Image.id → Image.url → Image.map_file.
+    auto resolveChannel = [&](MaterialChannel& ch) {
+        if (ch.image_url.empty()) return;
+        std::string lookupId = ch.image_url;
+        if (!lookupId.empty() && lookupId[0] == '#') {
+            lookupId = lookupId.substr(1);
+        }
+        for (const auto& img : images) {
+            if (img.id.value == lookupId ||
+                img.url.value == ch.image_url ||
+                img.map_file.value == ch.image_url) {
+                ch.texture_path = img.map_file.value;
+                return;
+            }
+        }
+    };
+
+    auto resolveAllChannels = [&](Material& mat) {
+        resolveChannel(mat.diffuse);
+        resolveChannel(mat.specular);
+        resolveChannel(mat.roughness);
+        resolveChannel(mat.normal);
+        resolveChannel(mat.opacity);
+        resolveChannel(mat.subsurface);
+        resolveChannel(mat.emission);
+    };
+
+    for (auto& mat : materials) {
+        resolveAllChannels(mat);
+    }
+    for (auto& mat : scene.materials) {
+        resolveAllChannels(mat);
+    }
+
     // Track unknown top-level keys
     TrackUnknownKeys(doc, knownTopLevelKeys, &unknown_keys["document"]);
     
