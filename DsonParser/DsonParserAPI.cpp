@@ -16,6 +16,8 @@ struct DsonContext {
     std::vector<std::string> contextCache;
     std::vector<std::string> unknownKeysCache;
     std::string unknownKeysCacheContext;
+    std::vector<int> morphIndexCache;   // indices into document.modifiers where type == "morph"
+    bool morphIndexCacheDirty = true;
 };
 
 // errno-style last error: each thread gets its own slot, so concurrent loads on
@@ -32,6 +34,30 @@ Dson::DsonDocument* GetDocument(DsonDocumentHandle handle) {
 
 void StoreLastError(const std::string& error) {
     t_lastError = error;
+}
+
+static void EnsureMorphCache(DsonContext* ctx) {
+    if (!ctx->morphIndexCacheDirty) return;
+    ctx->morphIndexCache.clear();
+    for (int i = 0; i < static_cast<int>(ctx->document.modifiers.size()); i++) {
+        if (ctx->document.modifiers[i].type.value == "morph") {
+            ctx->morphIndexCache.push_back(i);
+        }
+    }
+    ctx->morphIndexCacheDirty = false;
+}
+
+static const Dson::MaterialChannel* GetMaterialChannel(const Dson::Material& mat, int channelId) {
+    switch (channelId) {
+        case 0: return &mat.diffuse;
+        case 1: return &mat.specular;
+        case 2: return &mat.roughness;
+        case 3: return &mat.normal;
+        case 4: return &mat.opacity;
+        case 5: return &mat.subsurface;
+        case 6: return &mat.emission;
+        default: return nullptr;
+    }
 }
 
 } // namespace
@@ -61,6 +87,7 @@ int DsonDocument_LoadFromFile(DsonDocumentHandle handle, const char* filepath) {
             ctx->contextCache = ctx->document.GetAllContextsWithUnknownKeys();
             ctx->unknownKeysCache.clear();
             ctx->unknownKeysCacheContext.clear();
+            ctx->morphIndexCacheDirty = true;
             return 1;
         }
         StoreLastError(errorMsg);
@@ -91,6 +118,7 @@ int DsonDocument_LoadFromString(DsonDocumentHandle handle, const char* jsonStrin
             ctx->contextCache = ctx->document.GetAllContextsWithUnknownKeys();
             ctx->unknownKeysCache.clear();
             ctx->unknownKeysCacheContext.clear();
+            ctx->morphIndexCacheDirty = true;
             return 1;
         }
         StoreLastError(errorMsg);
@@ -419,11 +447,455 @@ void DsonDocument_Clear(DsonDocumentHandle handle) {
     ctx->contextCache.clear();
     ctx->unknownKeysCache.clear();
     ctx->unknownKeysCacheContext.clear();
+    ctx->morphIndexCache.clear();
+    ctx->morphIndexCacheDirty = true;
 }
 
 void DsonDocument_Destroy(DsonDocumentHandle handle) {
     if (!handle) return;
     delete GetContext(handle);
+}
+
+// ============================================================
+// A. Geometry — vertex positions
+// ============================================================
+
+int DsonDocument_GetVertexCount(DsonDocumentHandle handle, int geomIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
+    return doc->geometries[geomIndex].vertex_count;
+}
+
+double DsonDocument_GetVertexX(DsonDocumentHandle handle, int geomIndex, int vertexIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return 0.0;
+    const auto& verts = doc->geometries[geomIndex].vertices.values;
+    int idx = vertexIndex * 3;
+    if (vertexIndex < 0 || idx + 2 >= static_cast<int>(verts.size())) return 0.0;
+    return verts[idx];
+}
+
+double DsonDocument_GetVertexY(DsonDocumentHandle handle, int geomIndex, int vertexIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return 0.0;
+    const auto& verts = doc->geometries[geomIndex].vertices.values;
+    int idx = vertexIndex * 3;
+    if (vertexIndex < 0 || idx + 2 >= static_cast<int>(verts.size())) return 0.0;
+    return verts[idx + 1];
+}
+
+double DsonDocument_GetVertexZ(DsonDocumentHandle handle, int geomIndex, int vertexIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return 0.0;
+    const auto& verts = doc->geometries[geomIndex].vertices.values;
+    int idx = vertexIndex * 3;
+    if (vertexIndex < 0 || idx + 2 >= static_cast<int>(verts.size())) return 0.0;
+    return verts[idx + 2];
+}
+
+// ---- Polylist ----
+// The polylist flat array has uniform stride: polygon_count faces, each face occupying
+// (total_size / polygon_count) ints. The first int of each face is the material group
+// index; the rest are vertex indices. DAZ Studio always emits quads so stride is 5.
+
+static int GetPolylistStride(const Dson::Geometry& geom) {
+    int polyCount = geom.polygon_count;
+    int total = static_cast<int>(geom.polylist.values.size());
+    if (polyCount <= 0 || total <= 0) return 0;
+    return total / polyCount;
+}
+
+int DsonDocument_GetPolylistCount(DsonDocumentHandle handle, int geomIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
+    return doc->geometries[geomIndex].polygon_count;
+}
+
+int DsonDocument_GetPolylistFaceVertexCount(DsonDocumentHandle handle, int geomIndex, int faceIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
+    const auto& geom = doc->geometries[geomIndex];
+    int stride = GetPolylistStride(geom);
+    if (stride <= 1) return -1;
+    if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
+    return stride - 1; // subtract the leading material index slot
+}
+
+int DsonDocument_GetPolylistFaceVertex(DsonDocumentHandle handle, int geomIndex, int faceIndex, int vertexIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
+    const auto& geom = doc->geometries[geomIndex];
+    int stride = GetPolylistStride(geom);
+    if (stride <= 1) return -1;
+    int vertsPerFace = stride - 1;
+    if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
+    if (vertexIndex < 0 || vertexIndex >= vertsPerFace) return -1;
+    return geom.polylist.values[faceIndex * stride + 1 + vertexIndex];
+}
+
+int DsonDocument_GetPolylistFaceMaterialIndex(DsonDocumentHandle handle, int geomIndex, int faceIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
+    const auto& geom = doc->geometries[geomIndex];
+    int stride = GetPolylistStride(geom);
+    if (stride <= 0) return -1;
+    if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
+    return geom.polylist.values[faceIndex * stride];
+}
+
+// ---- Material groups ----
+
+int DsonDocument_GetPolygonMaterialGroupCount(DsonDocumentHandle handle, int geomIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
+    return static_cast<int>(doc->geometries[geomIndex].polygon_material_groups.size());
+}
+
+const char* DsonDocument_GetPolygonMaterialGroupName(DsonDocumentHandle handle, int geomIndex, int groupIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return "";
+    const auto& groups = doc->geometries[geomIndex].polygon_material_groups;
+    if (groupIndex < 0 || groupIndex >= static_cast<int>(groups.size())) return "";
+    return groups[groupIndex].c_str();
+}
+
+// ============================================================
+// B. Skeleton / Nodes
+// ============================================================
+
+const char* DsonDocument_GetNodeParent(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return "";
+    return doc->nodes[nodeIndex].parent.c_str();
+}
+
+double DsonDocument_GetNodeEndPointX(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].end_point.x;
+}
+
+double DsonDocument_GetNodeEndPointY(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].end_point.y;
+}
+
+double DsonDocument_GetNodeEndPointZ(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].end_point.z;
+}
+
+double DsonDocument_GetNodeOrientationX(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].orientation.x;
+}
+
+double DsonDocument_GetNodeOrientationY(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].orientation.y;
+}
+
+double DsonDocument_GetNodeOrientationZ(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].orientation.z;
+}
+
+const char* DsonDocument_GetNodeRotationOrder(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return "";
+    return doc->nodes[nodeIndex].rotation_order.c_str();
+}
+
+// ============================================================
+// C. Skin Weights
+// ============================================================
+
+int DsonDocument_GetSkinJointCount(DsonDocumentHandle handle, int modifierIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (modifierIndex < 0 || modifierIndex >= static_cast<int>(doc->modifiers.size())) return -1;
+    return static_cast<int>(doc->modifiers[modifierIndex].skin.joints.size());
+}
+
+const char* DsonDocument_GetSkinJointNodeId(DsonDocumentHandle handle, int modifierIndex, int jointIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (modifierIndex < 0 || modifierIndex >= static_cast<int>(doc->modifiers.size())) return "";
+    const auto& joints = doc->modifiers[modifierIndex].skin.joints;
+    if (jointIndex < 0 || jointIndex >= static_cast<int>(joints.size())) return "";
+    return joints[jointIndex].node.c_str();
+}
+
+int DsonDocument_GetSkinJointWeightCount(DsonDocumentHandle handle, int modifierIndex, int jointIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (modifierIndex < 0 || modifierIndex >= static_cast<int>(doc->modifiers.size())) return -1;
+    const auto& joints = doc->modifiers[modifierIndex].skin.joints;
+    if (jointIndex < 0 || jointIndex >= static_cast<int>(joints.size())) return -1;
+    return static_cast<int>(joints[jointIndex].weights.size());
+}
+
+int DsonDocument_GetSkinJointWeightVertexIndex(DsonDocumentHandle handle, int modifierIndex, int jointIndex, int weightIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (modifierIndex < 0 || modifierIndex >= static_cast<int>(doc->modifiers.size())) return -1;
+    const auto& joints = doc->modifiers[modifierIndex].skin.joints;
+    if (jointIndex < 0 || jointIndex >= static_cast<int>(joints.size())) return -1;
+    const auto& joint = joints[jointIndex];
+    if (weightIndex < 0 || weightIndex >= static_cast<int>(joint.weight_indices.size())) return -1;
+    return joint.weight_indices[weightIndex];
+}
+
+double DsonDocument_GetSkinJointWeight(DsonDocumentHandle handle, int modifierIndex, int jointIndex, int weightIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (modifierIndex < 0 || modifierIndex >= static_cast<int>(doc->modifiers.size())) return 0.0;
+    const auto& joints = doc->modifiers[modifierIndex].skin.joints;
+    if (jointIndex < 0 || jointIndex >= static_cast<int>(joints.size())) return 0.0;
+    const auto& joint = joints[jointIndex];
+    if (weightIndex < 0 || weightIndex >= static_cast<int>(joint.weights.size())) return 0.0;
+    return joint.weights[weightIndex];
+}
+
+// ============================================================
+// D. UV Sets (library uv_sets)
+// ============================================================
+
+const char* DsonDocument_GetUVSetId(DsonDocumentHandle handle, int uvSetIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (uvSetIndex < 0 || uvSetIndex >= static_cast<int>(doc->uv_sets.size())) return "";
+    return doc->uv_sets[uvSetIndex].id.c_str();
+}
+
+int DsonDocument_GetUVCount(DsonDocumentHandle handle, int uvSetIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (uvSetIndex < 0 || uvSetIndex >= static_cast<int>(doc->uv_sets.size())) return -1;
+    return static_cast<int>(doc->uv_sets[uvSetIndex].uvs.values.size()) / 2;
+}
+
+double DsonDocument_GetUVU(DsonDocumentHandle handle, int uvSetIndex, int uvIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (uvSetIndex < 0 || uvSetIndex >= static_cast<int>(doc->uv_sets.size())) return 0.0;
+    const auto& uvs = doc->uv_sets[uvSetIndex].uvs.values;
+    int idx = uvIndex * 2;
+    if (uvIndex < 0 || idx + 1 >= static_cast<int>(uvs.size())) return 0.0;
+    return uvs[idx];
+}
+
+double DsonDocument_GetUVV(DsonDocumentHandle handle, int uvSetIndex, int uvIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (uvSetIndex < 0 || uvSetIndex >= static_cast<int>(doc->uv_sets.size())) return 0.0;
+    const auto& uvs = doc->uv_sets[uvSetIndex].uvs.values;
+    int idx = uvIndex * 2;
+    if (uvIndex < 0 || idx + 1 >= static_cast<int>(uvs.size())) return 0.0;
+    return uvs[idx + 1];
+}
+
+int DsonDocument_GetUVPolygonVertexIndexCount(DsonDocumentHandle handle, int uvSetIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (uvSetIndex < 0 || uvSetIndex >= static_cast<int>(doc->uv_sets.size())) return -1;
+    return static_cast<int>(doc->uv_sets[uvSetIndex].polygon_vertex_indices.values.size());
+}
+
+int DsonDocument_GetUVPolygonVertexIndex(DsonDocumentHandle handle, int uvSetIndex, int index) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (uvSetIndex < 0 || uvSetIndex >= static_cast<int>(doc->uv_sets.size())) return -1;
+    const auto& pvi = doc->uv_sets[uvSetIndex].polygon_vertex_indices.values;
+    if (index < 0 || index >= static_cast<int>(pvi.size())) return -1;
+    return pvi[index];
+}
+
+// ============================================================
+// E. Materials
+// ============================================================
+
+const char* DsonDocument_GetMaterialName(DsonDocumentHandle handle, int matIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
+    return doc->materials[matIndex].name.c_str();
+}
+
+const char* DsonDocument_GetMaterialGeometryId(DsonDocumentHandle handle, int matIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
+    return doc->materials[matIndex].geometry.c_str();
+}
+
+const char* DsonDocument_GetMaterialUVSetId(DsonDocumentHandle handle, int matIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
+    return doc->materials[matIndex].uv_set_id.c_str();
+}
+
+double DsonDocument_GetMaterialChannelValue(DsonDocumentHandle handle, int matIndex, int channelId) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return 0.0;
+    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
+    if (!ch) return 0.0;
+    return ch->value;
+}
+
+double DsonDocument_GetMaterialChannelColorR(DsonDocumentHandle handle, int matIndex, int channelId) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return 0.0;
+    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
+    if (!ch) return 0.0;
+    return ch->color.x;
+}
+
+double DsonDocument_GetMaterialChannelColorG(DsonDocumentHandle handle, int matIndex, int channelId) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return 0.0;
+    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
+    if (!ch) return 0.0;
+    return ch->color.y;
+}
+
+double DsonDocument_GetMaterialChannelColorB(DsonDocumentHandle handle, int matIndex, int channelId) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return 0.0;
+    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
+    if (!ch) return 0.0;
+    return ch->color.z;
+}
+
+bool DsonDocument_GetMaterialChannelHasColor(DsonDocumentHandle handle, int matIndex, int channelId) {
+    if (!handle) return false;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return false;
+    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
+    if (!ch) return false;
+    return ch->has_color;
+}
+
+const char* DsonDocument_GetMaterialChannelImageUrl(DsonDocumentHandle handle, int matIndex, int channelId) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
+    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
+    if (!ch) return "";
+    return ch->image_url.c_str();
+}
+
+const char* DsonDocument_GetMaterialChannelTexturePath(DsonDocumentHandle handle, int matIndex, int channelId) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
+    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
+    if (!ch) return "";
+    return ch->texture_path.c_str();
+}
+
+// ============================================================
+// F. Morph Targets
+// ============================================================
+
+int DsonDocument_GetMorphCount(DsonDocumentHandle handle) {
+    if (!handle) return 0;
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    return static_cast<int>(ctx->morphIndexCache.size());
+}
+
+const char* DsonDocument_GetMorphName(DsonDocumentHandle handle, int morphIndex) {
+    if (!handle) return "";
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return "";
+    return ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].name.c_str();
+}
+
+const char* DsonDocument_GetMorphLabel(DsonDocumentHandle handle, int morphIndex) {
+    if (!handle) return "";
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return "";
+    // Modifier has no separate label field; name serves as the closest equivalent
+    return ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].name.c_str();
+}
+
+int DsonDocument_GetMorphDeltaCount(DsonDocumentHandle handle, int morphIndex) {
+    if (!handle) return -1;
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return -1;
+    return static_cast<int>(ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].morph_deltas.size());
+}
+
+int DsonDocument_GetMorphDeltaVertexIndex(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
+    if (!handle) return -1;
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return -1;
+    const auto& deltas = ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].morph_deltas;
+    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return -1;
+    return deltas.GetIndex(deltaIndex);
+}
+
+double DsonDocument_GetMorphDeltaX(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
+    if (!handle) return 0.0;
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return 0.0;
+    const auto& deltas = ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].morph_deltas;
+    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
+    return deltas.GetValue(deltaIndex).x;
+}
+
+double DsonDocument_GetMorphDeltaY(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
+    if (!handle) return 0.0;
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return 0.0;
+    const auto& deltas = ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].morph_deltas;
+    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
+    return deltas.GetValue(deltaIndex).y;
+}
+
+double DsonDocument_GetMorphDeltaZ(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
+    if (!handle) return 0.0;
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return 0.0;
+    const auto& deltas = ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].morph_deltas;
+    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
+    return deltas.GetValue(deltaIndex).z;
 }
 
 const char* DsonParser_GetLastError() {
