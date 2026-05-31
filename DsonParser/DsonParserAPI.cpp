@@ -574,15 +574,23 @@ double DsonDocument_GetVertexZ(DsonDocumentHandle handle, int geomIndex, int ver
 }
 
 // ---- Polylist ----
-// Each face entry is: [polygon_groups_idx, polygon_material_groups_idx, v0, v1, v2, v3]
-// Indices [0] and [1] are the two leading ints (bone region group and material group);
-// vertex indices start at [2]. For Genesis 9 quads, stride is always 6.
+// Each face entry is: [polygon_groups_idx, polygon_material_groups_idx, v0, v1, ..., vN-1]
+// Indices [0] and [1] are the two leading ints; vertex indices start at [2].
+// polylist_face_offsets[i] holds the start index in polylist.values for face i,
+// enabling correct indexing for variable-length (mixed tri/quad) faces.
 
-static int GetPolylistStride(const Dson::Geometry& geom) {
-    int polyCount = geom.polygon_count;
-    int total = static_cast<int>(geom.polylist.values.size());
-    if (polyCount <= 0 || total <= 0) return 0;
-    return total / polyCount;
+static int GetFaceStartOffset(const Dson::Geometry& geom, int faceIndex) {
+    if (faceIndex < 0 || faceIndex >= static_cast<int>(geom.polylist_face_offsets.size())) return -1;
+    return geom.polylist_face_offsets[faceIndex];
+}
+
+static int GetFaceLength(const Dson::Geometry& geom, int faceIndex) {
+    int n = static_cast<int>(geom.polylist_face_offsets.size());
+    if (faceIndex < 0 || faceIndex >= n) return -1;
+    int start = geom.polylist_face_offsets[faceIndex];
+    int end = (faceIndex + 1 < n) ? geom.polylist_face_offsets[faceIndex + 1]
+                                   : static_cast<int>(geom.polylist.values.size());
+    return end - start;
 }
 
 int DsonDocument_GetPolylistCount(DsonDocumentHandle handle, int geomIndex) {
@@ -597,10 +605,10 @@ int DsonDocument_GetPolylistFaceVertexCount(DsonDocumentHandle handle, int geomI
     Dson::DsonDocument* doc = GetDocument(handle);
     if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
     const auto& geom = doc->geometries[geomIndex];
-    int stride = GetPolylistStride(geom);
-    if (stride <= 2) return -1;
     if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
-    return stride - 2; // subtract both leading ints (polygon_group and material_group)
+    int len = GetFaceLength(geom, faceIndex);
+    if (len < 2) return -1;
+    return len - 2;
 }
 
 int DsonDocument_GetPolylistFaceVertex(DsonDocumentHandle handle, int geomIndex, int faceIndex, int vertexIndex) {
@@ -608,12 +616,13 @@ int DsonDocument_GetPolylistFaceVertex(DsonDocumentHandle handle, int geomIndex,
     Dson::DsonDocument* doc = GetDocument(handle);
     if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
     const auto& geom = doc->geometries[geomIndex];
-    int stride = GetPolylistStride(geom);
-    if (stride <= 2) return -1;
-    int vertsPerFace = stride - 2;
     if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
+    int offset = GetFaceStartOffset(geom, faceIndex);
+    int len = GetFaceLength(geom, faceIndex);
+    if (offset < 0 || len < 2) return -1;
+    int vertsPerFace = len - 2;
     if (vertexIndex < 0 || vertexIndex >= vertsPerFace) return -1;
-    return geom.polylist.values[faceIndex * stride + 2 + vertexIndex];
+    return geom.polylist.values[offset + 2 + vertexIndex];
 }
 
 int DsonDocument_GetPolylistFaceMaterialIndex(DsonDocumentHandle handle, int geomIndex, int faceIndex) {
@@ -621,10 +630,10 @@ int DsonDocument_GetPolylistFaceMaterialIndex(DsonDocumentHandle handle, int geo
     Dson::DsonDocument* doc = GetDocument(handle);
     if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
     const auto& geom = doc->geometries[geomIndex];
-    int stride = GetPolylistStride(geom);
-    if (stride <= 1) return -1;
     if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
-    return geom.polylist.values[faceIndex * stride + 1];
+    int offset = GetFaceStartOffset(geom, faceIndex);
+    if (offset < 0 || offset + 1 >= static_cast<int>(geom.polylist.values.size())) return -1;
+    return geom.polylist.values[offset + 1];
 }
 
 int DsonDocument_GetPolylistFaceGroupIndex(DsonDocumentHandle handle, int geomIndex, int faceIndex) {
@@ -632,10 +641,10 @@ int DsonDocument_GetPolylistFaceGroupIndex(DsonDocumentHandle handle, int geomIn
     Dson::DsonDocument* doc = GetDocument(handle);
     if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
     const auto& geom = doc->geometries[geomIndex];
-    int stride = GetPolylistStride(geom);
-    if (stride <= 0) return -1;
     if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
-    return geom.polylist.values[faceIndex * stride];
+    int offset = GetFaceStartOffset(geom, faceIndex);
+    if (offset < 0 || offset >= static_cast<int>(geom.polylist.values.size())) return -1;
+    return geom.polylist.values[offset];
 }
 
 // ---- Polygon groups (bone region groups) ----
@@ -670,6 +679,42 @@ const char* DsonDocument_GetPolygonMaterialGroupName(DsonDocumentHandle handle, 
     Dson::DsonDocument* doc = GetDocument(handle);
     if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return "";
     const auto& groups = doc->geometries[geomIndex].polygon_material_groups;
+    if (groupIndex < 0 || groupIndex >= static_cast<int>(groups.size())) return "";
+    return groups[groupIndex].c_str();
+}
+
+// ---- Material groups (library materials) ----
+
+int DsonDocument_GetMaterialGroupCount(DsonDocumentHandle handle, int matIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return -1;
+    return static_cast<int>(doc->materials[matIndex].groups.size());
+}
+
+const char* DsonDocument_GetMaterialGroupName(DsonDocumentHandle handle, int matIndex, int groupIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
+    const auto& groups = doc->materials[matIndex].groups;
+    if (groupIndex < 0 || groupIndex >= static_cast<int>(groups.size())) return "";
+    return groups[groupIndex].c_str();
+}
+
+// ---- Material groups (scene material instances) ----
+
+int DsonDocument_GetSceneMaterialGroupCount(DsonDocumentHandle handle, int matIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->scene.materials.size())) return -1;
+    return static_cast<int>(doc->scene.materials[matIndex].groups.size());
+}
+
+const char* DsonDocument_GetSceneMaterialGroupName(DsonDocumentHandle handle, int matIndex, int groupIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->scene.materials.size())) return "";
+    const auto& groups = doc->scene.materials[matIndex].groups;
     if (groupIndex < 0 || groupIndex >= static_cast<int>(groups.size())) return "";
     return groups[groupIndex].c_str();
 }

@@ -348,9 +348,11 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
         }
         if (faces) {
             polylist.values.reserve(faces->Size() * 6);
+            polylist_face_offsets.reserve(faces->Size());
             for (rapidjson::SizeType i = 0; i < faces->Size(); i++) {
                 if ((*faces)[i].IsArray()) {
                     const auto& face = (*faces)[i];
+                    polylist_face_offsets.push_back(static_cast<int>(polylist.values.size()));
                     for (rapidjson::SizeType j = 0; j < face.Size(); j++) {
                         if (face[j].IsInt()) {
                             polylist.values.push_back(face[j].GetInt());
@@ -437,6 +439,8 @@ bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     if (json.HasMember("uv_set") && json["uv_set"].IsString()) {
         uv_set_id.value = json["uv_set"].GetString();
     }
+
+    ParseStringValuedArray(json, "groups", groups);
 
     // Top-level "diffuse" channel
     const rapidjson::Value* diffuseObj = nullptr;

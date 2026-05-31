@@ -58,6 +58,7 @@ struct Geometry {
     FloatArray vertices;           // flattened x,y,z,x,y,z,...
     IntArray polygons;
     IntArray polylist;             // flattened face data (incl. leading group/material indices)
+    std::vector<int> polylist_face_offsets; // start index in polylist.values for each face
     Int vertex_count;
     Int polygon_count;
     std::vector<std::string> polygon_groups;          // face group names
@@ -85,6 +86,7 @@ struct Material {
     Url url;
     String geometry;
     String uv_set_id;
+    std::vector<std::string> groups; // surface zone names (populated on scene material instances)
 
     MaterialChannel diffuse;
     MaterialChannel specular;

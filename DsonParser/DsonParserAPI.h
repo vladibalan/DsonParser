@@ -102,6 +102,14 @@ DSONPARSER_API const char* DsonDocument_GetPolygonGroupName(DsonDocumentHandle h
 DSONPARSER_API int         DsonDocument_GetPolygonMaterialGroupCount(DsonDocumentHandle handle, int geomIndex);
 DSONPARSER_API const char* DsonDocument_GetPolygonMaterialGroupName(DsonDocumentHandle handle, int geomIndex, int groupIndex);
 
+// Material groups on material instances (library materials — typically empty for library entries)
+DSONPARSER_API int         DsonDocument_GetMaterialGroupCount(DsonDocumentHandle handle, int matIndex);
+DSONPARSER_API const char* DsonDocument_GetMaterialGroupName(DsonDocumentHandle handle, int matIndex, int groupIndex);
+
+// Material groups on scene material instances (scene.materials — "groups" maps to polygon_material_groups)
+DSONPARSER_API int         DsonDocument_GetSceneMaterialGroupCount(DsonDocumentHandle handle, int matIndex);
+DSONPARSER_API const char* DsonDocument_GetSceneMaterialGroupName(DsonDocumentHandle handle, int matIndex, int groupIndex);
+
 // Get modifier info by index
 DSONPARSER_API const char* DsonDocument_GetModifierId(DsonDocumentHandle handle, int index);
 DSONPARSER_API const char* DsonDocument_GetModifierName(DsonDocumentHandle handle, int index);
