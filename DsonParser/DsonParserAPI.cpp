@@ -4,12 +4,25 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <algorithm>
+#include <unordered_map>
 
 // Per-handle context: bundles the parsed document with the caches that back the
 // index-based enumeration APIs. Keeping this state on the handle (instead of in
 // process globals) means distinct documents - several files open at once, or
 // parsed on different threads - never clobber each other's caches.
 namespace {
+
+struct VertexInfluence {
+    std::string boneNodeId;
+    double weight;
+};
+
+struct VertexInfluenceCache {
+    int modifierIndex = -1;
+    std::unordered_map<int, std::vector<VertexInfluence>> data;
+    bool built = false;
+};
 
 struct DsonContext {
     Dson::DsonDocument document;
@@ -18,6 +31,7 @@ struct DsonContext {
     std::string unknownKeysCacheContext;
     std::vector<int> morphIndexCache;   // indices into document.modifiers where type == "morph"
     bool morphIndexCacheDirty = true;
+    VertexInfluenceCache skinCache;
 };
 
 // errno-style last error: each thread gets its own slot, so concurrent loads on
@@ -45,6 +59,46 @@ static void EnsureMorphCache(DsonContext* ctx) {
         }
     }
     ctx->morphIndexCacheDirty = false;
+}
+
+static void EnsureSkinCache(DsonContext* ctx, int modifierIndex) {
+    if (ctx->skinCache.built && ctx->skinCache.modifierIndex == modifierIndex) return;
+
+    ctx->skinCache.data.clear();
+    ctx->skinCache.modifierIndex = modifierIndex;
+
+    const auto& doc = ctx->document;
+    if (modifierIndex < 0 || modifierIndex >= static_cast<int>(doc.modifiers.size()) ||
+        !doc.modifiers[modifierIndex].has_skin) {
+        ctx->skinCache.built = true;
+        return;
+    }
+
+    const auto& joints = doc.modifiers[modifierIndex].skin.joints;
+    for (int ji = 0; ji < static_cast<int>(joints.size()); ++ji) {
+        const auto& joint = joints[ji];
+        const std::string& boneNodeId = joint.node.value;
+        for (int wi = 0; wi < static_cast<int>(joint.weight_indices.size()); ++wi) {
+            int vertIdx = joint.weight_indices[wi];
+            VertexInfluence inf;
+            inf.boneNodeId = boneNodeId;
+            inf.weight = joint.weights[wi];
+            ctx->skinCache.data[vertIdx].push_back(inf);
+        }
+    }
+
+    for (auto& kv : ctx->skinCache.data) {
+        std::vector<VertexInfluence>& influences = kv.second;
+        std::sort(influences.begin(), influences.end(),
+            [](const VertexInfluence& a, const VertexInfluence& b) { return a.weight > b.weight; });
+        double sum = 0.0;
+        for (int i = 0; i < static_cast<int>(influences.size()); ++i) sum += influences[i].weight;
+        if (sum > 0.0) {
+            for (int i = 0; i < static_cast<int>(influences.size()); ++i) influences[i].weight /= sum;
+        }
+    }
+
+    ctx->skinCache.built = true;
 }
 
 static const Dson::MaterialChannel* GetMaterialChannel(const Dson::Material& mat, int channelId) {
@@ -88,6 +142,9 @@ int DsonDocument_LoadFromFile(DsonDocumentHandle handle, const char* filepath) {
             ctx->unknownKeysCache.clear();
             ctx->unknownKeysCacheContext.clear();
             ctx->morphIndexCacheDirty = true;
+            ctx->skinCache.data.clear();
+            ctx->skinCache.built = false;
+            ctx->skinCache.modifierIndex = -1;
             return 1;
         }
         StoreLastError(errorMsg);
@@ -119,6 +176,9 @@ int DsonDocument_LoadFromString(DsonDocumentHandle handle, const char* jsonStrin
             ctx->unknownKeysCache.clear();
             ctx->unknownKeysCacheContext.clear();
             ctx->morphIndexCacheDirty = true;
+            ctx->skinCache.data.clear();
+            ctx->skinCache.built = false;
+            ctx->skinCache.modifierIndex = -1;
             return 1;
         }
         StoreLastError(errorMsg);
@@ -462,6 +522,9 @@ void DsonDocument_Clear(DsonDocumentHandle handle) {
     ctx->unknownKeysCacheContext.clear();
     ctx->morphIndexCache.clear();
     ctx->morphIndexCacheDirty = true;
+    ctx->skinCache.data.clear();
+    ctx->skinCache.built = false;
+    ctx->skinCache.modifierIndex = -1;
 }
 
 void DsonDocument_Destroy(DsonDocumentHandle handle) {
@@ -783,6 +846,31 @@ double DsonDocument_GetSkinJointWeight(DsonDocumentHandle handle, int modifierIn
     const auto& joint = joints[jointIndex];
     if (weightIndex < 0 || weightIndex >= static_cast<int>(joint.weights.size())) return 0.0;
     return joint.weights[weightIndex];
+}
+
+int DsonDocument_GetVertexInfluenceCount(DsonDocumentHandle handle, int modifierIndex, int vertexIndex, int maxInfluences) {
+    if (!handle || maxInfluences < 1) return 0;
+    DsonContext* ctx = GetContext(handle);
+    EnsureSkinCache(ctx, modifierIndex);
+    auto it = ctx->skinCache.data.find(vertexIndex);
+    if (it == ctx->skinCache.data.end()) return 0;
+    int count = static_cast<int>(it->second.size());
+    return count < maxInfluences ? count : maxInfluences;
+}
+
+bool DsonDocument_GetVertexBoneInfluence(DsonDocumentHandle handle, int modifierIndex, int vertexIndex, int influenceIndex, const char** boneNodeId, double* weight) {
+    if (boneNodeId) *boneNodeId = "";
+    if (weight) *weight = 0.0;
+    if (!handle || !boneNodeId || !weight) return false;
+    DsonContext* ctx = GetContext(handle);
+    EnsureSkinCache(ctx, modifierIndex);
+    auto it = ctx->skinCache.data.find(vertexIndex);
+    if (it == ctx->skinCache.data.end()) return false;
+    const std::vector<VertexInfluence>& influences = it->second;
+    if (influenceIndex < 0 || influenceIndex >= static_cast<int>(influences.size())) return false;
+    *boneNodeId = influences[influenceIndex].boneNodeId.c_str();
+    *weight = influences[influenceIndex].weight;
+    return true;
 }
 
 // ============================================================

@@ -137,6 +137,16 @@ DSONPARSER_API int         DsonDocument_GetSkinJointWeightCount(DsonDocumentHand
 DSONPARSER_API int         DsonDocument_GetSkinJointWeightVertexIndex(DsonDocumentHandle handle, int modifierIndex, int jointIndex, int weightIndex);
 DSONPARSER_API double      DsonDocument_GetSkinJointWeight(DsonDocumentHandle handle, int modifierIndex, int jointIndex, int weightIndex);
 
+// Processed per-vertex skin weight queries (inverted, sorted descending, normalized, capped).
+// Call GetVertexInfluenceCount first to size arrays, then GetVertexBoneInfluence for each influence.
+// Pass maxInfluences=8 for UE5 FSoftSkinVertex; must be >= 1.
+DSONPARSER_API int  DsonDocument_GetVertexInfluenceCount(DsonDocumentHandle handle, int modifierIndex, int vertexIndex, int maxInfluences);
+
+// Returns the bone node id string and normalized weight [0,1] for influence i on vertexIndex.
+// Influences are sorted descending by weight; all influences for this vertex sum to 1.0.
+// Sets *boneNodeId="" and *weight=0.0 and returns false if influenceIndex is out of range.
+DSONPARSER_API bool DsonDocument_GetVertexBoneInfluence(DsonDocumentHandle handle, int modifierIndex, int vertexIndex, int influenceIndex, const char** boneNodeId, double* weight);
+
 // ---- D. UV Sets (library uv_sets, not scene instances) ----
 DSONPARSER_API const char* DsonDocument_GetUVSetId(DsonDocumentHandle handle, int uvSetIndex);
 DSONPARSER_API int         DsonDocument_GetUVCount(DsonDocumentHandle handle, int uvSetIndex);
