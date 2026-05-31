@@ -35,9 +35,11 @@ struct DsonContext {
     std::string lastMorphGeometryId;    // stable storage for GetMorphGeometryId return value
 };
 
-// errno-style last error: each thread gets its own slot, so concurrent loads on
-// different threads don't race. Read it on the thread that made the failing call.
-thread_local std::string t_lastError;
+// Single static error slot — safe for single-threaded UE5 import use.
+// Was thread_local, but Windows TLS in a DLL is not initialized for threads
+// that predate the DLL load (e.g. UE5 main thread via GetDllHandle), causing
+// GetLastError to always return empty from the plugin.
+static std::string s_lastError;
 
 DsonContext* GetContext(DsonDocumentHandle handle) {
     return static_cast<DsonContext*>(handle);
@@ -48,7 +50,7 @@ Dson::DsonDocument* GetDocument(DsonDocumentHandle handle) {
 }
 
 void StoreLastError(const std::string& error) {
-    t_lastError = error;
+    s_lastError = error;
 }
 
 static void EnsureMorphCache(DsonContext* ctx) {
@@ -131,9 +133,9 @@ DsonDocumentHandle DsonDocument_Create() {
 int DsonDocument_LoadFromFile(DsonDocumentHandle handle, const char* filepath) {
     if (!handle || !filepath) {
         StoreLastError("Invalid handle or filepath");
-        return 0;
+        return 1;
     }
-    
+
     try {
         Dson::DsonDocument* doc = GetDocument(handle);
         std::string errorMsg;
@@ -147,27 +149,27 @@ int DsonDocument_LoadFromFile(DsonDocumentHandle handle, const char* filepath) {
             ctx->skinCache.data.clear();
             ctx->skinCache.built = false;
             ctx->skinCache.modifierIndex = -1;
-            return 1;
+            return 0;
         }
         StoreLastError(errorMsg);
-        return 0;
+        return 1;
     }
     catch (const std::exception& e) {
         StoreLastError(std::string("Exception: ") + e.what());
-        return 0;
+        return 1;
     }
     catch (...) {
         StoreLastError("Unknown exception occurred");
-        return 0;
+        return 1;
     }
 }
 
 int DsonDocument_LoadFromString(DsonDocumentHandle handle, const char* jsonString) {
     if (!handle || !jsonString) {
         StoreLastError("Invalid handle or string");
-        return 0;
+        return 1;
     }
-    
+
     try {
         Dson::DsonDocument* doc = GetDocument(handle);
         std::string errorMsg;
@@ -181,18 +183,18 @@ int DsonDocument_LoadFromString(DsonDocumentHandle handle, const char* jsonStrin
             ctx->skinCache.data.clear();
             ctx->skinCache.built = false;
             ctx->skinCache.modifierIndex = -1;
-            return 1;
+            return 0;
         }
         StoreLastError(errorMsg);
-        return 0;
+        return 1;
     }
     catch (const std::exception& e) {
         StoreLastError(std::string("Exception: ") + e.what());
-        return 0;
+        return 1;
     }
     catch (...) {
         StoreLastError("Unknown exception occurred");
-        return 0;
+        return 1;
     }
 }
 
@@ -1250,5 +1252,5 @@ const char* DsonDocument_GetMorphGeometryId(DsonDocumentHandle handle, int morph
 }
 
 const char* DsonParser_GetLastError() {
-    return t_lastError.c_str();
+    return s_lastError.c_str();
 }

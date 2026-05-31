@@ -16,10 +16,12 @@ typedef void* DsonDocumentHandle;
 // Create a new DSON document
 DSONPARSER_API DsonDocumentHandle DsonDocument_Create();
 
-// Load DSON from file
+// Returns 0 on success, non-zero on failure.
+// Call DsonParser_GetLastError() for error detail on failure.
 DSONPARSER_API int DsonDocument_LoadFromFile(DsonDocumentHandle handle, const char* filepath);
 
-// Load DSON from string
+// Returns 0 on success, non-zero on failure.
+// Call DsonParser_GetLastError() for error detail on failure.
 DSONPARSER_API int DsonDocument_LoadFromString(DsonDocumentHandle handle, const char* jsonString);
 
 // Get file version

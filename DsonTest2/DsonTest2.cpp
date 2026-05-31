@@ -2,6 +2,7 @@
 //
 
 #include <iostream>
+#include <fstream> 
 #include <Windows.h>
 #include "../DsonParser/DsonParserAPI.h"
 
@@ -70,17 +71,24 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // Load the file
-    std::cout << "Loading " << filepath << "...\n";
-    if (!DsonDocument_LoadFromFile(doc, filepath.c_str())) {
-        std::cerr << "Failed to load file: " << DsonParser_GetLastError() << "\n";
+    if (DsonDocument_LoadFromFile(doc, filepath.c_str()) != 0) {
+        std::cerr << "Error loading file: " << DsonParser_GetLastError() << "\n";
         DsonDocument_Destroy(doc);
         std::cout << "\nPress Enter to exit...";
         std::cin.get();
         return 1;
     }
 
-    std::cout << "Successfully loaded DSON file!\n\n";
+    std::ifstream ifs("D:/Daz_content/People/Genesis 9/Genesis 9.duf");
+    std::string content((std::istreambuf_iterator<char>(ifs)),
+                         std::istreambuf_iterator<char>());
+    printf("File content length: %zu\n", content.size());
+
+    DsonDocumentHandle doc2 = DsonDocument_Create();
+    int result = DsonDocument_LoadFromString(doc2, content.c_str());
+    printf("LoadFromString result: %d\n", result);
+    printf("LastError: '%s'\n", DsonParser_GetLastError());
+    DsonDocument_Destroy(doc2);
 
     // Display file information
     std::cout << "File Version: " << DsonDocument_GetFileVersion(doc) << "\n";
