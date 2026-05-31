@@ -62,6 +62,7 @@ struct Geometry {
     Int polygon_count;
     std::vector<std::string> polygon_groups;          // face group names
     std::vector<std::string> polygon_material_groups; // material group names
+    std::string default_uv_set_id;                    // primary UV channel URL (e.g. "/data/.../Base.dsf#Base Multi UDIM")
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

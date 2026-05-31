@@ -377,6 +377,13 @@ int DsonDocument_GetGeometryPolygonCount(DsonDocumentHandle handle, int index) {
     return doc->geometries[index].polygon_count;
 }
 
+const char* DsonDocument_GetGeometryDefaultUVSetId(DsonDocumentHandle handle, int geomIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return "";
+    return doc->geometries[geomIndex].default_uv_set_id.c_str();
+}
+
 const char* DsonDocument_GetModifierId(DsonDocumentHandle handle, int index) {
     if (!handle) return "";
     Dson::DsonDocument* doc = GetDocument(handle);
@@ -662,6 +669,69 @@ const char* DsonDocument_GetNodeRotationOrder(DsonDocumentHandle handle, int nod
     Dson::DsonDocument* doc = GetDocument(handle);
     if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return "";
     return doc->nodes[nodeIndex].rotation_order.c_str();
+}
+
+double DsonDocument_GetNodeTranslationX(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].translation.x;
+}
+
+double DsonDocument_GetNodeTranslationY(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].translation.y;
+}
+
+double DsonDocument_GetNodeTranslationZ(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].translation.z;
+}
+
+double DsonDocument_GetNodeRotationX(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].rotation.x;
+}
+
+double DsonDocument_GetNodeRotationY(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].rotation.y;
+}
+
+double DsonDocument_GetNodeRotationZ(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].rotation.z;
+}
+
+double DsonDocument_GetNodeScaleX(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].scale.x;
+}
+
+double DsonDocument_GetNodeScaleY(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].scale.y;
+}
+
+double DsonDocument_GetNodeScaleZ(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
+    return doc->nodes[nodeIndex].scale.z;
 }
 
 // ============================================================

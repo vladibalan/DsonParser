@@ -78,6 +78,7 @@ DSONPARSER_API const char* DsonDocument_GetGeometryId(DsonDocumentHandle handle,
 DSONPARSER_API const char* DsonDocument_GetGeometryName(DsonDocumentHandle handle, int index);
 DSONPARSER_API int DsonDocument_GetGeometryVertexCount(DsonDocumentHandle handle, int index);
 DSONPARSER_API int DsonDocument_GetGeometryPolygonCount(DsonDocumentHandle handle, int index);
+DSONPARSER_API const char* DsonDocument_GetGeometryDefaultUVSetId(DsonDocumentHandle handle, int geomIndex);
 
 // ---- A. Geometry: vertex positions ----
 DSONPARSER_API int    DsonDocument_GetVertexCount(DsonDocumentHandle handle, int geomIndex);
@@ -118,6 +119,15 @@ DSONPARSER_API double      DsonDocument_GetNodeOrientationX(DsonDocumentHandle h
 DSONPARSER_API double      DsonDocument_GetNodeOrientationY(DsonDocumentHandle handle, int nodeIndex);
 DSONPARSER_API double      DsonDocument_GetNodeOrientationZ(DsonDocumentHandle handle, int nodeIndex);
 DSONPARSER_API const char* DsonDocument_GetNodeRotationOrder(DsonDocumentHandle handle, int nodeIndex);
+DSONPARSER_API double      DsonDocument_GetNodeTranslationX(DsonDocumentHandle handle, int nodeIndex);
+DSONPARSER_API double      DsonDocument_GetNodeTranslationY(DsonDocumentHandle handle, int nodeIndex);
+DSONPARSER_API double      DsonDocument_GetNodeTranslationZ(DsonDocumentHandle handle, int nodeIndex);
+DSONPARSER_API double      DsonDocument_GetNodeRotationX(DsonDocumentHandle handle, int nodeIndex);
+DSONPARSER_API double      DsonDocument_GetNodeRotationY(DsonDocumentHandle handle, int nodeIndex);
+DSONPARSER_API double      DsonDocument_GetNodeRotationZ(DsonDocumentHandle handle, int nodeIndex);
+DSONPARSER_API double      DsonDocument_GetNodeScaleX(DsonDocumentHandle handle, int nodeIndex);
+DSONPARSER_API double      DsonDocument_GetNodeScaleY(DsonDocumentHandle handle, int nodeIndex);
+DSONPARSER_API double      DsonDocument_GetNodeScaleZ(DsonDocumentHandle handle, int nodeIndex);
 
 // ---- C. Skin Weights ----
 // modifierIndex is an index into the full modifier library (same as GetModifierId etc.)

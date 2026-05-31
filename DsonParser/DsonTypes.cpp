@@ -367,6 +367,8 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     ParseStringValuedArray(json, "polygon_groups", polygon_groups);
     ParseStringValuedArray(json, "polygon_material_groups", polygon_material_groups);
 
+    JsonHelper::GetString(json, "default_uv_set", default_uv_set_id);
+
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
 }
