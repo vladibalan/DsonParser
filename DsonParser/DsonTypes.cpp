@@ -494,8 +494,10 @@ bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
                     specularPriority = 0;
                 } else if (chId == "Glossy Roughness" || chId == "Roughness") {
                     roughness = ParseMaterialChannel(entry);
-                } else if (chId == "Normal Map" || chId == "Bump Strength") {
+                } else if (chId == "Normal Map") {
                     normal = ParseMaterialChannel(entry);
+                } else if (chId == "Bump Strength") {
+                    bump = ParseMaterialChannel(entry);
                 } else if (chId == "Cutout Opacity" || chId == "Opacity Strength") {
                     opacity = ParseMaterialChannel(entry);
                 } else if (chId == "Transmitted Color" || chId == "Subsurface Color") {
@@ -958,6 +960,7 @@ bool DsonDocument::ParseFromJson(const rapidjson::Document& doc) {
         resolveChannel(mat.specular);
         resolveChannel(mat.roughness);
         resolveChannel(mat.normal);
+        resolveChannel(mat.bump);
         resolveChannel(mat.opacity);
         resolveChannel(mat.subsurface);
         resolveChannel(mat.emission);

@@ -111,6 +111,7 @@ static const Dson::MaterialChannel* GetMaterialChannel(const Dson::Material& mat
         case 4: return &mat.opacity;
         case 5: return &mat.subsurface;
         case 6: return &mat.emission;
+        case 7: return &mat.bump;
         default: return nullptr;
     }
 }

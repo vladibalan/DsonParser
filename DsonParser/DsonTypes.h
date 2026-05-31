@@ -99,6 +99,7 @@ struct Material {
     MaterialChannel specular;
     MaterialChannel roughness;
     MaterialChannel normal;
+    MaterialChannel bump;
     MaterialChannel opacity;
     MaterialChannel subsurface;
     MaterialChannel emission;

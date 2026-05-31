@@ -176,7 +176,7 @@ DSONPARSER_API const char* DsonDocument_GetMaterialName(DsonDocumentHandle handl
 DSONPARSER_API const char* DsonDocument_GetMaterialGeometryId(DsonDocumentHandle handle, int matIndex);
 DSONPARSER_API const char* DsonDocument_GetMaterialUVSetId(DsonDocumentHandle handle, int matIndex);
 
-// Per-channel accessors: channelId 0=diffuse 1=specular 2=roughness 3=normal 4=opacity 5=subsurface 6=emission
+// Per-channel accessors: channelId 0=diffuse 1=specular 2=roughness 3=normal 4=opacity 5=subsurface 6=emission 7=bump
 DSONPARSER_API double      DsonDocument_GetMaterialChannelValue(DsonDocumentHandle handle, int matIndex, int channelId);
 DSONPARSER_API double      DsonDocument_GetMaterialChannelColorR(DsonDocumentHandle handle, int matIndex, int channelId);
 DSONPARSER_API double      DsonDocument_GetMaterialChannelColorG(DsonDocumentHandle handle, int matIndex, int channelId);
