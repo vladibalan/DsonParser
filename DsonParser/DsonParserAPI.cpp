@@ -504,9 +504,9 @@ double DsonDocument_GetVertexZ(DsonDocumentHandle handle, int geomIndex, int ver
 }
 
 // ---- Polylist ----
-// The polylist flat array has uniform stride: polygon_count faces, each face occupying
-// (total_size / polygon_count) ints. The first int of each face is the material group
-// index; the rest are vertex indices. DAZ Studio always emits quads so stride is 5.
+// Each face entry is: [polygon_groups_idx, polygon_material_groups_idx, v0, v1, v2, v3]
+// Indices [0] and [1] are the two leading ints (bone region group and material group);
+// vertex indices start at [2]. For Genesis 9 quads, stride is always 6.
 
 static int GetPolylistStride(const Dson::Geometry& geom) {
     int polyCount = geom.polygon_count;
@@ -528,9 +528,9 @@ int DsonDocument_GetPolylistFaceVertexCount(DsonDocumentHandle handle, int geomI
     if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
     const auto& geom = doc->geometries[geomIndex];
     int stride = GetPolylistStride(geom);
-    if (stride <= 1) return -1;
+    if (stride <= 2) return -1;
     if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
-    return stride - 1; // subtract the leading material index slot
+    return stride - 2; // subtract both leading ints (polygon_group and material_group)
 }
 
 int DsonDocument_GetPolylistFaceVertex(DsonDocumentHandle handle, int geomIndex, int faceIndex, int vertexIndex) {
@@ -539,11 +539,11 @@ int DsonDocument_GetPolylistFaceVertex(DsonDocumentHandle handle, int geomIndex,
     if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
     const auto& geom = doc->geometries[geomIndex];
     int stride = GetPolylistStride(geom);
-    if (stride <= 1) return -1;
-    int vertsPerFace = stride - 1;
+    if (stride <= 2) return -1;
+    int vertsPerFace = stride - 2;
     if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
     if (vertexIndex < 0 || vertexIndex >= vertsPerFace) return -1;
-    return geom.polylist.values[faceIndex * stride + 1 + vertexIndex];
+    return geom.polylist.values[faceIndex * stride + 2 + vertexIndex];
 }
 
 int DsonDocument_GetPolylistFaceMaterialIndex(DsonDocumentHandle handle, int geomIndex, int faceIndex) {
@@ -552,9 +552,38 @@ int DsonDocument_GetPolylistFaceMaterialIndex(DsonDocumentHandle handle, int geo
     if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
     const auto& geom = doc->geometries[geomIndex];
     int stride = GetPolylistStride(geom);
+    if (stride <= 1) return -1;
+    if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
+    return geom.polylist.values[faceIndex * stride + 1];
+}
+
+int DsonDocument_GetPolylistFaceGroupIndex(DsonDocumentHandle handle, int geomIndex, int faceIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
+    const auto& geom = doc->geometries[geomIndex];
+    int stride = GetPolylistStride(geom);
     if (stride <= 0) return -1;
     if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
     return geom.polylist.values[faceIndex * stride];
+}
+
+// ---- Polygon groups (bone region groups) ----
+
+int DsonDocument_GetPolygonGroupCount(DsonDocumentHandle handle, int geomIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
+    return static_cast<int>(doc->geometries[geomIndex].polygon_groups.size());
+}
+
+const char* DsonDocument_GetPolygonGroupName(DsonDocumentHandle handle, int geomIndex, int groupIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return "";
+    const auto& groups = doc->geometries[geomIndex].polygon_groups;
+    if (groupIndex < 0 || groupIndex >= static_cast<int>(groups.size())) return "";
+    return groups[groupIndex].c_str();
 }
 
 // ---- Material groups ----

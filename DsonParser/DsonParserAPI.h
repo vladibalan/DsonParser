@@ -86,11 +86,16 @@ DSONPARSER_API double DsonDocument_GetVertexY(DsonDocumentHandle handle, int geo
 DSONPARSER_API double DsonDocument_GetVertexZ(DsonDocumentHandle handle, int geomIndex, int vertexIndex);
 
 // Polygon face list (polylist)
-// Leading int per face is the material group index; remaining ints are vertex indices.
+// Each face: [polygon_group_idx, material_group_idx, v0, v1, v2, v3] — two leading ints.
 DSONPARSER_API int    DsonDocument_GetPolylistCount(DsonDocumentHandle handle, int geomIndex);
 DSONPARSER_API int    DsonDocument_GetPolylistFaceVertexCount(DsonDocumentHandle handle, int geomIndex, int faceIndex);
 DSONPARSER_API int    DsonDocument_GetPolylistFaceVertex(DsonDocumentHandle handle, int geomIndex, int faceIndex, int vertexIndex);
+DSONPARSER_API int    DsonDocument_GetPolylistFaceGroupIndex(DsonDocumentHandle handle, int geomIndex, int faceIndex);
 DSONPARSER_API int    DsonDocument_GetPolylistFaceMaterialIndex(DsonDocumentHandle handle, int geomIndex, int faceIndex);
+
+// Polygon groups (bone region groups, e.g. l_forearm, head, pelvis)
+DSONPARSER_API int         DsonDocument_GetPolygonGroupCount(DsonDocumentHandle handle, int geomIndex);
+DSONPARSER_API const char* DsonDocument_GetPolygonGroupName(DsonDocumentHandle handle, int geomIndex, int groupIndex);
 
 // Material groups
 DSONPARSER_API int         DsonDocument_GetPolygonMaterialGroupCount(DsonDocumentHandle handle, int geomIndex);
