@@ -180,30 +180,29 @@ bool IndexedArray<Vector3>::ParseFromJson(const rapidjson::Value& json) {
     if (!json.IsObject()) {
         return false;
     }
-    
-    // Parse indices array
-    if (json.HasMember("indices") && json["indices"].IsArray()) {
-        const auto& indicesArray = json["indices"];
-        indices.reserve(indicesArray.Size());
-        for (rapidjson::SizeType i = 0; i < indicesArray.Size(); i++) {
-            if (indicesArray[i].IsInt()) {
-                indices.push_back(indicesArray[i].GetInt());
-            }
-        }
+
+    // DSON morph delta format: { "count": N, "values": [[vertex_idx, dx, dy, dz], ...] }
+    // Element [0] of each sub-array is the vertex index; [1..3] are the XYZ displacement.
+    if (!json.HasMember("values") || !json["values"].IsArray()) {
+        return false;
     }
-    
-    // Parse values array
-    if (json.HasMember("values") && json["values"].IsArray()) {
-        const auto& valuesArray = json["values"];
-        values.reserve(valuesArray.Size());
-        for (rapidjson::SizeType i = 0; i < valuesArray.Size(); i++) {
-            Vector3 vec;
-            if (vec.ParseFromJson(valuesArray[i])) {
-                values.push_back(vec);
-            }
+    const auto& valuesArray = json["values"];
+
+    indices.reserve(valuesArray.Size());
+    values.reserve(valuesArray.Size());
+
+    for (rapidjson::SizeType i = 0; i < valuesArray.Size(); i++) {
+        const rapidjson::Value& elem = valuesArray[i];
+        if (!elem.IsArray() || elem.Size() < 4) {
+            continue;
         }
+        if (!elem[0].IsInt() || !elem[1].IsNumber() || !elem[2].IsNumber() || !elem[3].IsNumber()) {
+            continue;
+        }
+        indices.push_back(elem[0].GetInt());
+        values.push_back(Vector3(elem[1].GetDouble(), elem[2].GetDouble(), elem[3].GetDouble()));
     }
-    
+
     return indices.size() == values.size();
 }
 
