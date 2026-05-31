@@ -32,6 +32,7 @@ struct DsonContext {
     std::vector<int> morphIndexCache;   // indices into document.modifiers where type == "morph"
     bool morphIndexCacheDirty = true;
     VertexInfluenceCache skinCache;
+    std::string lastMorphGeometryId;    // stable storage for GetMorphGeometryId return value
 };
 
 // errno-style last error: each thread gets its own slot, so concurrent loads on
@@ -337,6 +338,31 @@ const char* DsonDocument_GetSceneNodeUrl(DsonDocumentHandle handle, int index) {
     Dson::DsonDocument* doc = GetDocument(handle);
     if (index < 0 || index >= static_cast<int>(doc->scene.nodes.size())) return "";
     return doc->scene.nodes[index].url.c_str();
+}
+
+int DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneNodeIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneNodeIndex < 0 || sceneNodeIndex >= static_cast<int>(doc->scene.nodes.size())) return -1;
+    return static_cast<int>(doc->scene.nodes[sceneNodeIndex].geometries.size());
+}
+
+const char* DsonDocument_GetSceneNodeGeometryId(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneNodeIndex < 0 || sceneNodeIndex >= static_cast<int>(doc->scene.nodes.size())) return "";
+    const auto& geoms = doc->scene.nodes[sceneNodeIndex].geometries;
+    if (geomRefIndex < 0 || geomRefIndex >= static_cast<int>(geoms.size())) return "";
+    return geoms[geomRefIndex].id.c_str();
+}
+
+const char* DsonDocument_GetSceneNodeGeometryUrl(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneNodeIndex < 0 || sceneNodeIndex >= static_cast<int>(doc->scene.nodes.size())) return "";
+    const auto& geoms = doc->scene.nodes[sceneNodeIndex].geometries;
+    if (geomRefIndex < 0 || geomRefIndex >= static_cast<int>(geoms.size())) return "";
+    return geoms[geomRefIndex].url.c_str();
 }
 
 // Scene modifier instances (scene.modifiers)
@@ -1201,6 +1227,18 @@ double DsonDocument_GetMorphNormalDeltaZ(DsonDocumentHandle handle, int morphInd
     const auto& deltas = ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].normal_deltas;
     if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
     return deltas.GetValue(deltaIndex).z;
+}
+
+const char* DsonDocument_GetMorphGeometryId(DsonDocumentHandle handle, int morphIndex) {
+    if (!handle) return "";
+    DsonContext* ctx = GetContext(handle);
+    EnsureMorphCache(ctx);
+    if (morphIndex < 0 || morphIndex >= static_cast<int>(ctx->morphIndexCache.size())) return "";
+    const std::string& parent = ctx->document.modifiers[ctx->morphIndexCache[morphIndex]].parent.value;
+    size_t pos = parent.rfind('#');
+    if (pos == std::string::npos) return "";
+    ctx->lastMorphGeometryId = parent.substr(pos + 1);
+    return ctx->lastMorphGeometryId.c_str();
 }
 
 const char* DsonParser_GetLastError() {

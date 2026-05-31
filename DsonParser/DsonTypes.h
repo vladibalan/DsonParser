@@ -30,6 +30,12 @@ struct AssetInfo {
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
 
+// Geometry reference stored on scene figure nodes (the "geometries" array)
+struct NodeGeometryRef {
+    std::string id;
+    std::string url;
+};
+
 // Node in scene hierarchy
 struct Node {
     String id;
@@ -45,6 +51,7 @@ struct Node {
     Vector3 end_point;
     Vector3 orientation;                  // local axis alignment in rest pose (XYZ Euler degrees); default {0,0,0}
     std::string rotation_order = "YXZ";  // Euler rotation order; default matches DAZ Genesis 9
+    std::vector<NodeGeometryRef> geometries; // only populated on scene figure nodes
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

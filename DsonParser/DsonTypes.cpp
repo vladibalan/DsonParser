@@ -252,6 +252,19 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
 
     JsonHelper::GetString(json, "rotation_order", rotation_order);
 
+    const rapidjson::Value* geomsArray = nullptr;
+    if (JsonHelper::GetArray(json, "geometries", geomsArray)) {
+        geometries.reserve(geomsArray->Size());
+        for (rapidjson::SizeType i = 0; i < geomsArray->Size(); i++) {
+            const auto& el = (*geomsArray)[i];
+            if (!el.IsObject()) continue;
+            NodeGeometryRef ref;
+            JsonHelper::GetString(el, "id", ref.id);
+            JsonHelper::GetString(el, "url", ref.url);
+            geometries.push_back(ref);
+        }
+    }
+
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
 }

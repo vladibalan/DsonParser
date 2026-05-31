@@ -56,6 +56,9 @@ DSONPARSER_API const char* DsonDocument_GetSceneNodeName(DsonDocumentHandle hand
 DSONPARSER_API const char* DsonDocument_GetSceneNodeLabel(DsonDocumentHandle handle, int index);
 DSONPARSER_API const char* DsonDocument_GetSceneNodeType(DsonDocumentHandle handle, int index);
 DSONPARSER_API const char* DsonDocument_GetSceneNodeUrl(DsonDocumentHandle handle, int index);
+DSONPARSER_API int         DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneNodeIndex);
+DSONPARSER_API const char* DsonDocument_GetSceneNodeGeometryId(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex);
+DSONPARSER_API const char* DsonDocument_GetSceneNodeGeometryUrl(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex);
 
 // Other scene instance collections (scene.modifiers / scene.materials / scene.uvs)
 DSONPARSER_API int DsonDocument_GetSceneModifierCount(DsonDocumentHandle handle);
@@ -198,6 +201,9 @@ DSONPARSER_API int         DsonDocument_GetMorphNormalDeltaVertexIndex(DsonDocum
 DSONPARSER_API double      DsonDocument_GetMorphNormalDeltaX(DsonDocumentHandle handle, int morphIndex, int deltaIndex);
 DSONPARSER_API double      DsonDocument_GetMorphNormalDeltaY(DsonDocumentHandle handle, int morphIndex, int deltaIndex);
 DSONPARSER_API double      DsonDocument_GetMorphNormalDeltaZ(DsonDocumentHandle handle, int morphIndex, int deltaIndex);
+// Returns the geometry id fragment from the morph modifier's parent URL (the part after '#').
+// e.g. parent = ".../Genesis9.dsf#Genesis9-1" → returns "Genesis9-1". Returns "" if no '#' or out of range.
+DSONPARSER_API const char* DsonDocument_GetMorphGeometryId(DsonDocumentHandle handle, int morphIndex);
 
 // Unknown keys diagnostics
 DSONPARSER_API int DsonDocument_GetContextCount(DsonDocumentHandle handle);
