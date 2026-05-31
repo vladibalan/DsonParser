@@ -47,6 +47,7 @@ struct Node {
     Vector3 translation;
     Vector3 rotation;
     Vector3 scale;
+    double general_scale = 1.0;
     Vector3 center_point; // joint origin (DSF rigs store the real position here)
     Vector3 end_point;
     Vector3 orientation;                  // local axis alignment in rest pose (XYZ Euler degrees); default {0,0,0}

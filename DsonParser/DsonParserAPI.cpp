@@ -869,6 +869,13 @@ double DsonDocument_GetNodeScaleZ(DsonDocumentHandle handle, int nodeIndex) {
     return doc->nodes[nodeIndex].scale.z;
 }
 
+double DsonDocument_GetNodeGeneralScale(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return 1.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 1.0;
+    return doc->nodes[nodeIndex].general_scale;
+}
+
 // ============================================================
 // C. Skin Weights
 // ============================================================

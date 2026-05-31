@@ -191,7 +191,7 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
     
     static const std::set<std::string> knownKeys = {
         "id", "name", "label", "type", "parent", "url", "translation", "rotation", "scale",
-        "center_point", "end_point", "orientation", "rotation_order",
+        "general_scale", "center_point", "end_point", "orientation", "rotation_order",
         "geometries", "preview", "extra"
     };
 
@@ -233,6 +233,11 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
     const rapidjson::Value* scaleArray = nullptr;
     if (JsonHelper::GetArray(json, "scale", scaleArray)) {
         ParseTransformVector3(*scaleArray, scale);
+    }
+
+    const rapidjson::Value* gsObj = nullptr;
+    if (JsonHelper::GetObject(json, "general_scale", gsObj)) {
+        general_scale = JsonHelper::GetDoubleOrDefault(*gsObj, "value", 1.0);
     }
 
     const rapidjson::Value* centerArray = nullptr;

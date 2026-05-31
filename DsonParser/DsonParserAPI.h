@@ -139,6 +139,7 @@ DSONPARSER_API double      DsonDocument_GetNodeRotationZ(DsonDocumentHandle hand
 DSONPARSER_API double      DsonDocument_GetNodeScaleX(DsonDocumentHandle handle, int nodeIndex);
 DSONPARSER_API double      DsonDocument_GetNodeScaleY(DsonDocumentHandle handle, int nodeIndex);
 DSONPARSER_API double      DsonDocument_GetNodeScaleZ(DsonDocumentHandle handle, int nodeIndex);
+DSONPARSER_API double      DsonDocument_GetNodeGeneralScale(DsonDocumentHandle handle, int nodeIndex);
 
 // ---- C. Skin Weights ----
 // modifierIndex is an index into the full modifier library (same as GetModifierId etc.)
