@@ -78,6 +78,7 @@ struct Geometry {
 
 // One PBR material channel: scalar/color value plus optional texture reference
 struct MaterialChannel {
+    std::string type;        // DAZ raw type string ("float", "float_color", "bool", "string", etc.)
     double value = 0.0;      // scalar (roughness, opacity strength, normal strength, etc.)
     Vector3 color = {};      // RGB color; meaningful only when has_color == true
     bool has_color = false;  // true for float_color channels (diffuse, emission, subsurface, etc.)
@@ -97,14 +98,8 @@ struct Material {
     std::string shader_type; // "studio/material/<name>" from extra[]; empty if not present
     std::vector<std::string> groups; // surface zone names (populated on scene material instances)
 
-    MaterialChannel diffuse;
-    MaterialChannel specular;
-    MaterialChannel roughness;
-    MaterialChannel normal;
-    MaterialChannel bump;
-    MaterialChannel opacity;
-    MaterialChannel subsurface;
-    MaterialChannel emission;
+    // All channels in source-file order. first = DAZ channel id, second = parsed data.
+    std::vector<std::pair<std::string, MaterialChannel>> channels;
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

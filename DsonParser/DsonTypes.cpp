@@ -402,6 +402,8 @@ static MaterialChannel ParseMaterialChannel(const rapidjson::Value& container) {
     const rapidjson::Value* ch = nullptr;
     if (!JsonHelper::GetObject(container, "channel", ch)) return result;
 
+    result.type = JsonHelper::GetStringOrDefault(*ch, "type");
+
     // Value: [r,g,b] array → color channel; single number → scalar channel
     if (ch->HasMember("value")) {
         const rapidjson::Value& val = (*ch)["value"];
@@ -463,7 +465,7 @@ bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     // Top-level "diffuse" channel
     const rapidjson::Value* diffuseObj = nullptr;
     if (JsonHelper::GetObject(json, "diffuse", diffuseObj)) {
-        diffuse = ParseMaterialChannel(*diffuseObj);
+        channels.push_back({"diffuse", ParseMaterialChannel(*diffuseObj)});
     }
 
     // extra[] carries the shader-type entry ("studio/material/<name>") and the PBR channel data
@@ -487,9 +489,6 @@ bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
             const rapidjson::Value* channelsArr = nullptr;
             if (!JsonHelper::GetArray(extraItem, "channels", channelsArr)) continue;
 
-            // Track priority for specular: Glossy Color (2) > Specular Color (1) > Metallic Weight (0)
-            int specularPriority = -1;
-
             for (rapidjson::SizeType j = 0; j < channelsArr->Size(); j++) {
                 const auto& entry = (*channelsArr)[j];
                 if (!entry.IsObject()) continue;
@@ -498,28 +497,7 @@ bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
                 if (!JsonHelper::GetObject(entry, "channel", chObj)) continue;
                 const std::string chId = JsonHelper::GetStringOrDefault(*chObj, "id");
 
-                if (chId == "Glossy Color") {
-                    specular = ParseMaterialChannel(entry);
-                    specularPriority = 2;
-                } else if (chId == "Specular Color" && specularPriority < 1) {
-                    specular = ParseMaterialChannel(entry);
-                    specularPriority = 1;
-                } else if (chId == "Metallic Weight" && specularPriority < 0) {
-                    specular = ParseMaterialChannel(entry);
-                    specularPriority = 0;
-                } else if (chId == "Glossy Roughness" || chId == "Roughness") {
-                    roughness = ParseMaterialChannel(entry);
-                } else if (chId == "Normal Map") {
-                    normal = ParseMaterialChannel(entry);
-                } else if (chId == "Bump Strength") {
-                    bump = ParseMaterialChannel(entry);
-                } else if (chId == "Cutout Opacity" || chId == "Opacity Strength") {
-                    opacity = ParseMaterialChannel(entry);
-                } else if (chId == "Transmitted Color" || chId == "Subsurface Color") {
-                    subsurface = ParseMaterialChannel(entry);
-                } else if (chId == "Emission Color") {
-                    emission = ParseMaterialChannel(entry);
-                }
+                channels.push_back({chId, ParseMaterialChannel(entry)});
             }
             break; // Only one studio_material_channels block per material
         }
@@ -971,14 +949,9 @@ bool DsonDocument::ParseFromJson(const rapidjson::Document& doc) {
     };
 
     auto resolveAllChannels = [&](Material& mat) {
-        resolveChannel(mat.diffuse);
-        resolveChannel(mat.specular);
-        resolveChannel(mat.roughness);
-        resolveChannel(mat.normal);
-        resolveChannel(mat.bump);
-        resolveChannel(mat.opacity);
-        resolveChannel(mat.subsurface);
-        resolveChannel(mat.emission);
+        for (auto& pair : mat.channels) {
+            resolveChannel(pair.second);
+        }
     };
 
     for (auto& mat : materials) {

@@ -104,20 +104,6 @@ static void EnsureSkinCache(DsonContext* ctx, int modifierIndex) {
     ctx->skinCache.built = true;
 }
 
-static const Dson::MaterialChannel* GetMaterialChannel(const Dson::Material& mat, int channelId) {
-    switch (channelId) {
-        case 0: return &mat.diffuse;
-        case 1: return &mat.specular;
-        case 2: return &mat.roughness;
-        case 3: return &mat.normal;
-        case 4: return &mat.opacity;
-        case 5: return &mat.subsurface;
-        case 6: return &mat.emission;
-        case 7: return &mat.bump;
-        default: return nullptr;
-    }
-}
-
 } // namespace
 
 DsonDocumentHandle DsonDocument_Create() {
@@ -1065,67 +1051,227 @@ const char* DsonDocument_GetMaterialShaderType(DsonDocumentHandle handle, int ma
     return doc->materials[matIndex].shader_type.c_str();
 }
 
-double DsonDocument_GetMaterialChannelValue(DsonDocumentHandle handle, int matIndex, int channelId) {
+// ============================================================
+// E continued — indexed channel accessors (library materials)
+// ============================================================
+
+int DsonDocument_GetMaterialChannelCount(DsonDocumentHandle handle, int matIndex) {
+    if (!handle) return 0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return 0;
+    return static_cast<int>(doc->materials[matIndex].channels.size());
+}
+
+const char* DsonDocument_GetMaterialChannelId(DsonDocumentHandle handle, int matIndex, int channelIdx) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
+    const auto& ch = doc->materials[matIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return "";
+    return ch[channelIdx].first.c_str();
+}
+
+const char* DsonDocument_GetMaterialChannelType(DsonDocumentHandle handle, int matIndex, int channelIdx) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
+    const auto& ch = doc->materials[matIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return "";
+    return ch[channelIdx].second.type.c_str();
+}
+
+double DsonDocument_GetMaterialChannelValue(DsonDocumentHandle handle, int matIndex, int channelIdx) {
     if (!handle) return 0.0;
     Dson::DsonDocument* doc = GetDocument(handle);
     if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return 0.0;
-    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
-    if (!ch) return 0.0;
-    return ch->value;
+    const auto& ch = doc->materials[matIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return 0.0;
+    return ch[channelIdx].second.value;
 }
 
-double DsonDocument_GetMaterialChannelColorR(DsonDocumentHandle handle, int matIndex, int channelId) {
+double DsonDocument_GetMaterialChannelColorR(DsonDocumentHandle handle, int matIndex, int channelIdx) {
     if (!handle) return 0.0;
     Dson::DsonDocument* doc = GetDocument(handle);
     if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return 0.0;
-    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
-    if (!ch) return 0.0;
-    return ch->color.x;
+    const auto& ch = doc->materials[matIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return 0.0;
+    return ch[channelIdx].second.color.x;
 }
 
-double DsonDocument_GetMaterialChannelColorG(DsonDocumentHandle handle, int matIndex, int channelId) {
+double DsonDocument_GetMaterialChannelColorG(DsonDocumentHandle handle, int matIndex, int channelIdx) {
     if (!handle) return 0.0;
     Dson::DsonDocument* doc = GetDocument(handle);
     if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return 0.0;
-    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
-    if (!ch) return 0.0;
-    return ch->color.y;
+    const auto& ch = doc->materials[matIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return 0.0;
+    return ch[channelIdx].second.color.y;
 }
 
-double DsonDocument_GetMaterialChannelColorB(DsonDocumentHandle handle, int matIndex, int channelId) {
+double DsonDocument_GetMaterialChannelColorB(DsonDocumentHandle handle, int matIndex, int channelIdx) {
     if (!handle) return 0.0;
     Dson::DsonDocument* doc = GetDocument(handle);
     if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return 0.0;
-    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
-    if (!ch) return 0.0;
-    return ch->color.z;
+    const auto& ch = doc->materials[matIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return 0.0;
+    return ch[channelIdx].second.color.z;
 }
 
-bool DsonDocument_GetMaterialChannelHasColor(DsonDocumentHandle handle, int matIndex, int channelId) {
+bool DsonDocument_GetMaterialChannelHasColor(DsonDocumentHandle handle, int matIndex, int channelIdx) {
     if (!handle) return false;
     Dson::DsonDocument* doc = GetDocument(handle);
     if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return false;
-    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
-    if (!ch) return false;
-    return ch->has_color;
+    const auto& ch = doc->materials[matIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return false;
+    return ch[channelIdx].second.has_color;
 }
 
-const char* DsonDocument_GetMaterialChannelImageUrl(DsonDocumentHandle handle, int matIndex, int channelId) {
+const char* DsonDocument_GetMaterialChannelImageUrl(DsonDocumentHandle handle, int matIndex, int channelIdx) {
     if (!handle) return "";
     Dson::DsonDocument* doc = GetDocument(handle);
     if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
-    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
-    if (!ch) return "";
-    return ch->image_url.c_str();
+    const auto& ch = doc->materials[matIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return "";
+    return ch[channelIdx].second.image_url.c_str();
 }
 
-const char* DsonDocument_GetMaterialChannelTexturePath(DsonDocumentHandle handle, int matIndex, int channelId) {
+const char* DsonDocument_GetMaterialChannelTexturePath(DsonDocumentHandle handle, int matIndex, int channelIdx) {
     if (!handle) return "";
     Dson::DsonDocument* doc = GetDocument(handle);
     if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
-    const Dson::MaterialChannel* ch = GetMaterialChannel(doc->materials[matIndex], channelId);
-    if (!ch) return "";
-    return ch->texture_path.c_str();
+    const auto& ch = doc->materials[matIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return "";
+    return ch[channelIdx].second.texture_path.c_str();
+}
+
+// ============================================================
+// E continued — scene material surface-level accessors
+// ============================================================
+
+const char* DsonDocument_GetSceneMaterialName(DsonDocumentHandle handle, int sceneMatIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
+    return doc->scene.materials[sceneMatIndex].name.c_str();
+}
+
+const char* DsonDocument_GetSceneMaterialGeometryId(DsonDocumentHandle handle, int sceneMatIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
+    return doc->scene.materials[sceneMatIndex].geometry.c_str();
+}
+
+const char* DsonDocument_GetSceneMaterialUVSetId(DsonDocumentHandle handle, int sceneMatIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
+    return doc->scene.materials[sceneMatIndex].uv_set_id.c_str();
+}
+
+const char* DsonDocument_GetSceneMaterialType(DsonDocumentHandle handle, int sceneMatIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
+    return doc->scene.materials[sceneMatIndex].type.c_str();
+}
+
+const char* DsonDocument_GetSceneMaterialShaderType(DsonDocumentHandle handle, int sceneMatIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
+    return doc->scene.materials[sceneMatIndex].shader_type.c_str();
+}
+
+// ============================================================
+// E continued — indexed channel accessors (scene materials)
+// ============================================================
+
+int DsonDocument_GetSceneMaterialChannelCount(DsonDocumentHandle handle, int sceneMatIndex) {
+    if (!handle) return 0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return 0;
+    return static_cast<int>(doc->scene.materials[sceneMatIndex].channels.size());
+}
+
+const char* DsonDocument_GetSceneMaterialChannelId(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
+    const auto& ch = doc->scene.materials[sceneMatIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return "";
+    return ch[channelIdx].first.c_str();
+}
+
+const char* DsonDocument_GetSceneMaterialChannelType(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
+    const auto& ch = doc->scene.materials[sceneMatIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return "";
+    return ch[channelIdx].second.type.c_str();
+}
+
+double DsonDocument_GetSceneMaterialChannelValue(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return 0.0;
+    const auto& ch = doc->scene.materials[sceneMatIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return 0.0;
+    return ch[channelIdx].second.value;
+}
+
+double DsonDocument_GetSceneMaterialChannelColorR(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return 0.0;
+    const auto& ch = doc->scene.materials[sceneMatIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return 0.0;
+    return ch[channelIdx].second.color.x;
+}
+
+double DsonDocument_GetSceneMaterialChannelColorG(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return 0.0;
+    const auto& ch = doc->scene.materials[sceneMatIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return 0.0;
+    return ch[channelIdx].second.color.y;
+}
+
+double DsonDocument_GetSceneMaterialChannelColorB(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx) {
+    if (!handle) return 0.0;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return 0.0;
+    const auto& ch = doc->scene.materials[sceneMatIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return 0.0;
+    return ch[channelIdx].second.color.z;
+}
+
+bool DsonDocument_GetSceneMaterialChannelHasColor(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx) {
+    if (!handle) return false;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return false;
+    const auto& ch = doc->scene.materials[sceneMatIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return false;
+    return ch[channelIdx].second.has_color;
+}
+
+const char* DsonDocument_GetSceneMaterialChannelImageUrl(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
+    const auto& ch = doc->scene.materials[sceneMatIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return "";
+    return ch[channelIdx].second.image_url.c_str();
+}
+
+const char* DsonDocument_GetSceneMaterialChannelTexturePath(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
+    const auto& ch = doc->scene.materials[sceneMatIndex].channels;
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(ch.size())) return "";
+    return ch[channelIdx].second.texture_path.c_str();
 }
 
 // ============================================================

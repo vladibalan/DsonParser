@@ -2,7 +2,9 @@
 //
 
 #include <iostream>
-#include <fstream> 
+#include <fstream>
+#include <algorithm>
+#define NOMINMAX
 #include <Windows.h>
 #include "../DsonParser/DsonParserAPI.h"
 
@@ -162,8 +164,14 @@ int main(int argc, char* argv[])
     std::cout << "Materials (" << matCount << "):\n";
     for (int i = 0; i < matCount; i++) {
         std::cout << "  [" << i << "] ID: " << DsonDocument_GetMaterialId(doc, i) << "\n";
-        if (i == 0)
+        if (i == 0) {
             std::cout << "    type: \"" << DsonDocument_GetMaterialType(doc, i) << "\"  shader_type: \"" << DsonDocument_GetMaterialShaderType(doc, i) << "\"\n";
+            std::cout << "    channels (" << DsonDocument_GetMaterialChannelCount(doc, 0) << "):\n";
+            for (int c = 0; c < std::min(DsonDocument_GetMaterialChannelCount(doc, 0), 10); c++) {
+                std::cout << "      [" << c << "] id=\"" << DsonDocument_GetMaterialChannelId(doc, 0, c)
+                          << "\" type=\"" << DsonDocument_GetMaterialChannelType(doc, 0, c) << "\"\n";
+            }
+        }
     }
     std::cout << "\n";
 
@@ -242,6 +250,13 @@ int main(int argc, char* argv[])
         std::cout << "no-extra test:  \"" << DsonDocument_GetMaterialShaderType(noExtraDoc, 0) << "\"  [expect empty]\n\n";
         DsonDocument_Destroy(noExtraDoc);
     }
+
+    std::cout << "\nScene materials (" << DsonDocument_GetSceneMaterialCount(doc) << "):\n";
+    for (int i = 0; i < DsonDocument_GetSceneMaterialCount(doc); i++) {
+        std::cout << "  [" << i << "] id=\"" << DsonDocument_GetSceneMaterialId(doc, i)
+                  << "\"  channels=" << DsonDocument_GetSceneMaterialChannelCount(doc, i) << "\n";
+    }
+    std::cout << "\n";
 
     // Clean up
     DsonDocument_Destroy(doc);
