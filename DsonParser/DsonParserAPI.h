@@ -188,6 +188,13 @@ DSONPARSER_API bool        DsonDocument_GetMaterialChannelHasColor(DsonDocumentH
 DSONPARSER_API const char* DsonDocument_GetMaterialChannelImageUrl(DsonDocumentHandle handle, int matIndex, int channelId);
 DSONPARSER_API const char* DsonDocument_GetMaterialChannelTexturePath(DsonDocumentHandle handle, int matIndex, int channelId);
 
+// Returns the top-level material type field (e.g. "studio/material/iray").
+DSONPARSER_API const char* DsonDocument_GetMaterialType(DsonDocumentHandle handle, int matIndex);
+// Returns the shader type from the material's extra[] (e.g. "studio/material/uber_iray", "studio/material/pbr_skin").
+// Points to parser-owned memory; copy immediately if retention past another API call is needed.
+// Returns "" when no matching extra entry exists or matIndex is out of range.
+DSONPARSER_API const char* DsonDocument_GetMaterialShaderType(DsonDocumentHandle handle, int matIndex);
+
 // ---- F. Morph Targets ----
 // morphIndex is an index into the filtered list of modifiers where type == "morph"
 DSONPARSER_API int         DsonDocument_GetMorphCount(DsonDocumentHandle handle);

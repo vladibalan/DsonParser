@@ -94,6 +94,7 @@ struct Material {
     Url url;
     String geometry;
     String uv_set_id;
+    std::string shader_type; // "studio/material/<name>" from extra[]; empty if not present
     std::vector<std::string> groups; // surface zone names (populated on scene material instances)
 
     MaterialChannel diffuse;

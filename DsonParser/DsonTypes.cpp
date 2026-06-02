@@ -466,13 +466,23 @@ bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
         diffuse = ParseMaterialChannel(*diffuseObj);
     }
 
-    // Remaining PBR channels live in extra[?].channels[] (type == "studio_material_channels")
+    // extra[] carries the shader-type entry ("studio/material/<name>") and the PBR channel data
     const rapidjson::Value* extraArr = nullptr;
     if (JsonHelper::GetArray(json, "extra", extraArr)) {
+        bool shaderTypeCaptured = false;
         for (rapidjson::SizeType i = 0; i < extraArr->Size(); i++) {
             const auto& extraItem = (*extraArr)[i];
             if (!extraItem.IsObject()) continue;
-            if (JsonHelper::GetStringOrDefault(extraItem, "type") != "studio_material_channels") continue;
+            const std::string extraType = JsonHelper::GetStringOrDefault(extraItem, "type");
+
+            // Capture the first studio/material/<shader> entry as the shader type.
+            // First match wins; chained shader entries are not expected in DSON files.
+            if (!shaderTypeCaptured && extraType.compare(0, 16, "studio/material/") == 0) {
+                shader_type = extraType;
+                shaderTypeCaptured = true;
+            }
+
+            if (extraType != "studio_material_channels") continue;
 
             const rapidjson::Value* channelsArr = nullptr;
             if (!JsonHelper::GetArray(extraItem, "channels", channelsArr)) continue;

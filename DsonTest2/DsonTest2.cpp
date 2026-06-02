@@ -162,6 +162,8 @@ int main(int argc, char* argv[])
     std::cout << "Materials (" << matCount << "):\n";
     for (int i = 0; i < matCount; i++) {
         std::cout << "  [" << i << "] ID: " << DsonDocument_GetMaterialId(doc, i) << "\n";
+        if (i == 0)
+            std::cout << "    type: \"" << DsonDocument_GetMaterialType(doc, i) << "\"  shader_type: \"" << DsonDocument_GetMaterialShaderType(doc, i) << "\"\n";
     }
     std::cout << "\n";
 
@@ -209,6 +211,36 @@ int main(int argc, char* argv[])
             }
             std::cout << "\n";
         }
+    }
+
+    // Shader type tests
+    std::cout << "=================================\n";
+    std::cout << "SHADER TYPE TESTS\n";
+    std::cout << "=================================\n\n";
+
+    // G9.duf mat[0] — expect uber_iray (the shader actually in the fixture)
+    std::cout << "G9.duf mat[0]:  \"" << DsonDocument_GetMaterialShaderType(doc, 0) << "\"  [expect studio/material/uber_iray]\n";
+
+    // Out-of-range indices
+    std::cout << "mat[-1]:        \"" << DsonDocument_GetMaterialShaderType(doc, -1) << "\"  [expect empty]\n";
+    std::cout << "mat[99999]:     \"" << DsonDocument_GetMaterialShaderType(doc, 99999) << "\"  [expect empty]\n\n";
+
+    // pbr_skin via minimal inline JSON
+    {
+        const char* pbrJson = "{\"material_library\":[{\"id\":\"pbr-mat\",\"extra\":[{\"type\":\"studio/material/pbr_skin\"}]}]}";
+        DsonDocumentHandle pbrDoc = DsonDocument_Create();
+        DsonDocument_LoadFromString(pbrDoc, pbrJson);
+        std::cout << "pbr_skin test:  \"" << DsonDocument_GetMaterialShaderType(pbrDoc, 0) << "\"  [expect studio/material/pbr_skin]\n";
+        DsonDocument_Destroy(pbrDoc);
+    }
+
+    // Material with no extra block
+    {
+        const char* noExtraJson = "{\"material_library\":[{\"id\":\"no-extra\"}]}";
+        DsonDocumentHandle noExtraDoc = DsonDocument_Create();
+        DsonDocument_LoadFromString(noExtraDoc, noExtraJson);
+        std::cout << "no-extra test:  \"" << DsonDocument_GetMaterialShaderType(noExtraDoc, 0) << "\"  [expect empty]\n\n";
+        DsonDocument_Destroy(noExtraDoc);
     }
 
     // Clean up

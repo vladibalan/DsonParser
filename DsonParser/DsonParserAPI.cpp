@@ -1051,6 +1051,20 @@ const char* DsonDocument_GetMaterialUVSetId(DsonDocumentHandle handle, int matIn
     return doc->materials[matIndex].uv_set_id.c_str();
 }
 
+const char* DsonDocument_GetMaterialType(DsonDocumentHandle handle, int matIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
+    return doc->materials[matIndex].type.c_str();
+}
+
+const char* DsonDocument_GetMaterialShaderType(DsonDocumentHandle handle, int matIndex) {
+    if (!handle) return "";
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
+    return doc->materials[matIndex].shader_type.c_str();
+}
+
 double DsonDocument_GetMaterialChannelValue(DsonDocumentHandle handle, int matIndex, int channelId) {
     if (!handle) return 0.0;
     Dson::DsonDocument* doc = GetDocument(handle);
