@@ -404,23 +404,30 @@ static MaterialChannel ParseMaterialChannel(const rapidjson::Value& container) {
 
     result.type = JsonHelper::GetStringOrDefault(*ch, "type");
 
-    // Value: [r,g,b] array → color channel; single number → scalar channel
-    if (ch->HasMember("value")) {
-        const rapidjson::Value& val = (*ch)["value"];
-        if (val.IsArray() && val.Size() >= 3 &&
-            val[0].IsNumber() && val[1].IsNumber() && val[2].IsNumber()) {
-            result.color.x = val[0].GetDouble();
-            result.color.y = val[1].GetDouble();
-            result.color.z = val[2].GetDouble();
+    // Prefer current_value (scene override); fall back to value (library default).
+    // Value: [r,g,b] array → color channel; single number → scalar channel.
+    const rapidjson::Value* valSrc = nullptr;
+    if (ch->HasMember("current_value")) {
+        valSrc = &(*ch)["current_value"];
+    } else if (ch->HasMember("value")) {
+        valSrc = &(*ch)["value"];
+    }
+
+    if (valSrc) {
+        if (valSrc->IsArray() && valSrc->Size() >= 3 &&
+            (*valSrc)[0].IsNumber() && (*valSrc)[1].IsNumber() && (*valSrc)[2].IsNumber()) {
+            result.color.x = (*valSrc)[0].GetDouble();
+            result.color.y = (*valSrc)[1].GetDouble();
+            result.color.z = (*valSrc)[2].GetDouble();
             result.has_color = true;
-        } else if (val.IsNumber()) {
-            result.value = val.GetDouble();
+        } else if (valSrc->IsNumber()) {
+            result.value = valSrc->GetDouble();
         }
     }
 
-    // Image reference is stored inside the channel sub-object
-    if (ch->HasMember("image") && (*ch)["image"].IsString()) {
-        result.image_url = (*ch)["image"].GetString();
+    // DAZ stores per-channel texture refs under "image_file"; "image" is a legacy fallback.
+    if (!JsonHelper::GetString(*ch, "image_file", result.image_url)) {
+        JsonHelper::GetString(*ch, "image", result.image_url);
     }
 
     return result;
