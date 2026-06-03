@@ -734,7 +734,11 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     if (JsonHelper::HasMember(json, "url")) {
         url.ParseFromJson(json["url"]);
     }
-    
+
+    if (JsonHelper::HasMember(json, "vertex_count") && json["vertex_count"].IsInt()) {
+        vertex_count = json["vertex_count"].GetInt();
+    }
+
     // Parse UVs - plain [[u,v],...] array or {"count":N,"values":[[u,v],...]} object
     if (JsonHelper::HasMember(json, "uvs")) {
         const rapidjson::Value& uvsVal = json["uvs"];
@@ -768,8 +772,32 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
         } else if (pviVal.IsArray()) {
             polyVertIndices = &pviVal;
         }
-        if (polyVertIndices) {
-            polygon_vertex_indices.ParseFromJson(*polyVertIndices);
+        if (polyVertIndices && polyVertIndices->IsArray()) {
+            // Detect sparse triplet format: first element is a 3-int array.
+            // DAZ DSON spec: each entry is [face_index, corner_index, uv_index]
+            // listing only corners where uv_index != vertex_index.
+            bool isSparse = false;
+            if (polyVertIndices->Size() > 0) {
+                const rapidjson::Value& first = (*polyVertIndices)[0];
+                isSparse = first.IsArray() && first.Size() == 3;
+            }
+
+            if (isSparse) {
+                uv_overrides.reserve(polyVertIndices->Size());
+                for (rapidjson::SizeType i = 0; i < polyVertIndices->Size(); i++) {
+                    const rapidjson::Value& elem = (*polyVertIndices)[i];
+                    if (!elem.IsArray() || elem.Size() < 3) continue;
+                    if (!elem[0].IsInt() || !elem[1].IsInt() || !elem[2].IsInt()) continue;
+                    UVOverride ov;
+                    ov.face     = elem[0].GetInt();
+                    ov.corner   = elem[1].GetInt();
+                    ov.uv_index = elem[2].GetInt();
+                    uv_overrides.push_back(ov);
+                }
+            } else {
+                // Flat-int format (legacy, hypothetical — not observed in real DSFs).
+                polygon_vertex_indices.ParseFromJson(*polyVertIndices);
+            }
         }
     }
     

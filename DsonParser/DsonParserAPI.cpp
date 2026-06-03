@@ -1012,6 +1012,47 @@ int DsonDocument_GetUVPolygonVertexIndex(DsonDocumentHandle handle, int uvSetInd
     return pvi[index];
 }
 
+int DsonDocument_GetUVSetVertexCount(DsonDocumentHandle handle, int uvSetIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (uvSetIndex < 0 || uvSetIndex >= static_cast<int>(doc->uv_sets.size())) return -1;
+    return doc->uv_sets[uvSetIndex].vertex_count;
+}
+
+int DsonDocument_GetUVOverrideCount(DsonDocumentHandle handle, int uvSetIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (uvSetIndex < 0 || uvSetIndex >= static_cast<int>(doc->uv_sets.size())) return -1;
+    return static_cast<int>(doc->uv_sets[uvSetIndex].uv_overrides.size());
+}
+
+int DsonDocument_GetUVOverrideFace(DsonDocumentHandle handle, int uvSetIndex, int overrideIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (uvSetIndex < 0 || uvSetIndex >= static_cast<int>(doc->uv_sets.size())) return -1;
+    const auto& ovs = doc->uv_sets[uvSetIndex].uv_overrides;
+    if (overrideIndex < 0 || overrideIndex >= static_cast<int>(ovs.size())) return -1;
+    return ovs[overrideIndex].face;
+}
+
+int DsonDocument_GetUVOverrideCorner(DsonDocumentHandle handle, int uvSetIndex, int overrideIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (uvSetIndex < 0 || uvSetIndex >= static_cast<int>(doc->uv_sets.size())) return -1;
+    const auto& ovs = doc->uv_sets[uvSetIndex].uv_overrides;
+    if (overrideIndex < 0 || overrideIndex >= static_cast<int>(ovs.size())) return -1;
+    return ovs[overrideIndex].corner;
+}
+
+int DsonDocument_GetUVOverrideUVIndex(DsonDocumentHandle handle, int uvSetIndex, int overrideIndex) {
+    if (!handle) return -1;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (uvSetIndex < 0 || uvSetIndex >= static_cast<int>(doc->uv_sets.size())) return -1;
+    const auto& ovs = doc->uv_sets[uvSetIndex].uv_overrides;
+    if (overrideIndex < 0 || overrideIndex >= static_cast<int>(ovs.size())) return -1;
+    return ovs[overrideIndex].uv_index;
+}
+
 // ============================================================
 // E. Materials
 // ============================================================

@@ -160,13 +160,21 @@ struct Image {
 };
 
 // UV Set data
+struct UVOverride {
+    int face = 0;
+    int corner = 0;
+    int uv_index = 0;
+};
+
 struct UVSet {
     String id;
     String name;
     Url url;
     FloatArray uvs;
-    IntArray polygon_vertex_indices;
-    
+    IntArray polygon_vertex_indices;        // legacy; populated only for flat-int JSON shape (not seen in practice). Stays empty for sparse triplet shape.
+    int vertex_count = 0;                   // parsed from JSON "vertex_count"; identity-default basis for consumers expanding overrides
+    std::vector<UVOverride> uv_overrides;   // parsed from "polygon_vertex_indices" when JSON elements are [face, corner, uv_index] triplets
+
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
 
