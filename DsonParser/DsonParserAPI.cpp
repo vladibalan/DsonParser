@@ -184,6 +184,24 @@ static const Dson::Modifier* GetMorphByFilteredIndex(DsonContext* ctx, int morph
     return &ctx->document.modifiers[ctx->morphIndexCache[morphIndex]];
 }
 
+static int GetIndexedVector3Count(const Dson::IndexedVector3Array& deltas) {
+    return static_cast<int>(deltas.size());
+}
+
+static int GetIndexedVector3Index(const Dson::IndexedVector3Array& deltas, int deltaIndex) {
+    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return -1;
+    return deltas.GetIndex(deltaIndex);
+}
+
+static double GetIndexedVector3Component(const Dson::IndexedVector3Array& deltas, int deltaIndex, int component) {
+    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
+    const Dson::Vector3& value = deltas.GetValue(deltaIndex);
+    if (component == 0) return value.x;
+    if (component == 1) return value.y;
+    if (component == 2) return value.z;
+    return 0.0;
+}
+
 // Skin data is parsed in DSON's native joint->vertex layout. Importers usually
 // need vertex->bone influences, so this cache inverts the mapping for one
 // modifier at a time, sorts each vertex's influences by weight, and normalizes
@@ -1433,7 +1451,7 @@ int DsonDocument_GetMorphDeltaCount(DsonDocumentHandle handle, int morphIndex) {
     DsonContext* ctx = GetContext(handle);
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
     if (!mod) return -1;
-    return static_cast<int>(mod->morph_deltas.size());
+    return GetIndexedVector3Count(mod->morph_deltas);
 }
 
 int DsonDocument_GetMorphDeltaVertexIndex(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
@@ -1441,9 +1459,7 @@ int DsonDocument_GetMorphDeltaVertexIndex(DsonDocumentHandle handle, int morphIn
     DsonContext* ctx = GetContext(handle);
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
     if (!mod) return -1;
-    const auto& deltas = mod->morph_deltas;
-    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return -1;
-    return deltas.GetIndex(deltaIndex);
+    return GetIndexedVector3Index(mod->morph_deltas, deltaIndex);
 }
 
 double DsonDocument_GetMorphDeltaX(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
@@ -1451,9 +1467,7 @@ double DsonDocument_GetMorphDeltaX(DsonDocumentHandle handle, int morphIndex, in
     DsonContext* ctx = GetContext(handle);
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
     if (!mod) return 0.0;
-    const auto& deltas = mod->morph_deltas;
-    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
-    return deltas.GetValue(deltaIndex).x;
+    return GetIndexedVector3Component(mod->morph_deltas, deltaIndex, 0);
 }
 
 double DsonDocument_GetMorphDeltaY(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
@@ -1461,9 +1475,7 @@ double DsonDocument_GetMorphDeltaY(DsonDocumentHandle handle, int morphIndex, in
     DsonContext* ctx = GetContext(handle);
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
     if (!mod) return 0.0;
-    const auto& deltas = mod->morph_deltas;
-    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
-    return deltas.GetValue(deltaIndex).y;
+    return GetIndexedVector3Component(mod->morph_deltas, deltaIndex, 1);
 }
 
 double DsonDocument_GetMorphDeltaZ(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
@@ -1471,9 +1483,7 @@ double DsonDocument_GetMorphDeltaZ(DsonDocumentHandle handle, int morphIndex, in
     DsonContext* ctx = GetContext(handle);
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
     if (!mod) return 0.0;
-    const auto& deltas = mod->morph_deltas;
-    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
-    return deltas.GetValue(deltaIndex).z;
+    return GetIndexedVector3Component(mod->morph_deltas, deltaIndex, 2);
 }
 
 int DsonDocument_GetMorphNormalDeltaCount(DsonDocumentHandle handle, int morphIndex) {
@@ -1481,7 +1491,7 @@ int DsonDocument_GetMorphNormalDeltaCount(DsonDocumentHandle handle, int morphIn
     DsonContext* ctx = GetContext(handle);
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
     if (!mod) return -1;
-    return static_cast<int>(mod->normal_deltas.size());
+    return GetIndexedVector3Count(mod->normal_deltas);
 }
 
 int DsonDocument_GetMorphNormalDeltaVertexIndex(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
@@ -1489,9 +1499,7 @@ int DsonDocument_GetMorphNormalDeltaVertexIndex(DsonDocumentHandle handle, int m
     DsonContext* ctx = GetContext(handle);
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
     if (!mod) return -1;
-    const auto& deltas = mod->normal_deltas;
-    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return -1;
-    return deltas.GetIndex(deltaIndex);
+    return GetIndexedVector3Index(mod->normal_deltas, deltaIndex);
 }
 
 double DsonDocument_GetMorphNormalDeltaX(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
@@ -1499,9 +1507,7 @@ double DsonDocument_GetMorphNormalDeltaX(DsonDocumentHandle handle, int morphInd
     DsonContext* ctx = GetContext(handle);
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
     if (!mod) return 0.0;
-    const auto& deltas = mod->normal_deltas;
-    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
-    return deltas.GetValue(deltaIndex).x;
+    return GetIndexedVector3Component(mod->normal_deltas, deltaIndex, 0);
 }
 
 double DsonDocument_GetMorphNormalDeltaY(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
@@ -1509,9 +1515,7 @@ double DsonDocument_GetMorphNormalDeltaY(DsonDocumentHandle handle, int morphInd
     DsonContext* ctx = GetContext(handle);
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
     if (!mod) return 0.0;
-    const auto& deltas = mod->normal_deltas;
-    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
-    return deltas.GetValue(deltaIndex).y;
+    return GetIndexedVector3Component(mod->normal_deltas, deltaIndex, 1);
 }
 
 double DsonDocument_GetMorphNormalDeltaZ(DsonDocumentHandle handle, int morphIndex, int deltaIndex) {
@@ -1519,9 +1523,7 @@ double DsonDocument_GetMorphNormalDeltaZ(DsonDocumentHandle handle, int morphInd
     DsonContext* ctx = GetContext(handle);
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
     if (!mod) return 0.0;
-    const auto& deltas = mod->normal_deltas;
-    if (deltaIndex < 0 || deltaIndex >= static_cast<int>(deltas.size())) return 0.0;
-    return deltas.GetValue(deltaIndex).z;
+    return GetIndexedVector3Component(mod->normal_deltas, deltaIndex, 2);
 }
 
 const char* DsonDocument_GetMorphGeometryId(DsonDocumentHandle handle, int morphIndex) {
