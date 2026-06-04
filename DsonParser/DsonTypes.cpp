@@ -29,6 +29,18 @@
 
 namespace Dson {
 
+// Parse a single object member into a Dson value wrapper, if the key is present.
+// Uses one FindMember lookup (vs. HasMember + operator[]), and mirrors the prior
+// behavior: a missing key leaves `out` untouched, a present key is parsed (its
+// bool result is ignored, exactly as the original call sites did).
+template <class T>
+static void ParseMember(const rapidjson::Value& obj, const char* key, T& out) {
+    auto it = obj.FindMember(key);
+    if (it != obj.MemberEnd()) {
+        out.ParseFromJson(it->value);
+    }
+}
+
 // Helper to track unknown keys
 static void TrackUnknownKeys(const rapidjson::Value& obj, const std::set<std::string>& knownKeys, std::set<std::string>* unknownKeys) {
     if (!unknownKeys || !obj.IsObject()) {
@@ -176,14 +188,9 @@ bool AssetInfo::ParseFromJson(const rapidjson::Value& json, std::set<std::string
         "id", "type", "contributor", "revision", "modified", "unit_scale"
     };
     
-    if (JsonHelper::HasMember(json, "id")) {
-        id.ParseFromJson(json["id"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "type")) {
-        type.ParseFromJson(json["type"]);
-    }
-    
+    ParseMember(json, "id", id);
+    ParseMember(json, "type", type);
+
     if (JsonHelper::HasMember(json, "contributor")) {
         const rapidjson::Value* contributor = nullptr;
         if (JsonHelper::GetObject(json, "contributor", contributor)) {
@@ -191,14 +198,9 @@ bool AssetInfo::ParseFromJson(const rapidjson::Value& json, std::set<std::string
             contributor_email.value = JsonHelper::GetStringOrDefault(*contributor, "email");
         }
     }
-    
-    if (JsonHelper::HasMember(json, "revision")) {
-        revision.ParseFromJson(json["revision"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "modified")) {
-        modified.ParseFromJson(json["modified"]);
-    }
+
+    ParseMember(json, "revision", revision);
+    ParseMember(json, "modified", modified);
 
     unit_scale = JsonHelper::GetDoubleOrDefault(json, "unit_scale", 1.0);
 
@@ -218,30 +220,13 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
         "geometries", "preview", "extra"
     };
 
-    if (JsonHelper::HasMember(json, "id")) {
-        id.ParseFromJson(json["id"]);
-    }
+    ParseMember(json, "id", id);
+    ParseMember(json, "name", name);
+    ParseMember(json, "label", label);
+    ParseMember(json, "type", type);
+    ParseMember(json, "parent", parent);
+    ParseMember(json, "url", url);
 
-    if (JsonHelper::HasMember(json, "name")) {
-        name.ParseFromJson(json["name"]);
-    }
-
-    if (JsonHelper::HasMember(json, "label")) {
-        label.ParseFromJson(json["label"]);
-    }
-
-    if (JsonHelper::HasMember(json, "type")) {
-        type.ParseFromJson(json["type"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "parent")) {
-        parent.ParseFromJson(json["parent"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "url")) {
-        url.ParseFromJson(json["url"]);
-    }
-    
     const rapidjson::Value* transArray = nullptr;
     if (JsonHelper::GetArray(json, "translation", transArray)) {
         ParseTransformVector3(*transArray, translation);
@@ -315,30 +300,13 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
         "polygon_groups", "polygon_material_groups"
     };
     
-    if (JsonHelper::HasMember(json, "id")) {
-        id.ParseFromJson(json["id"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "name")) {
-        name.ParseFromJson(json["name"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "type")) {
-        type.ParseFromJson(json["type"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "url")) {
-        url.ParseFromJson(json["url"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "vertex_count")) {
-        vertex_count.ParseFromJson(json["vertex_count"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "polygon_count")) {
-        polygon_count.ParseFromJson(json["polygon_count"]);
-    }
-    
+    ParseMember(json, "id", id);
+    ParseMember(json, "name", name);
+    ParseMember(json, "type", type);
+    ParseMember(json, "url", url);
+    ParseMember(json, "vertex_count", vertex_count);
+    ParseMember(json, "polygon_count", polygon_count);
+
     // Vertices: a flat number array (legacy) or a { count, values:[[x,y,z],...] } object
     if (JsonHelper::HasMember(json, "vertices")) {
         const rapidjson::Value& v = json["vertices"];
@@ -478,25 +446,11 @@ bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
         "id", "name", "type", "url", "geometry", "uv_set", "groups", "extra", "diffuse"
     };
 
-    if (JsonHelper::HasMember(json, "id")) {
-        id.ParseFromJson(json["id"]);
-    }
-
-    if (JsonHelper::HasMember(json, "name")) {
-        name.ParseFromJson(json["name"]);
-    }
-
-    if (JsonHelper::HasMember(json, "type")) {
-        type.ParseFromJson(json["type"]);
-    }
-
-    if (JsonHelper::HasMember(json, "url")) {
-        url.ParseFromJson(json["url"]);
-    }
-
-    if (JsonHelper::HasMember(json, "geometry")) {
-        geometry.ParseFromJson(json["geometry"]);
-    }
+    ParseMember(json, "id", id);
+    ParseMember(json, "name", name);
+    ParseMember(json, "type", type);
+    ParseMember(json, "url", url);
+    ParseMember(json, "geometry", geometry);
 
     if (json.HasMember("uv_set") && json["uv_set"].IsString()) {
         uv_set_id.value = json["uv_set"].GetString();
@@ -560,12 +514,8 @@ bool SkinJoint::ParseFromJson(const rapidjson::Value& json) {
         return false;
     }
 
-    if (JsonHelper::HasMember(json, "id")) {
-        id.ParseFromJson(json["id"]);
-    }
-    if (JsonHelper::HasMember(json, "node")) {
-        node.ParseFromJson(json["node"]);
-    }
+    ParseMember(json, "id", id);
+    ParseMember(json, "node", node);
 
     // node_weights = { count, values:[[vertexIndex, weight], ...] }
     auto parseWeightBlock = [&](const rapidjson::Value& block) {
@@ -620,15 +570,9 @@ bool SkinBinding::ParseFromJson(const rapidjson::Value& json, std::set<std::stri
         "node", "geometry", "vertex_count", "joints", "selection_map", "selection_sets"
     };
 
-    if (JsonHelper::HasMember(json, "node")) {
-        node.ParseFromJson(json["node"]);
-    }
-    if (JsonHelper::HasMember(json, "geometry")) {
-        geometry.ParseFromJson(json["geometry"]);
-    }
-    if (JsonHelper::HasMember(json, "vertex_count")) {
-        vertex_count.ParseFromJson(json["vertex_count"]);
-    }
+    ParseMember(json, "node", node);
+    ParseMember(json, "geometry", geometry);
+    ParseMember(json, "vertex_count", vertex_count);
 
     const rapidjson::Value* jointsArray = nullptr;
     if (JsonHelper::GetArray(json, "joints", jointsArray)) {
@@ -660,30 +604,13 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
         "deltas", "normal_deltas", "vertex_count", "formulas", "region", "group", "skin"
     };
     
-    if (JsonHelper::HasMember(json, "id")) {
-        id.ParseFromJson(json["id"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "name")) {
-        name.ParseFromJson(json["name"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "type")) {
-        type.ParseFromJson(json["type"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "url")) {
-        url.ParseFromJson(json["url"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "parent")) {
-        parent.ParseFromJson(json["parent"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "skin_binding")) {
-        skin_binding.ParseFromJson(json["skin_binding"]);
-    }
-    
+    ParseMember(json, "id", id);
+    ParseMember(json, "name", name);
+    ParseMember(json, "type", type);
+    ParseMember(json, "url", url);
+    ParseMember(json, "parent", parent);
+    ParseMember(json, "skin_binding", skin_binding);
+
     // Parse channel reference
     const rapidjson::Value* channelObj = nullptr;
     if (JsonHelper::GetObject(json, "channel", channelObj)) {
@@ -723,18 +650,10 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
         "id", "name", "url", "map", "map_file", "map_size", "map_gamma"
     };
     
-    if (JsonHelper::HasMember(json, "id")) {
-        id.ParseFromJson(json["id"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "name")) {
-        name.ParseFromJson(json["name"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "url")) {
-        url.ParseFromJson(json["url"]);
-    }
-    
+    ParseMember(json, "id", id);
+    ParseMember(json, "name", name);
+    ParseMember(json, "url", url);
+
     // Try "map" key first — can be a bare string or an object {"url":"..."} / {"file":"..."}
     if (JsonHelper::HasMember(json, "map")) {
         const rapidjson::Value& mapVal = json["map"];
@@ -753,10 +672,8 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
         map_file.ParseFromJson(json["map_file"]);
     }
     
-    if (JsonHelper::HasMember(json, "map_size")) {
-        map_width.ParseFromJson(json["map_size"]);
-    }
-    
+    ParseMember(json, "map_size", map_width);
+
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
 }
@@ -776,17 +693,9 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
         "id", "name", "url", "uvs", "polygon_vertex_indices", "vertex_count"
     };
     
-    if (JsonHelper::HasMember(json, "id")) {
-        id.ParseFromJson(json["id"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "name")) {
-        name.ParseFromJson(json["name"]);
-    }
-    
-    if (JsonHelper::HasMember(json, "url")) {
-        url.ParseFromJson(json["url"]);
-    }
+    ParseMember(json, "id", id);
+    ParseMember(json, "name", name);
+    ParseMember(json, "url", url);
 
     if (JsonHelper::HasMember(json, "vertex_count") && json["vertex_count"].IsInt()) {
         vertex_count = json["vertex_count"].GetInt();
@@ -941,10 +850,8 @@ bool DsonDocument::ParseFromJson(const rapidjson::Document& doc) {
         "material_library", "modifier_library", "image_library", "uv_set_library"
     };
     
-    if (JsonHelper::HasMember(doc, "file_version")) {
-        file_version.ParseFromJson(doc["file_version"]);
-    }
-    
+    ParseMember(doc, "file_version", file_version);
+
     const rapidjson::Value* assetInfoObj = nullptr;
     if (JsonHelper::GetObject(doc, "asset_info", assetInfoObj)) {
         asset_info.ParseFromJson(*assetInfoObj, &unknown_keys["asset_info"]);
