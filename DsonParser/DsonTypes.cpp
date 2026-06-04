@@ -2,6 +2,7 @@
 #include "DsonTypes.h"
 #include "DsonHelpers.h"
 #include <cstdio>
+#include <memory>
 #include <sstream>
 
 // Parser orientation:
@@ -1092,13 +1093,12 @@ bool DsonDocument::LoadFromFile(const char* filepath, std::string& errorMsg) {
         return false;
     }
 
-    char* readBuffer = new char[65536];
-    rapidjson::FileReadStream is(fp, readBuffer, 65536);
+    std::unique_ptr<FILE, int(*)(FILE*)> file(fp, fclose);
+    std::vector<char> readBuffer(65536);
+    rapidjson::FileReadStream is(file.get(), readBuffer.data(), 65536);
 
     rapidjson::Document doc;
     doc.ParseStream(is);
-    fclose(fp);
-    delete[] readBuffer;
 
     if (doc.HasParseError()) {
         std::ostringstream oss;
