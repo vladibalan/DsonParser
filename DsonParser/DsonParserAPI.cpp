@@ -115,8 +115,7 @@ typedef std::vector<std::pair<std::string, Dson::MaterialChannel>> MaterialChann
 static const std::pair<std::string, Dson::MaterialChannel>* GetMaterialChannel(
     const MaterialChannelList& channels,
     int channelIdx) {
-    if (channelIdx < 0 || channelIdx >= static_cast<int>(channels.size())) return nullptr;
-    return &channels[channelIdx];
+    return At(channels, channelIdx);
 }
 
 static int GetMaterialChannelCount(const MaterialChannelList& channels) {
@@ -217,10 +216,8 @@ static double GetIndexedVector3Component(const Dson::IndexedVector3Array& deltas
 }
 
 static const Dson::Node* GetLibraryNode(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return nullptr;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return nullptr;
-    return &doc->nodes[nodeIndex];
+    Dson::DsonDocument* doc = Doc(handle);
+    return doc ? At(doc->nodes, nodeIndex) : nullptr;
 }
 
 static double GetVector3Component(const Dson::Vector3& v, int component) {
@@ -241,10 +238,8 @@ static double GetNodeVector3Component(
 }
 
 static const Dson::Geometry* GetGeometry(DsonDocumentHandle handle, int geomIndex) {
-    if (!handle) return nullptr;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return nullptr;
-    return &doc->geometries[geomIndex];
+    Dson::DsonDocument* doc = Doc(handle);
+    return doc ? At(doc->geometries, geomIndex) : nullptr;
 }
 
 static double GetGeometryVertexComponent(
