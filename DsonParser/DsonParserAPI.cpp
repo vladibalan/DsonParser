@@ -202,6 +202,30 @@ static double GetIndexedVector3Component(const Dson::IndexedVector3Array& deltas
     return 0.0;
 }
 
+static const Dson::Node* GetLibraryNode(DsonDocumentHandle handle, int nodeIndex) {
+    if (!handle) return nullptr;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return nullptr;
+    return &doc->nodes[nodeIndex];
+}
+
+static double GetVector3Component(const Dson::Vector3& v, int component) {
+    if (component == 0) return v.x;
+    if (component == 1) return v.y;
+    if (component == 2) return v.z;
+    return 0.0;
+}
+
+static double GetNodeVector3Component(
+    DsonDocumentHandle handle,
+    int nodeIndex,
+    const Dson::Vector3 Dson::Node::* member,
+    int component) {
+    const Dson::Node* node = GetLibraryNode(handle, nodeIndex);
+    if (!node) return 0.0;
+    return GetVector3Component(node->*member, component);
+}
+
 // Skin data is parsed in DSON's native joint->vertex layout. Importers usually
 // need vertex->bone influences, so this cache inverts the mapping for one
 // modifier at a time, sorts each vertex's influences by weight, and normalizes
@@ -397,24 +421,15 @@ const char* DsonDocument_GetNodeType(DsonDocumentHandle handle, int index) {
 }
 
 double DsonDocument_GetNodeCenterPointX(DsonDocumentHandle handle, int index) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[index].center_point.x;
+    return GetNodeVector3Component(handle, index, &Dson::Node::center_point, 0);
 }
 
 double DsonDocument_GetNodeCenterPointY(DsonDocumentHandle handle, int index) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[index].center_point.y;
+    return GetNodeVector3Component(handle, index, &Dson::Node::center_point, 1);
 }
 
 double DsonDocument_GetNodeCenterPointZ(DsonDocumentHandle handle, int index) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[index].center_point.z;
+    return GetNodeVector3Component(handle, index, &Dson::Node::center_point, 2);
 }
 
 // Scene nodes (scene.nodes) are instances, not library definitions. They may
@@ -874,45 +889,27 @@ const char* DsonDocument_GetNodeParent(DsonDocumentHandle handle, int nodeIndex)
 }
 
 double DsonDocument_GetNodeEndPointX(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].end_point.x;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::end_point, 0);
 }
 
 double DsonDocument_GetNodeEndPointY(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].end_point.y;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::end_point, 1);
 }
 
 double DsonDocument_GetNodeEndPointZ(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].end_point.z;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::end_point, 2);
 }
 
 double DsonDocument_GetNodeOrientationX(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].orientation.x;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::orientation, 0);
 }
 
 double DsonDocument_GetNodeOrientationY(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].orientation.y;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::orientation, 1);
 }
 
 double DsonDocument_GetNodeOrientationZ(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].orientation.z;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::orientation, 2);
 }
 
 const char* DsonDocument_GetNodeRotationOrder(DsonDocumentHandle handle, int nodeIndex) {
@@ -923,66 +920,39 @@ const char* DsonDocument_GetNodeRotationOrder(DsonDocumentHandle handle, int nod
 }
 
 double DsonDocument_GetNodeTranslationX(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].translation.x;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::translation, 0);
 }
 
 double DsonDocument_GetNodeTranslationY(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].translation.y;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::translation, 1);
 }
 
 double DsonDocument_GetNodeTranslationZ(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].translation.z;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::translation, 2);
 }
 
 double DsonDocument_GetNodeRotationX(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].rotation.x;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::rotation, 0);
 }
 
 double DsonDocument_GetNodeRotationY(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].rotation.y;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::rotation, 1);
 }
 
 double DsonDocument_GetNodeRotationZ(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].rotation.z;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::rotation, 2);
 }
 
 double DsonDocument_GetNodeScaleX(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].scale.x;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::scale, 0);
 }
 
 double DsonDocument_GetNodeScaleY(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].scale.y;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::scale, 1);
 }
 
 double DsonDocument_GetNodeScaleZ(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return 0.0;
-    return doc->nodes[nodeIndex].scale.z;
+    return GetNodeVector3Component(handle, nodeIndex, &Dson::Node::scale, 2);
 }
 
 double DsonDocument_GetNodeGeneralScale(DsonDocumentHandle handle, int nodeIndex) {
