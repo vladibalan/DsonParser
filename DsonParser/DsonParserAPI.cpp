@@ -247,6 +247,15 @@ static double GetGeometryVertexComponent(
     return verts[idx + component];
 }
 
+static int GetStringVectorCount(const std::vector<std::string>& values) {
+    return static_cast<int>(values.size());
+}
+
+static const char* GetStringVectorValue(const std::vector<std::string>& values, int index) {
+    if (index < 0 || index >= static_cast<int>(values.size())) return "";
+    return values[index].c_str();
+}
+
 // Skin data is parsed in DSON's native joint->vertex layout. Importers usually
 // need vertex->bone influences, so this cache inverts the mapping for one
 // modifier at a time, sorts each vertex's influences by weight, and normalizes
@@ -816,36 +825,32 @@ int DsonDocument_GetPolylistFaceGroupIndex(DsonDocumentHandle handle, int geomIn
 
 int DsonDocument_GetPolygonGroupCount(DsonDocumentHandle handle, int geomIndex) {
     if (!handle) return -1;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
-    return static_cast<int>(doc->geometries[geomIndex].polygon_groups.size());
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return -1;
+    return GetStringVectorCount(geom->polygon_groups);
 }
 
 const char* DsonDocument_GetPolygonGroupName(DsonDocumentHandle handle, int geomIndex, int groupIndex) {
     if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return "";
-    const auto& groups = doc->geometries[geomIndex].polygon_groups;
-    if (groupIndex < 0 || groupIndex >= static_cast<int>(groups.size())) return "";
-    return groups[groupIndex].c_str();
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return "";
+    return GetStringVectorValue(geom->polygon_groups, groupIndex);
 }
 
 // ---- Material groups ----
 
 int DsonDocument_GetPolygonMaterialGroupCount(DsonDocumentHandle handle, int geomIndex) {
     if (!handle) return -1;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
-    return static_cast<int>(doc->geometries[geomIndex].polygon_material_groups.size());
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return -1;
+    return GetStringVectorCount(geom->polygon_material_groups);
 }
 
 const char* DsonDocument_GetPolygonMaterialGroupName(DsonDocumentHandle handle, int geomIndex, int groupIndex) {
     if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return "";
-    const auto& groups = doc->geometries[geomIndex].polygon_material_groups;
-    if (groupIndex < 0 || groupIndex >= static_cast<int>(groups.size())) return "";
-    return groups[groupIndex].c_str();
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return "";
+    return GetStringVectorValue(geom->polygon_material_groups, groupIndex);
 }
 
 // ---- Material groups (library materials) ----
@@ -854,16 +859,14 @@ int DsonDocument_GetMaterialGroupCount(DsonDocumentHandle handle, int matIndex) 
     if (!handle) return -1;
     Dson::DsonDocument* doc = GetDocument(handle);
     if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return -1;
-    return static_cast<int>(doc->materials[matIndex].groups.size());
+    return GetStringVectorCount(doc->materials[matIndex].groups);
 }
 
 const char* DsonDocument_GetMaterialGroupName(DsonDocumentHandle handle, int matIndex, int groupIndex) {
     if (!handle) return "";
     Dson::DsonDocument* doc = GetDocument(handle);
     if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
-    const auto& groups = doc->materials[matIndex].groups;
-    if (groupIndex < 0 || groupIndex >= static_cast<int>(groups.size())) return "";
-    return groups[groupIndex].c_str();
+    return GetStringVectorValue(doc->materials[matIndex].groups, groupIndex);
 }
 
 // ---- Material groups (scene material instances) ----
@@ -872,16 +875,14 @@ int DsonDocument_GetSceneMaterialGroupCount(DsonDocumentHandle handle, int matIn
     if (!handle) return -1;
     Dson::DsonDocument* doc = GetDocument(handle);
     if (matIndex < 0 || matIndex >= static_cast<int>(doc->scene.materials.size())) return -1;
-    return static_cast<int>(doc->scene.materials[matIndex].groups.size());
+    return GetStringVectorCount(doc->scene.materials[matIndex].groups);
 }
 
 const char* DsonDocument_GetSceneMaterialGroupName(DsonDocumentHandle handle, int matIndex, int groupIndex) {
     if (!handle) return "";
     Dson::DsonDocument* doc = GetDocument(handle);
     if (matIndex < 0 || matIndex >= static_cast<int>(doc->scene.materials.size())) return "";
-    const auto& groups = doc->scene.materials[matIndex].groups;
-    if (groupIndex < 0 || groupIndex >= static_cast<int>(groups.size())) return "";
-    return groups[groupIndex].c_str();
+    return GetStringVectorValue(doc->scene.materials[matIndex].groups, groupIndex);
 }
 
 // ============================================================
