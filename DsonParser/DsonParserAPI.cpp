@@ -226,6 +226,27 @@ static double GetNodeVector3Component(
     return GetVector3Component(node->*member, component);
 }
 
+static const Dson::Geometry* GetGeometry(DsonDocumentHandle handle, int geomIndex) {
+    if (!handle) return nullptr;
+    Dson::DsonDocument* doc = GetDocument(handle);
+    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return nullptr;
+    return &doc->geometries[geomIndex];
+}
+
+static double GetGeometryVertexComponent(
+    DsonDocumentHandle handle,
+    int geomIndex,
+    int vertexIndex,
+    int component) {
+    if (component < 0 || component > 2) return 0.0;
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return 0.0;
+    const auto& verts = geom->vertices.values;
+    int idx = vertexIndex * 3;
+    if (vertexIndex < 0 || idx + 2 >= static_cast<int>(verts.size())) return 0.0;
+    return verts[idx + component];
+}
+
 // Skin data is parsed in DSON's native joint->vertex layout. Importers usually
 // need vertex->bone influences, so this cache inverts the mapping for one
 // modifier at a time, sorts each vertex's influences by weight, and normalizes
@@ -702,33 +723,15 @@ int DsonDocument_GetVertexCount(DsonDocumentHandle handle, int geomIndex) {
 }
 
 double DsonDocument_GetVertexX(DsonDocumentHandle handle, int geomIndex, int vertexIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return 0.0;
-    const auto& verts = doc->geometries[geomIndex].vertices.values;
-    int idx = vertexIndex * 3;
-    if (vertexIndex < 0 || idx + 2 >= static_cast<int>(verts.size())) return 0.0;
-    return verts[idx];
+    return GetGeometryVertexComponent(handle, geomIndex, vertexIndex, 0);
 }
 
 double DsonDocument_GetVertexY(DsonDocumentHandle handle, int geomIndex, int vertexIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return 0.0;
-    const auto& verts = doc->geometries[geomIndex].vertices.values;
-    int idx = vertexIndex * 3;
-    if (vertexIndex < 0 || idx + 2 >= static_cast<int>(verts.size())) return 0.0;
-    return verts[idx + 1];
+    return GetGeometryVertexComponent(handle, geomIndex, vertexIndex, 1);
 }
 
 double DsonDocument_GetVertexZ(DsonDocumentHandle handle, int geomIndex, int vertexIndex) {
-    if (!handle) return 0.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return 0.0;
-    const auto& verts = doc->geometries[geomIndex].vertices.values;
-    int idx = vertexIndex * 3;
-    if (vertexIndex < 0 || idx + 2 >= static_cast<int>(verts.size())) return 0.0;
-    return verts[idx + 2];
+    return GetGeometryVertexComponent(handle, geomIndex, vertexIndex, 2);
 }
 
 // ---- Polylist ----
