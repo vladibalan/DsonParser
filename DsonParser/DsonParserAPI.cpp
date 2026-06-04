@@ -78,6 +78,24 @@ void StoreLastError(const std::string& error) {
     s_lastError = error;
 }
 
+static void ClearQueryCaches(DsonContext* ctx) {
+    if (!ctx) return;
+    ctx->contextCache.clear();
+    ctx->unknownKeysCache.clear();
+    ctx->unknownKeysCacheContext.clear();
+    ctx->morphIndexCache.clear();
+    ctx->morphIndexCacheDirty = true;
+    ctx->skinCache.data.clear();
+    ctx->skinCache.built = false;
+    ctx->skinCache.modifierIndex = -1;
+}
+
+static void RefreshCachesAfterLoad(DsonContext* ctx) {
+    if (!ctx) return;
+    ClearQueryCaches(ctx);
+    ctx->contextCache = ctx->document.GetAllContextsWithUnknownKeys();
+}
+
 // Morph accessors expose a dense list of modifiers where type == "morph".
 // The public morphIndex is therefore not the same number as the modifier_library
 // index used by DsonDocument_GetModifier* and skin-binding APIs.
@@ -161,13 +179,7 @@ int DsonDocument_LoadFromFile(DsonDocumentHandle handle, const char* filepath) {
         if (doc->LoadFromFile(filepath, errorMsg)) {
             StoreLastError("");
             DsonContext* ctx = GetContext(handle);
-            ctx->contextCache = ctx->document.GetAllContextsWithUnknownKeys();
-            ctx->unknownKeysCache.clear();
-            ctx->unknownKeysCacheContext.clear();
-            ctx->morphIndexCacheDirty = true;
-            ctx->skinCache.data.clear();
-            ctx->skinCache.built = false;
-            ctx->skinCache.modifierIndex = -1;
+            RefreshCachesAfterLoad(ctx);
             return 0;
         }
         StoreLastError(errorMsg);
@@ -195,13 +207,7 @@ int DsonDocument_LoadFromString(DsonDocumentHandle handle, const char* jsonStrin
         if (doc->LoadFromString(jsonString, errorMsg)) {
             StoreLastError("");
             DsonContext* ctx = GetContext(handle);
-            ctx->contextCache = ctx->document.GetAllContextsWithUnknownKeys();
-            ctx->unknownKeysCache.clear();
-            ctx->unknownKeysCacheContext.clear();
-            ctx->morphIndexCacheDirty = true;
-            ctx->skinCache.data.clear();
-            ctx->skinCache.built = false;
-            ctx->skinCache.modifierIndex = -1;
+            RefreshCachesAfterLoad(ctx);
             return 0;
         }
         StoreLastError(errorMsg);
@@ -569,14 +575,7 @@ void DsonDocument_Clear(DsonDocumentHandle handle) {
     if (!handle) return;
     DsonContext* ctx = GetContext(handle);
     ctx->document.Clear();
-    ctx->contextCache.clear();
-    ctx->unknownKeysCache.clear();
-    ctx->unknownKeysCacheContext.clear();
-    ctx->morphIndexCache.clear();
-    ctx->morphIndexCacheDirty = true;
-    ctx->skinCache.data.clear();
-    ctx->skinCache.built = false;
-    ctx->skinCache.modifierIndex = -1;
+    ClearQueryCaches(ctx);
 }
 
 void DsonDocument_Destroy(DsonDocumentHandle handle) {
