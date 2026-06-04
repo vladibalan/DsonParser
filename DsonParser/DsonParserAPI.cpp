@@ -740,18 +740,29 @@ double DsonDocument_GetVertexZ(DsonDocumentHandle handle, int geomIndex, int ver
 // polylist_face_offsets[i] holds the start index in polylist.values for face i,
 // enabling correct indexing for variable-length (mixed tri/quad) faces.
 
-static int GetFaceStartOffset(const Dson::Geometry& geom, int faceIndex) {
-    if (faceIndex < 0 || faceIndex >= static_cast<int>(geom.polylist_face_offsets.size())) return -1;
+static int GetPolylistFaceStart(const Dson::Geometry& geom, int faceIndex) {
+    if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
+    if (faceIndex >= static_cast<int>(geom.polylist_face_offsets.size())) return -1;
     return geom.polylist_face_offsets[faceIndex];
 }
 
-static int GetFaceLength(const Dson::Geometry& geom, int faceIndex) {
-    int n = static_cast<int>(geom.polylist_face_offsets.size());
-    if (faceIndex < 0 || faceIndex >= n) return -1;
-    int start = geom.polylist_face_offsets[faceIndex];
-    int end = (faceIndex + 1 < n) ? geom.polylist_face_offsets[faceIndex + 1]
-                                   : static_cast<int>(geom.polylist.values.size());
-    return end - start;
+static int GetPolylistFaceEnd(const Dson::Geometry& geom, int faceIndex) {
+    int start = GetPolylistFaceStart(geom, faceIndex);
+    if (start < 0) return -1;
+    if (faceIndex + 1 < static_cast<int>(geom.polylist_face_offsets.size())) {
+        return geom.polylist_face_offsets[faceIndex + 1];
+    }
+    return static_cast<int>(geom.polylist.values.size());
+}
+
+static int GetPolylistFaceValue(const Dson::Geometry& geom, int faceIndex, int offsetInFace) {
+    if (offsetInFace < 0) return -1;
+    int start = GetPolylistFaceStart(geom, faceIndex);
+    int end = GetPolylistFaceEnd(geom, faceIndex);
+    if (start < 0 || end < 0) return -1;
+    int index = start + offsetInFace;
+    if (index < start || index >= end || index >= static_cast<int>(geom.polylist.values.size())) return -1;
+    return geom.polylist.values[index];
 }
 
 int DsonDocument_GetPolylistCount(DsonDocumentHandle handle, int geomIndex) {
@@ -763,49 +774,42 @@ int DsonDocument_GetPolylistCount(DsonDocumentHandle handle, int geomIndex) {
 
 int DsonDocument_GetPolylistFaceVertexCount(DsonDocumentHandle handle, int geomIndex, int faceIndex) {
     if (!handle) return -1;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
-    const auto& geom = doc->geometries[geomIndex];
-    if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
-    int len = GetFaceLength(geom, faceIndex);
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return -1;
+    int start = GetPolylistFaceStart(*geom, faceIndex);
+    int end = GetPolylistFaceEnd(*geom, faceIndex);
+    if (start < 0 || end < 0) return -1;
+    int len = end - start;
     if (len < 2) return -1;
     return len - 2;
 }
 
 int DsonDocument_GetPolylistFaceVertex(DsonDocumentHandle handle, int geomIndex, int faceIndex, int vertexIndex) {
     if (!handle) return -1;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
-    const auto& geom = doc->geometries[geomIndex];
-    if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
-    int offset = GetFaceStartOffset(geom, faceIndex);
-    int len = GetFaceLength(geom, faceIndex);
-    if (offset < 0 || len < 2) return -1;
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return -1;
+    int start = GetPolylistFaceStart(*geom, faceIndex);
+    int end = GetPolylistFaceEnd(*geom, faceIndex);
+    if (start < 0 || end < 0) return -1;
+    int len = end - start;
+    if (len < 2) return -1;
     int vertsPerFace = len - 2;
     if (vertexIndex < 0 || vertexIndex >= vertsPerFace) return -1;
-    return geom.polylist.values[offset + 2 + vertexIndex];
+    return GetPolylistFaceValue(*geom, faceIndex, vertexIndex + 2);
 }
 
 int DsonDocument_GetPolylistFaceMaterialIndex(DsonDocumentHandle handle, int geomIndex, int faceIndex) {
     if (!handle) return -1;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
-    const auto& geom = doc->geometries[geomIndex];
-    if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
-    int offset = GetFaceStartOffset(geom, faceIndex);
-    if (offset < 0 || offset + 1 >= static_cast<int>(geom.polylist.values.size())) return -1;
-    return geom.polylist.values[offset + 1];
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return -1;
+    return GetPolylistFaceValue(*geom, faceIndex, 1);
 }
 
 int DsonDocument_GetPolylistFaceGroupIndex(DsonDocumentHandle handle, int geomIndex, int faceIndex) {
     if (!handle) return -1;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return -1;
-    const auto& geom = doc->geometries[geomIndex];
-    if (faceIndex < 0 || faceIndex >= geom.polygon_count) return -1;
-    int offset = GetFaceStartOffset(geom, faceIndex);
-    if (offset < 0 || offset >= static_cast<int>(geom.polylist.values.size())) return -1;
-    return geom.polylist.values[offset];
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return -1;
+    return GetPolylistFaceValue(*geom, faceIndex, 0);
 }
 
 // ---- Polygon groups (bone region groups) ----
