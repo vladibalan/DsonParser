@@ -82,18 +82,31 @@ static void ParseTransformVector3(const rapidjson::Value& arr, Vector3& out) {
     }
 }
 
+// Resolve a member that DSON encodes as either a plain array or a
+// { count, values:[...] } wrapper object down to its values array. Returns
+// nullptr if the key is absent or in neither shape. Callers that also need the
+// wrapper's "count" field (vertices, polylist) read it separately.
+static const rapidjson::Value* GetValuesArray(const rapidjson::Value& container, const char* key) {
+    auto it = container.FindMember(key);
+    if (it == container.MemberEnd()) {
+        return nullptr;
+    }
+    const rapidjson::Value& v = it->value;
+    if (v.IsArray()) {
+        return &v;
+    }
+    if (v.IsObject()) {
+        auto vit = v.FindMember("values");
+        if (vit != v.MemberEnd() && vit->value.IsArray()) {
+            return &vit->value;
+        }
+    }
+    return nullptr;
+}
+
 // Read a { count, values:[...strings] } object (or a plain string array) into out.
 static void ParseStringValuedArray(const rapidjson::Value& container, const char* key, std::vector<std::string>& out) {
-    if (!container.HasMember(key)) {
-        return;
-    }
-    const rapidjson::Value& v = container[key];
-    const rapidjson::Value* values = nullptr;
-    if (v.IsObject()) {
-        JsonHelper::GetArray(v, "values", values);
-    } else if (v.IsArray()) {
-        values = &v;
-    }
+    const rapidjson::Value* values = GetValuesArray(container, key);
     if (!values) {
         return;
     }
@@ -335,17 +348,8 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
         }
     }
 
-    if (JsonHelper::HasMember(json, "polygons")) {
-        const rapidjson::Value& poly = json["polygons"];
-        const rapidjson::Value* polyArray = nullptr;
-        if (poly.IsObject()) {
-            JsonHelper::GetArray(poly, "values", polyArray);
-        } else if (poly.IsArray()) {
-            polyArray = &poly;
-        }
-        if (polyArray) {
-            polygons.ParseFromJson(*polyArray);
-        }
+    if (const rapidjson::Value* polyArray = GetValuesArray(json, "polygons")) {
+        polygons.ParseFromJson(*polyArray);
     }
 
     // Polylist: an array of faces (legacy) or a { count, values:[[g,m,v0,v1,...],...] } object.
@@ -702,64 +706,46 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     }
 
     // Parse UVs - plain [[u,v],...] array or {"count":N,"values":[[u,v],...]} object
-    if (JsonHelper::HasMember(json, "uvs")) {
-        const rapidjson::Value& uvsVal = json["uvs"];
-        const rapidjson::Value* uvsArray = nullptr;
-        if (uvsVal.IsObject()) {
-            JsonHelper::GetArray(uvsVal, "values", uvsArray);
-        } else if (uvsVal.IsArray()) {
-            uvsArray = &uvsVal;
-        }
-        if (uvsArray) {
-            uvs.values.reserve(uvsArray->Size() * 2);
-            for (rapidjson::SizeType i = 0; i < uvsArray->Size(); i++) {
-                if ((*uvsArray)[i].IsArray()) {
-                    const auto& uv = (*uvsArray)[i];
-                    if (uv.Size() >= 2) {
-                        if (uv[0].IsNumber() && uv[1].IsNumber()) {
-                            uvs.values.push_back(uv[0].GetDouble());
-                            uvs.values.push_back(uv[1].GetDouble());
-                        }
+    if (const rapidjson::Value* uvsArray = GetValuesArray(json, "uvs")) {
+        uvs.values.reserve(uvsArray->Size() * 2);
+        for (rapidjson::SizeType i = 0; i < uvsArray->Size(); i++) {
+            if ((*uvsArray)[i].IsArray()) {
+                const auto& uv = (*uvsArray)[i];
+                if (uv.Size() >= 2) {
+                    if (uv[0].IsNumber() && uv[1].IsNumber()) {
+                        uvs.values.push_back(uv[0].GetDouble());
+                        uvs.values.push_back(uv[1].GetDouble());
                     }
                 }
             }
         }
     }
     
-    if (JsonHelper::HasMember(json, "polygon_vertex_indices")) {
-        const rapidjson::Value& pviVal = json["polygon_vertex_indices"];
-        const rapidjson::Value* polyVertIndices = nullptr;
-        if (pviVal.IsObject()) {
-            JsonHelper::GetArray(pviVal, "values", polyVertIndices);
-        } else if (pviVal.IsArray()) {
-            polyVertIndices = &pviVal;
+    if (const rapidjson::Value* polyVertIndices = GetValuesArray(json, "polygon_vertex_indices")) {
+        // Detect sparse triplet format: first element is a 3-int array.
+        // DAZ DSON spec: each entry is [face_index, corner_index, uv_index]
+        // listing only corners where uv_index != vertex_index.
+        bool isSparse = false;
+        if (polyVertIndices->Size() > 0) {
+            const rapidjson::Value& first = (*polyVertIndices)[0];
+            isSparse = first.IsArray() && first.Size() == 3;
         }
-        if (polyVertIndices && polyVertIndices->IsArray()) {
-            // Detect sparse triplet format: first element is a 3-int array.
-            // DAZ DSON spec: each entry is [face_index, corner_index, uv_index]
-            // listing only corners where uv_index != vertex_index.
-            bool isSparse = false;
-            if (polyVertIndices->Size() > 0) {
-                const rapidjson::Value& first = (*polyVertIndices)[0];
-                isSparse = first.IsArray() && first.Size() == 3;
-            }
 
-            if (isSparse) {
-                uv_overrides.reserve(polyVertIndices->Size());
-                for (rapidjson::SizeType i = 0; i < polyVertIndices->Size(); i++) {
-                    const rapidjson::Value& elem = (*polyVertIndices)[i];
-                    if (!elem.IsArray() || elem.Size() < 3) continue;
-                    if (!elem[0].IsInt() || !elem[1].IsInt() || !elem[2].IsInt()) continue;
-                    UVOverride ov;
-                    ov.face     = elem[0].GetInt();
-                    ov.corner   = elem[1].GetInt();
-                    ov.uv_index = elem[2].GetInt();
-                    uv_overrides.push_back(ov);
-                }
-            } else {
-                // Flat-int format (legacy, hypothetical — not observed in real DSFs).
-                polygon_vertex_indices.ParseFromJson(*polyVertIndices);
+        if (isSparse) {
+            uv_overrides.reserve(polyVertIndices->Size());
+            for (rapidjson::SizeType i = 0; i < polyVertIndices->Size(); i++) {
+                const rapidjson::Value& elem = (*polyVertIndices)[i];
+                if (!elem.IsArray() || elem.Size() < 3) continue;
+                if (!elem[0].IsInt() || !elem[1].IsInt() || !elem[2].IsInt()) continue;
+                UVOverride ov;
+                ov.face     = elem[0].GetInt();
+                ov.corner   = elem[1].GetInt();
+                ov.uv_index = elem[2].GetInt();
+                uv_overrides.push_back(ov);
             }
+        } else {
+            // Flat-int format (legacy, hypothetical — not observed in real DSFs).
+            polygon_vertex_indices.ParseFromJson(*polyVertIndices);
         }
     }
     
