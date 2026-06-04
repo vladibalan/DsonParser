@@ -3,6 +3,10 @@
 ## v1 — Complete (Current State)
 
 ### Summary
+
+For a code-oriented parser map, read `docs/dson-parsing-overview.md` first.
+This roadmap tracks capability status, audit history, and planned future work.
+
 Full C++ DSON/DSF parser for DAZ Studio Genesis 9 figures, exposing all data
 required to build a UE5 `USkeletalMesh` through a stable `extern "C"` API.
 Verified against real Genesis 9 files (`Genesis9.dsf`, `G9.duf`, `test.dsf`)

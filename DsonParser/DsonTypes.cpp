@@ -4,6 +4,28 @@
 #include <cstdio>
 #include <sstream>
 
+// Parser orientation:
+// This file converts a RapidJSON document into the typed Dson::* model declared
+// in DsonTypes.h. Each ParseFromJson method owns one DSON object shape and is
+// intentionally permissive: optional or malformed subfields usually keep their
+// default values, while unrecognized keys are recorded for audit diagnostics.
+//
+// Main flow:
+// - DsonDocument::LoadFromFile/LoadFromString parses JSON syntax with RapidJSON.
+// - DsonDocument::ParseFromJson dispatches top-level DSON sections:
+//   asset_info, scene, node_library, geometry_library, material_library,
+//   modifier_library, image_library, and uv_set_library.
+// - Section structs parse only the fields needed by the public C API and UE5
+//   import pipeline: geometry, skeleton nodes, skin weights, UVs, materials,
+//   images, morph deltas, and scene instances.
+// - A post-parse pass resolves material channel image references to image
+//   texture paths. Broader cross-file asset resolution is outside this parser.
+//
+// Deliberately not handled here:
+// - Formula evaluation / driven morph chains.
+// - Loading referenced external DSF/DUF assets.
+// - Semantic validation beyond basic JSON shape checks and unknown-key tracking.
+
 namespace Dson {
 
 // Helper to track unknown keys
@@ -274,7 +296,13 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
     return true;
 }
 
-// Geometry implementation
+// Geometry parser:
+// Captures mesh topology exactly enough for downstream importers to rebuild the
+// surface: vertex positions, face lists, polygon groups, material groups, and
+// the geometry's default UV-set reference. DSON commonly wraps arrays as
+// {count, values:[...]}; legacy flat arrays are accepted where practical.
+// Polylist faces are kept flattened, with a per-face offset table, because DSON
+// faces may vary in length and include leading group/material indices.
 bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -433,7 +461,13 @@ static MaterialChannel ParseMaterialChannel(const rapidjson::Value& container) {
     return result;
 }
 
-// Material implementation
+// Material parser:
+// Preserves source-order material channels rather than mapping them to a fixed
+// engine shader model here. DAZ material data can appear as a top-level diffuse
+// block and/or inside extra[].studio_material_channels; both are normalized into
+// Material::channels as pairs of DAZ channel id plus parsed scalar/color/texture
+// data. Texture URLs are stored raw here; DsonDocument::ParseFromJson resolves
+// them to Image::map_file after image_library has been parsed.
 bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -514,7 +548,12 @@ bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     return true;
 }
 
-// SkinJoint implementation
+// Skin joint parser:
+// Reads one bone's vertex weights from the skin binding payload. DAZ stores the
+// primary data in node_weights.values as [vertex_index, weight] pairs; some files
+// use local_weights instead, so this parser falls back to that shape. The raw
+// joint->vertex layout is preserved here; the C API later inverts and normalizes
+// it per vertex for engine import.
 bool SkinJoint::ParseFromJson(const rapidjson::Value& json) {
     if (!json.IsObject()) {
         return false;
@@ -566,7 +605,11 @@ bool SkinJoint::ParseFromJson(const rapidjson::Value& json) {
     return true;
 }
 
-// SkinBinding implementation
+// Skin binding parser:
+// Captures the skeleton node reference, bound geometry reference, declared
+// vertex count, and all weighted joints. It does not validate that every vertex
+// has weights or that joint node references exist; consumers can inspect the raw
+// stored binding or use the API's processed per-vertex influence queries.
 bool SkinBinding::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -601,7 +644,11 @@ bool SkinBinding::ParseFromJson(const rapidjson::Value& json, std::set<std::stri
     return true;
 }
 
-// Modifier implementation
+// Modifier parser:
+// Handles the modifier payloads currently exposed by the API: morph deltas,
+// normal deltas, channel metadata, and skin_binding "skin" data. Formulas are
+// recognized as known keys for v1 audit cleanliness but are intentionally not
+// stored or evaluated yet; the roadmap documents that as v2 work.
 bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -713,7 +760,12 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     return true;
 }
 
-// UVSet implementation
+// UV set parser:
+// Reads UV coordinates plus DAZ's face-varying polygon_vertex_indices mapping.
+// The common DAZ shape is sparse triplets [face, corner, uv_index], meaning the
+// default mapping is identity (uv index == vertex index) and only exceptions are
+// listed. A legacy flat-int representation is still accepted into
+// polygon_vertex_indices but is not the normal DSF case.
 bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -805,7 +857,12 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     return true;
 }
 
-// Scene implementation
+// Scene parser:
+// Parses scene instance arrays separately from the library definitions. Scene
+// nodes/materials/modifiers/uvs usually reference library entries through URL
+// fields and may carry instance-level labels, surface groups, or channel values.
+// Presentation, animations, camera, and extra are treated as recognized-but-
+// unparsed fields so the unknown-key diagnostics stay focused on new structure.
 bool Scene::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -865,7 +922,12 @@ bool Scene::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     return true;
 }
 
-// DsonDocument implementation
+// Root document parser:
+// Dispatches each top-level DSON section to the matching domain parser, records
+// unknown keys per context, and performs the only post-parse linkage currently
+// in scope: material channel image references are matched against image_library
+// entries to fill texture_path. This is still a single-document parser; external
+// URLs are preserved as strings rather than recursively loaded.
 bool DsonDocument::ParseFromJson(const rapidjson::Document& doc) {
     if (!doc.IsObject()) {
         return false;

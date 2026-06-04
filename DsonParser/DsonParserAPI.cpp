@@ -7,6 +7,27 @@
 #include <algorithm>
 #include <unordered_map>
 
+// C API orientation:
+// This file exposes the parsed DsonDocument through a flat extern "C" ABI for
+// callers that do not want to link against the C++ model directly. The API uses
+// an opaque DsonDocumentHandle; internally that handle points to a DsonContext
+// containing the parsed document plus small caches that support index-based
+// queries.
+//
+// Responsibilities:
+// - Manage document lifetime, loading, clearing, and error reporting.
+// - Provide bounds-checked accessors for the typed data parsed in DsonTypes.cpp.
+// - Keep return values simple and ABI-friendly: strings are parser-owned
+//   const char*, invalid indexes return empty strings / zero / false / -1
+//   depending on the function family.
+// - Build lazy query caches for morph indexes and per-vertex skin influences.
+//
+// Important behavior:
+// - Morph APIs use a filtered morph index, not the raw modifier_library index.
+// - Skin influence APIs invert joint->vertex weights into vertex->bone lists,
+//   sort descending, normalize, and optionally cap/renormalize for UE import.
+// - This layer does not parse DSON itself; parsing rules live in DsonTypes.cpp.
+
 // Per-handle context: bundles the parsed document with the caches that back the
 // index-based enumeration APIs. Keeping this state on the handle (instead of in
 // process globals) means distinct documents - several files open at once, or
@@ -24,6 +45,10 @@ struct VertexInfluenceCache {
     bool built = false;
 };
 
+// All const char* values returned by the API point into storage owned by this
+// context or by its DsonDocument. Callers should copy strings they need after
+// DsonDocument_Clear/Destroy, or after an API call that reuses a scratch string
+// such as lastMorphGeometryId.
 struct DsonContext {
     Dson::DsonDocument document;
     std::vector<std::string> contextCache;
@@ -53,6 +78,9 @@ void StoreLastError(const std::string& error) {
     s_lastError = error;
 }
 
+// Morph accessors expose a dense list of modifiers where type == "morph".
+// The public morphIndex is therefore not the same number as the modifier_library
+// index used by DsonDocument_GetModifier* and skin-binding APIs.
 static void EnsureMorphCache(DsonContext* ctx) {
     if (!ctx->morphIndexCacheDirty) return;
     ctx->morphIndexCache.clear();
@@ -64,6 +92,11 @@ static void EnsureMorphCache(DsonContext* ctx) {
     ctx->morphIndexCacheDirty = false;
 }
 
+// Skin data is parsed in DSON's native joint->vertex layout. Importers usually
+// need vertex->bone influences, so this cache inverts the mapping for one
+// modifier at a time, sorts each vertex's influences by weight, and normalizes
+// the full influence list. The capped API does an additional top-N
+// renormalization without mutating this cache.
 static void EnsureSkinCache(DsonContext* ctx, int modifierIndex) {
     if (ctx->skinCache.built && ctx->skinCache.modifierIndex == modifierIndex) return;
 
@@ -286,8 +319,10 @@ double DsonDocument_GetNodeCenterPointZ(DsonDocumentHandle handle, int index) {
     return doc->nodes[index].center_point.z;
 }
 
-// Scene nodes (the "scene" array) are tracked separately from the node_library
-// above, so they get their own count and accessors.
+// Scene nodes (scene.nodes) are instances, not library definitions. They may
+// reference node_library entries through Url and carry labels or geometry refs
+// that are meaningful to the placed asset. Keep scene.* and *_library accessors
+// separate so callers can decide whether they want definitions or instances.
 int DsonDocument_GetSceneNodeCount(DsonDocumentHandle handle) {
     if (!handle) return 0;
     Dson::DsonDocument* doc = GetDocument(handle);
@@ -494,7 +529,9 @@ int DsonDocument_GetModifierSkinJointCount(DsonDocumentHandle handle, int index)
     return static_cast<int>(doc->modifiers[index].skin.joints.size());
 }
 
-// Unknown keys diagnostics
+// Unknown-key diagnostics expose the parser's audit trail. Context names are
+// top-level parse scopes such as "geometry_library" or "scene"; values are keys
+// that were present in the JSON but not consumed by the current parser version.
 int DsonDocument_GetContextCount(DsonDocumentHandle handle) {
     if (!handle) return 0;
     return static_cast<int>(GetContext(handle)->contextCache.size());
@@ -868,6 +905,10 @@ double DsonDocument_GetNodeGeneralScale(DsonDocumentHandle handle, int nodeIndex
 // C. Skin Weights
 // ============================================================
 
+// Raw skin queries below expose the parsed joint->vertex data directly from a
+// skin_binding modifier. Use the vertex influence queries when building engine
+// vertex buffers, because those return vertex->bone influences sorted and
+// normalized for each vertex.
 int DsonDocument_GetSkinJointCount(DsonDocumentHandle handle, int modifierIndex) {
     if (!handle) return -1;
     Dson::DsonDocument* doc = GetDocument(handle);
@@ -940,6 +981,10 @@ bool DsonDocument_GetVertexBoneInfluence(DsonDocumentHandle handle, int modifier
     return true;
 }
 
+// UE-style import paths usually cap each vertex to a fixed number of influences
+// (for example eight). This accessor reads from the full normalized cache, then
+// renormalizes only the top maxInfluences weights so the returned capped set
+// still sums to 1.0.
 bool DsonDocument_GetVertexBoneInfluenceCapped(DsonDocumentHandle handle, int modifierIndex, int vertexIndex, int influenceIndex, int maxInfluences, const char** boneNodeId, double* weight) {
     if (boneNodeId) *boneNodeId = "";
     if (weight) *weight = 0.0;
@@ -1319,6 +1364,9 @@ const char* DsonDocument_GetSceneMaterialChannelTexturePath(DsonDocumentHandle h
 // F. Morph Targets
 // ============================================================
 
+// Morph APIs operate on the filtered morph list built by EnsureMorphCache.
+// Returned deltas are sparse: each delta has a source vertex index plus XYZ
+// offset, so consumers should apply them only to listed vertices.
 int DsonDocument_GetMorphCount(DsonDocumentHandle handle) {
     if (!handle) return 0;
     DsonContext* ctx = GetContext(handle);
