@@ -74,6 +74,20 @@ Dson::DsonDocument* GetDocument(DsonDocumentHandle handle) {
     return &GetContext(handle)->document;
 }
 
+// Null-safe document accessor: returns nullptr instead of dereferencing a null
+// handle, so callers can fold the handle check into the same guard as bounds.
+static Dson::DsonDocument* Doc(DsonDocumentHandle handle) {
+    return handle ? GetDocument(handle) : nullptr;
+}
+
+// Bounds-checked element fetch for any indexable container: returns a pointer to
+// element i, or nullptr if i is out of range. Centralizes the index guard that
+// every index-based accessor would otherwise repeat inline.
+template <class Coll>
+static auto At(const Coll& c, int i) -> const typename Coll::value_type* {
+    return (i < 0 || i >= static_cast<int>(c.size())) ? nullptr : &c[i];
+}
+
 void StoreLastError(const std::string& error) {
     s_lastError = error;
 }
@@ -430,24 +444,21 @@ int DsonDocument_GetUVSetCount(DsonDocumentHandle handle) {
 }
 
 const char* DsonDocument_GetNodeId(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->nodes.size())) return "";
-    return doc->nodes[index].id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, index) : nullptr;
+    return node ? node->id.c_str() : "";
 }
 
 const char* DsonDocument_GetNodeName(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->nodes.size())) return "";
-    return doc->nodes[index].name.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, index) : nullptr;
+    return node ? node->name.c_str() : "";
 }
 
 const char* DsonDocument_GetNodeType(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->nodes.size())) return "";
-    return doc->nodes[index].type.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, index) : nullptr;
+    return node ? node->type.c_str() : "";
 }
 
 double DsonDocument_GetNodeCenterPointX(DsonDocumentHandle handle, int index) {
@@ -890,10 +901,9 @@ const char* DsonDocument_GetSceneMaterialGroupName(DsonDocumentHandle handle, in
 // ============================================================
 
 const char* DsonDocument_GetNodeParent(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return "";
-    return doc->nodes[nodeIndex].parent.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, nodeIndex) : nullptr;
+    return node ? node->parent.c_str() : "";
 }
 
 double DsonDocument_GetNodeEndPointX(DsonDocumentHandle handle, int nodeIndex) {
@@ -921,10 +931,9 @@ double DsonDocument_GetNodeOrientationZ(DsonDocumentHandle handle, int nodeIndex
 }
 
 const char* DsonDocument_GetNodeRotationOrder(DsonDocumentHandle handle, int nodeIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (nodeIndex < 0 || nodeIndex >= static_cast<int>(doc->nodes.size())) return "";
-    return doc->nodes[nodeIndex].rotation_order.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, nodeIndex) : nullptr;
+    return node ? node->rotation_order.c_str() : "";
 }
 
 double DsonDocument_GetNodeTranslationX(DsonDocumentHandle handle, int nodeIndex) {
