@@ -484,38 +484,33 @@ int DsonDocument_GetSceneNodeCount(DsonDocumentHandle handle) {
 }
 
 const char* DsonDocument_GetSceneNodeId(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->scene.nodes.size())) return "";
-    return doc->scene.nodes[index].id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->scene.nodes, index) : nullptr;
+    return node ? node->id.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneNodeName(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->scene.nodes.size())) return "";
-    return doc->scene.nodes[index].name.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->scene.nodes, index) : nullptr;
+    return node ? node->name.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneNodeLabel(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->scene.nodes.size())) return "";
-    return doc->scene.nodes[index].label.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->scene.nodes, index) : nullptr;
+    return node ? node->label.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneNodeType(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->scene.nodes.size())) return "";
-    return doc->scene.nodes[index].type.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->scene.nodes, index) : nullptr;
+    return node ? node->type.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneNodeUrl(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->scene.nodes.size())) return "";
-    return doc->scene.nodes[index].url.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->scene.nodes, index) : nullptr;
+    return node ? node->url.c_str() : "";
 }
 
 int DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneNodeIndex) {
@@ -526,21 +521,17 @@ int DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneN
 }
 
 const char* DsonDocument_GetSceneNodeGeometryId(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (sceneNodeIndex < 0 || sceneNodeIndex >= static_cast<int>(doc->scene.nodes.size())) return "";
-    const auto& geoms = doc->scene.nodes[sceneNodeIndex].geometries;
-    if (geomRefIndex < 0 || geomRefIndex >= static_cast<int>(geoms.size())) return "";
-    return geoms[geomRefIndex].id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->scene.nodes, sceneNodeIndex) : nullptr;
+    const Dson::NodeGeometryRef* geom = node ? At(node->geometries, geomRefIndex) : nullptr;
+    return geom ? geom->id.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneNodeGeometryUrl(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (sceneNodeIndex < 0 || sceneNodeIndex >= static_cast<int>(doc->scene.nodes.size())) return "";
-    const auto& geoms = doc->scene.nodes[sceneNodeIndex].geometries;
-    if (geomRefIndex < 0 || geomRefIndex >= static_cast<int>(geoms.size())) return "";
-    return geoms[geomRefIndex].url.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->scene.nodes, sceneNodeIndex) : nullptr;
+    const Dson::NodeGeometryRef* geom = node ? At(node->geometries, geomRefIndex) : nullptr;
+    return geom ? geom->url.c_str() : "";
 }
 
 // Scene modifier instances (scene.modifiers)
@@ -551,17 +542,15 @@ int DsonDocument_GetSceneModifierCount(DsonDocumentHandle handle) {
 }
 
 const char* DsonDocument_GetSceneModifierId(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->scene.modifiers.size())) return "";
-    return doc->scene.modifiers[index].id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Modifier* mod = doc ? At(doc->scene.modifiers, index) : nullptr;
+    return mod ? mod->id.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneModifierUrl(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->scene.modifiers.size())) return "";
-    return doc->scene.modifiers[index].url.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Modifier* mod = doc ? At(doc->scene.modifiers, index) : nullptr;
+    return mod ? mod->url.c_str() : "";
 }
 
 // Scene material instances (scene.materials)
@@ -572,17 +561,15 @@ int DsonDocument_GetSceneMaterialCount(DsonDocumentHandle handle) {
 }
 
 const char* DsonDocument_GetSceneMaterialId(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->scene.materials.size())) return "";
-    return doc->scene.materials[index].id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, index) : nullptr;
+    return mat ? mat->id.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneMaterialUrl(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->scene.materials.size())) return "";
-    return doc->scene.materials[index].url.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, index) : nullptr;
+    return mat ? mat->url.c_str() : "";
 }
 
 // Scene UV set instances (scene.uvs)
@@ -593,38 +580,33 @@ int DsonDocument_GetSceneUVSetCount(DsonDocumentHandle handle) {
 }
 
 const char* DsonDocument_GetSceneUVSetId(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->scene.uvs.size())) return "";
-    return doc->scene.uvs[index].id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::UVSet* uv = doc ? At(doc->scene.uvs, index) : nullptr;
+    return uv ? uv->id.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneUVSetUrl(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->scene.uvs.size())) return "";
-    return doc->scene.uvs[index].url.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::UVSet* uv = doc ? At(doc->scene.uvs, index) : nullptr;
+    return uv ? uv->url.c_str() : "";
 }
 
 const char* DsonDocument_GetMaterialId(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->materials.size())) return "";
-    return doc->materials[index].id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->materials, index) : nullptr;
+    return mat ? mat->id.c_str() : "";
 }
 
 const char* DsonDocument_GetGeometryId(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->geometries.size())) return "";
-    return doc->geometries[index].id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, index) : nullptr;
+    return geom ? geom->id.c_str() : "";
 }
 
 const char* DsonDocument_GetGeometryName(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->geometries.size())) return "";
-    return doc->geometries[index].name.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, index) : nullptr;
+    return geom ? geom->name.c_str() : "";
 }
 
 int DsonDocument_GetGeometryVertexCount(DsonDocumentHandle handle, int index) {
@@ -642,31 +624,27 @@ int DsonDocument_GetGeometryPolygonCount(DsonDocumentHandle handle, int index) {
 }
 
 const char* DsonDocument_GetGeometryDefaultUVSetId(DsonDocumentHandle handle, int geomIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (geomIndex < 0 || geomIndex >= static_cast<int>(doc->geometries.size())) return "";
-    return doc->geometries[geomIndex].default_uv_set_id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
+    return geom ? geom->default_uv_set_id.c_str() : "";
 }
 
 const char* DsonDocument_GetModifierId(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->modifiers.size())) return "";
-    return doc->modifiers[index].id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Modifier* mod = doc ? At(doc->modifiers, index) : nullptr;
+    return mod ? mod->id.c_str() : "";
 }
 
 const char* DsonDocument_GetModifierName(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->modifiers.size())) return "";
-    return doc->modifiers[index].name.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Modifier* mod = doc ? At(doc->modifiers, index) : nullptr;
+    return mod ? mod->name.c_str() : "";
 }
 
 const char* DsonDocument_GetModifierType(DsonDocumentHandle handle, int index) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (index < 0 || index >= static_cast<int>(doc->modifiers.size())) return "";
-    return doc->modifiers[index].type.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Modifier* mod = doc ? At(doc->modifiers, index) : nullptr;
+    return mod ? mod->type.c_str() : "";
 }
 
 int DsonDocument_GetModifierSkinVertexCount(DsonDocumentHandle handle, int index) {
@@ -1086,10 +1064,9 @@ bool DsonDocument_GetVertexBoneInfluenceCapped(DsonDocumentHandle handle, int mo
 // ============================================================
 
 const char* DsonDocument_GetUVSetId(DsonDocumentHandle handle, int uvSetIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (uvSetIndex < 0 || uvSetIndex >= static_cast<int>(doc->uv_sets.size())) return "";
-    return doc->uv_sets[uvSetIndex].id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::UVSet* uv = doc ? At(doc->uv_sets, uvSetIndex) : nullptr;
+    return uv ? uv->id.c_str() : "";
 }
 
 int DsonDocument_GetUVCount(DsonDocumentHandle handle, int uvSetIndex) {
@@ -1181,38 +1158,33 @@ int DsonDocument_GetUVOverrideUVIndex(DsonDocumentHandle handle, int uvSetIndex,
 // ============================================================
 
 const char* DsonDocument_GetMaterialName(DsonDocumentHandle handle, int matIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
-    return doc->materials[matIndex].name.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->materials, matIndex) : nullptr;
+    return mat ? mat->name.c_str() : "";
 }
 
 const char* DsonDocument_GetMaterialGeometryId(DsonDocumentHandle handle, int matIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
-    return doc->materials[matIndex].geometry.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->materials, matIndex) : nullptr;
+    return mat ? mat->geometry.c_str() : "";
 }
 
 const char* DsonDocument_GetMaterialUVSetId(DsonDocumentHandle handle, int matIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
-    return doc->materials[matIndex].uv_set_id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->materials, matIndex) : nullptr;
+    return mat ? mat->uv_set_id.c_str() : "";
 }
 
 const char* DsonDocument_GetMaterialType(DsonDocumentHandle handle, int matIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
-    return doc->materials[matIndex].type.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->materials, matIndex) : nullptr;
+    return mat ? mat->type.c_str() : "";
 }
 
 const char* DsonDocument_GetMaterialShaderType(DsonDocumentHandle handle, int matIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
-    return doc->materials[matIndex].shader_type.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->materials, matIndex) : nullptr;
+    return mat ? mat->shader_type.c_str() : "";
 }
 
 // ============================================================
@@ -1294,38 +1266,33 @@ const char* DsonDocument_GetMaterialChannelTexturePath(DsonDocumentHandle handle
 // ============================================================
 
 const char* DsonDocument_GetSceneMaterialName(DsonDocumentHandle handle, int sceneMatIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
-    return doc->scene.materials[sceneMatIndex].name.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? mat->name.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneMaterialGeometryId(DsonDocumentHandle handle, int sceneMatIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
-    return doc->scene.materials[sceneMatIndex].geometry.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? mat->geometry.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneMaterialUVSetId(DsonDocumentHandle handle, int sceneMatIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
-    return doc->scene.materials[sceneMatIndex].uv_set_id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? mat->uv_set_id.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneMaterialType(DsonDocumentHandle handle, int sceneMatIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
-    return doc->scene.materials[sceneMatIndex].type.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? mat->type.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneMaterialShaderType(DsonDocumentHandle handle, int sceneMatIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (sceneMatIndex < 0 || sceneMatIndex >= static_cast<int>(doc->scene.materials.size())) return "";
-    return doc->scene.materials[sceneMatIndex].shader_type.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? mat->shader_type.c_str() : "";
 }
 
 // ============================================================
