@@ -1,6 +1,11 @@
 #include "pch.h"
 #include "DsonDataTypes.h"
 
+// Data types orientation:
+// ParseFromJson implementations for the primitive value wrappers declared in
+// DsonDataTypes.h. Each is permissive: a type mismatch returns false and leaves
+// the wrapper at its default rather than throwing.
+
 namespace Dson {
 
 // Bool implementation

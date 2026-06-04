@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk -F/ '{print $1}')",
+      "Bash(grep -oiE '\\\\.\\(cpp|h|hpp|c|cc|cxx|inl|md|txt\\)$')"
+    ]
+  }
+}

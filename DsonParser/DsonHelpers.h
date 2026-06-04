@@ -3,6 +3,12 @@
 #include <vector>
 #include "rapidjson/document.h"
 
+// Helpers orientation:
+// Safe RapidJSON accessor API used by the parser to read keys without throwing:
+// typed GetXOrDefault lookups, out-param GetX existence-checked variants, and
+// array/object/member checks. Declarations only — implementations currently
+// live in DsonTypes.cpp alongside the parser that uses them.
+
 namespace Dson {
 
 // Helper functions for safe JSON parsing

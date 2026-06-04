@@ -1,4 +1,8 @@
-// DsonTest2.cpp : This file contains the 'main' function. Program execution begins and ends there.
+// Test harness orientation:
+// Console program that exercises the DsonParser C ABI end to end: loads a DSON
+// file via DsonParserAPI.h, then queries nodes, geometry, materials, skin, and
+// morphs to sanity-check the parser. Links DsonParser.lib. This is a manual
+// smoke test / example consumer, not an automated unit test suite.
 //
 
 #include <iostream>

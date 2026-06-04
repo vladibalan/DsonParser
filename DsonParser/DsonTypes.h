@@ -5,6 +5,12 @@
 #include <set>
 #include "DsonDataTypes.h"
 
+// Types orientation:
+// The typed DSON model: section structs (AssetInfo, Node, Geometry, Material,
+// Modifier, Image, UVSet, scene instances) and the root DsonDocument that owns
+// them. These compose the primitive wrappers from DsonDataTypes.h. Parsing
+// logic lives in DsonTypes.cpp; the C ABI over this model is in DsonParserAPI.
+
 namespace Dson {
 
 // Forward declarations

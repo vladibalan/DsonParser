@@ -3,6 +3,13 @@
 #include <vector>
 #include "rapidjson/document.h"
 
+// Data types orientation:
+// Primitive JSON-backed value wrappers used throughout the typed Dson model:
+// Bool, Int, Float, String, Vector3, FloatArray, IntArray, Url, and the sparse
+// IndexedArray<T> family. Each type knows how to ParseFromJson a RapidJSON
+// value. Implementations live in DsonDataTypes.cpp; higher-level DSON section
+// structs that compose these live in DsonTypes.h.
+
 namespace Dson {
 
 // Boolean type
