@@ -19,8 +19,9 @@
 // - Manage document lifetime, loading, clearing, and error reporting.
 // - Provide bounds-checked accessors for the typed data parsed in DsonTypes.cpp.
 // - Keep return values simple and ABI-friendly: strings are parser-owned
-//   const char*, invalid indexes return empty strings / zero / false / -1
-//   depending on the function family.
+//   const char*; invalid handles/indexes return "" / 0 / false. Count functions
+//   always return 0 on error (never -1); -1 is reserved for value/index
+//   accessors reporting "no such element".
 // - Build lazy query caches for morph indexes and per-vertex skin influences.
 //
 // Important behavior:
@@ -505,7 +506,7 @@ const char* DsonDocument_GetSceneNodeUrl(DsonDocumentHandle handle, int index) {
 int DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneNodeIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Node* node = doc ? At(doc->scene.nodes, sceneNodeIndex) : nullptr;
-    return node ? static_cast<int>(node->geometries.size()) : -1;
+    return node ? static_cast<int>(node->geometries.size()) : 0;
 }
 
 const char* DsonDocument_GetSceneNodeGeometryId(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex) {
@@ -697,7 +698,7 @@ void DsonDocument_Destroy(DsonDocumentHandle handle) {
 int DsonDocument_GetVertexCount(DsonDocumentHandle handle, int geomIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
-    return geom ? static_cast<int>(geom->vertex_count) : -1;
+    return geom ? static_cast<int>(geom->vertex_count) : 0;
 }
 
 double DsonDocument_GetVertexX(DsonDocumentHandle handle, int geomIndex, int vertexIndex) {
@@ -746,18 +747,18 @@ static int GetPolylistFaceValue(const Dson::Geometry& geom, int faceIndex, int o
 int DsonDocument_GetPolylistCount(DsonDocumentHandle handle, int geomIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
-    return geom ? static_cast<int>(geom->polygon_count) : -1;
+    return geom ? static_cast<int>(geom->polygon_count) : 0;
 }
 
 int DsonDocument_GetPolylistFaceVertexCount(DsonDocumentHandle handle, int geomIndex, int faceIndex) {
-    if (!handle) return -1;
+    if (!handle) return 0;
     const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
-    if (!geom) return -1;
+    if (!geom) return 0;
     int start = GetPolylistFaceStart(*geom, faceIndex);
     int end = GetPolylistFaceEnd(*geom, faceIndex);
-    if (start < 0 || end < 0) return -1;
+    if (start < 0 || end < 0) return 0;
     int len = end - start;
-    if (len < 2) return -1;
+    if (len < 2) return 0;
     return len - 2;
 }
 
@@ -792,9 +793,9 @@ int DsonDocument_GetPolylistFaceGroupIndex(DsonDocumentHandle handle, int geomIn
 // ---- Polygon groups (bone region groups) ----
 
 int DsonDocument_GetPolygonGroupCount(DsonDocumentHandle handle, int geomIndex) {
-    if (!handle) return -1;
+    if (!handle) return 0;
     const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
-    if (!geom) return -1;
+    if (!geom) return 0;
     return GetStringVectorCount(geom->polygon_groups);
 }
 
@@ -808,9 +809,9 @@ const char* DsonDocument_GetPolygonGroupName(DsonDocumentHandle handle, int geom
 // ---- Material groups ----
 
 int DsonDocument_GetPolygonMaterialGroupCount(DsonDocumentHandle handle, int geomIndex) {
-    if (!handle) return -1;
+    if (!handle) return 0;
     const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
-    if (!geom) return -1;
+    if (!geom) return 0;
     return GetStringVectorCount(geom->polygon_material_groups);
 }
 
@@ -824,9 +825,9 @@ const char* DsonDocument_GetPolygonMaterialGroupName(DsonDocumentHandle handle, 
 // ---- Material groups (library materials) ----
 
 int DsonDocument_GetMaterialGroupCount(DsonDocumentHandle handle, int matIndex) {
-    if (!handle) return -1;
+    if (!handle) return 0;
     Dson::DsonDocument* doc = GetDocument(handle);
-    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return -1;
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return 0;
     return GetStringVectorCount(doc->materials[matIndex].groups);
 }
 
@@ -840,9 +841,9 @@ const char* DsonDocument_GetMaterialGroupName(DsonDocumentHandle handle, int mat
 // ---- Material groups (scene material instances) ----
 
 int DsonDocument_GetSceneMaterialGroupCount(DsonDocumentHandle handle, int matIndex) {
-    if (!handle) return -1;
+    if (!handle) return 0;
     Dson::DsonDocument* doc = GetDocument(handle);
-    if (matIndex < 0 || matIndex >= static_cast<int>(doc->scene.materials.size())) return -1;
+    if (matIndex < 0 || matIndex >= static_cast<int>(doc->scene.materials.size())) return 0;
     return GetStringVectorCount(doc->scene.materials[matIndex].groups);
 }
 
@@ -946,7 +947,7 @@ double DsonDocument_GetNodeGeneralScale(DsonDocumentHandle handle, int nodeIndex
 int DsonDocument_GetSkinJointCount(DsonDocumentHandle handle, int modifierIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Modifier* mod = doc ? At(doc->modifiers, modifierIndex) : nullptr;
-    return mod ? static_cast<int>(mod->skin.joints.size()) : -1;
+    return mod ? static_cast<int>(mod->skin.joints.size()) : 0;
 }
 
 const char* DsonDocument_GetSkinJointNodeId(DsonDocumentHandle handle, int modifierIndex, int jointIndex) {
@@ -960,7 +961,7 @@ int DsonDocument_GetSkinJointWeightCount(DsonDocumentHandle handle, int modifier
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Modifier* mod = doc ? At(doc->modifiers, modifierIndex) : nullptr;
     const Dson::SkinJoint* joint = mod ? At(mod->skin.joints, jointIndex) : nullptr;
-    return joint ? static_cast<int>(joint->weights.size()) : -1;
+    return joint ? static_cast<int>(joint->weights.size()) : 0;
 }
 
 int DsonDocument_GetSkinJointWeightVertexIndex(DsonDocumentHandle handle, int modifierIndex, int jointIndex, int weightIndex) {
@@ -1039,7 +1040,7 @@ const char* DsonDocument_GetUVSetId(DsonDocumentHandle handle, int uvSetIndex) {
 int DsonDocument_GetUVCount(DsonDocumentHandle handle, int uvSetIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::UVSet* uv = doc ? At(doc->uv_sets, uvSetIndex) : nullptr;
-    return uv ? static_cast<int>(uv->uvs.values.size()) / 2 : -1;
+    return uv ? static_cast<int>(uv->uvs.values.size()) / 2 : 0;
 }
 
 double DsonDocument_GetUVU(DsonDocumentHandle handle, int uvSetIndex, int uvIndex) {
@@ -1065,7 +1066,7 @@ double DsonDocument_GetUVV(DsonDocumentHandle handle, int uvSetIndex, int uvInde
 int DsonDocument_GetUVPolygonVertexIndexCount(DsonDocumentHandle handle, int uvSetIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::UVSet* uv = doc ? At(doc->uv_sets, uvSetIndex) : nullptr;
-    return uv ? static_cast<int>(uv->polygon_vertex_indices.values.size()) : -1;
+    return uv ? static_cast<int>(uv->polygon_vertex_indices.values.size()) : 0;
 }
 
 int DsonDocument_GetUVPolygonVertexIndex(DsonDocumentHandle handle, int uvSetIndex, int index) {
@@ -1078,13 +1079,13 @@ int DsonDocument_GetUVPolygonVertexIndex(DsonDocumentHandle handle, int uvSetInd
 int DsonDocument_GetUVSetVertexCount(DsonDocumentHandle handle, int uvSetIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::UVSet* uv = doc ? At(doc->uv_sets, uvSetIndex) : nullptr;
-    return uv ? uv->vertex_count : -1;
+    return uv ? uv->vertex_count : 0;
 }
 
 int DsonDocument_GetUVOverrideCount(DsonDocumentHandle handle, int uvSetIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::UVSet* uv = doc ? At(doc->uv_sets, uvSetIndex) : nullptr;
-    return uv ? static_cast<int>(uv->uv_overrides.size()) : -1;
+    return uv ? static_cast<int>(uv->uv_overrides.size()) : 0;
 }
 
 int DsonDocument_GetUVOverrideFace(DsonDocumentHandle handle, int uvSetIndex, int overrideIndex) {
@@ -1336,10 +1337,10 @@ const char* DsonDocument_GetMorphLabel(DsonDocumentHandle handle, int morphIndex
 }
 
 int DsonDocument_GetMorphDeltaCount(DsonDocumentHandle handle, int morphIndex) {
-    if (!handle) return -1;
+    if (!handle) return 0;
     DsonContext* ctx = GetContext(handle);
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
-    if (!mod) return -1;
+    if (!mod) return 0;
     return GetIndexedVector3Count(mod->morph_deltas);
 }
 
@@ -1376,10 +1377,10 @@ double DsonDocument_GetMorphDeltaZ(DsonDocumentHandle handle, int morphIndex, in
 }
 
 int DsonDocument_GetMorphNormalDeltaCount(DsonDocumentHandle handle, int morphIndex) {
-    if (!handle) return -1;
+    if (!handle) return 0;
     DsonContext* ctx = GetContext(handle);
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
-    if (!mod) return -1;
+    if (!mod) return 0;
     return GetIndexedVector3Count(mod->normal_deltas);
 }
 
