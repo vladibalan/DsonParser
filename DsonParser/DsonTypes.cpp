@@ -79,6 +79,59 @@ static void TrackUnknownKeys(const rapidjson::Value& obj, const std::set<std::st
     }
 }
 
+static int HexValue(char c) {
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    }
+    if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    }
+    if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    }
+    return -1;
+}
+
+static std::string PercentDecode(const std::string& text) {
+    std::string decoded;
+    decoded.reserve(text.size());
+
+    for (size_t i = 0; i < text.size(); i++) {
+        if (text[i] == '%' && i + 2 < text.size()) {
+            const int hi = HexValue(text[i + 1]);
+            const int lo = HexValue(text[i + 2]);
+            if (hi >= 0 && lo >= 0) {
+                decoded.push_back(static_cast<char>((hi << 4) | lo));
+                i += 2;
+                continue;
+            }
+        }
+        decoded.push_back(text[i]);
+    }
+
+    return decoded;
+}
+
+static bool GetImageMapPath(const rapidjson::Value& mapVal, std::string& path) {
+    if (mapVal.IsString()) {
+        path = mapVal.GetString();
+        return true;
+    }
+
+    if (mapVal.IsObject()) {
+        if (!JsonHelper::GetString(mapVal, "url", path)) {
+            JsonHelper::GetString(mapVal, "file", path);
+        }
+        return !path.empty();
+    }
+
+    if (mapVal.IsArray() && mapVal.Size() > 0) {
+        return GetImageMapPath(mapVal[0], path);
+    }
+
+    return false;
+}
+
 // Read a transform array that is either plain [x,y,z] numbers or an array of
 // channel objects [{id:"x",value:..}, ...] (the DSF node format) into a Vector3.
 static void ParseTransformVector3(const rapidjson::Value& arr, Vector3& out) {
@@ -612,15 +665,10 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     ParseMember(json, "url", url);
 
     // Try "map" key first — can be a bare string or an object {"url":"..."} / {"file":"..."}
+    // v1 reads only the base LIE layer; full layered-image compositing is v2 scope.
     if (JsonHelper::HasMember(json, "map")) {
-        const rapidjson::Value& mapVal = json["map"];
-        if (mapVal.IsString()) {
-            map_file.value = mapVal.GetString();
-        } else if (mapVal.IsObject()) {
-            std::string path;
-            if (!JsonHelper::GetString(mapVal, "url", path)) {
-                JsonHelper::GetString(mapVal, "file", path);
-            }
+        std::string path;
+        if (GetImageMapPath(json["map"], path)) {
             map_file.value = path;
         }
     }
@@ -778,6 +826,7 @@ bool DsonDocument::ParseFromJson(const rapidjson::Document& doc) {
         if (!lookupId.empty() && lookupId[0] == '#') {
             lookupId = lookupId.substr(1);
         }
+        lookupId = PercentDecode(lookupId);
         for (const auto& img : images) {
             if (img.id.value == lookupId ||
                 img.url.value == ch.image_url ||

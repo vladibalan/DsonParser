@@ -55,8 +55,10 @@ across 4 audit passes with zero remaining gaps.
   - 0 diffuse, 1 specular, 2 roughness, 3 normal (tangent-space),
     4 opacity, 5 subsurface, 6 emission, 7 bump (grayscale height)
 - Per channel: `value`, `color` (RGB), `has_color`, `image_url`, `texture_path`
-- `Image::map` handles plain string and `{"url":"..."}` object forms
-- Post-parse image linkage pass resolves `image_url` → `texture_path`
+- `Image::map` handles plain string, `{"url":"..."}` object, and base-layer
+  URL/file from layered-image map array forms
+- Post-parse image linkage pass resolves `image_url` → `texture_path`, including
+  percent-decoded fragment ids
 - Material `groups` array for scene material → surface zone mapping
 - `geometry_id` and `uv_set_id` per material
 

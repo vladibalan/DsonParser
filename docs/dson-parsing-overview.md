@@ -93,7 +93,8 @@ current loader scope.
   stored or evaluated.
 
 `image_library`
-: Parsed into `Image`. Captures id, name, URL, map file/path, and map size.
+: Parsed into `Image`. Captures id, name, URL, map file/path, including the
+  base layer URL/file from DAZ layered-image map arrays, and map size.
 
 `uv_set_library`
 : Parsed into `UVSet`. Captures UV coordinates, vertex count, and sparse
@@ -153,8 +154,8 @@ DAZ channel id -> MaterialChannel
 The parser does not collapse channels into a fixed engine shader layout. It
 captures raw DAZ channel ids and types, scalar values, RGB colors, raw image
 references, and resolved texture paths. Image resolution happens after
-`image_library` is parsed by matching a channel image reference against image id,
-image URL, or map file.
+`image_library` is parsed by matching a channel image reference against image id
+(including percent-decoded fragment ids), image URL, or map file.
 
 Scene materials and library materials use the same channel representation, but
 scene materials may include instance-level surface groups or channel values.
