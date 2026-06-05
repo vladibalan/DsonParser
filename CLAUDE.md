@@ -59,6 +59,11 @@ breaking-change rules are most often broken by "minor" tweaks.
 | `DsonParser/DsonParserAPI.{h,cpp}` | Flat `extern "C"` C ABI: opaque handles, parser-owned string returns, bounds-checked accessors, lazy query caches. (`.cpp` ~1520 lines) |
 | `DsonTest2/DsonTest2.cpp` | Console test harness that exercises the C API. |
 
+The published surface is `DsonParserAPI.h` (the flat C ABI). The C++ model
+headers (`DsonDataTypes.h`, `DsonTypes.h`, `DsonHelpers.h`) are internal
+implementation detail — consumers never include them, and the RapidJSON they
+reference never reaches a consumer.
+
 Boilerplate (rarely relevant): `pch.{h,cpp}`, `framework.h`, `dllmain.cpp`.
 
 ## Build & test

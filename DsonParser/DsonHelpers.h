@@ -1,13 +1,17 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "rapidjson/document.h"
+#include "rapidjson/fwd.h"
 
 // Helpers orientation:
 // Safe RapidJSON accessor API used by the parser to read keys without throwing:
 // typed GetXOrDefault lookups, out-param GetX existence-checked variants, and
 // array/object/member checks. Declarations only — implementations live in
 // DsonHelpers.cpp.
+//
+// Internal header — NOT part of the public surface. Consumers use the C ABI in
+// DsonParserAPI.h and must not include this header; the RapidJSON it references
+// is an internal implementation detail and never reaches a consumer.
 
 namespace Dson {
 

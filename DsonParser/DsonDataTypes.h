@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "rapidjson/document.h"
+#include "rapidjson/fwd.h"
 
 // Data types orientation:
 // Primitive JSON-backed value wrappers used throughout the typed Dson model:
@@ -9,6 +9,10 @@
 // IndexedArray<T> family. Each type knows how to ParseFromJson a RapidJSON
 // value. Implementations live in DsonDataTypes.cpp; higher-level DSON section
 // structs that compose these live in DsonTypes.h.
+//
+// Internal header — NOT part of the public surface. Consumers use the C ABI in
+// DsonParserAPI.h and must not include this header; the RapidJSON it references
+// is an internal implementation detail and never reaches a consumer.
 
 namespace Dson {
 

@@ -10,6 +10,10 @@
 // Modifier, Image, UVSet, scene instances) and the root DsonDocument that owns
 // them. These compose the primitive wrappers from DsonDataTypes.h. Parsing
 // logic lives in DsonTypes.cpp; the C ABI over this model is in DsonParserAPI.
+//
+// Internal header — NOT part of the public surface. Consumers use the C ABI in
+// DsonParserAPI.h and must not include this header; the RapidJSON it references
+// is an internal implementation detail and never reaches a consumer.
 
 namespace Dson {
 

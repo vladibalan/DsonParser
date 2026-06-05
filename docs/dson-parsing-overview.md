@@ -16,6 +16,11 @@ to start by reading the full implementation files.
 | `DsonParser/DsonParserAPI.h/.cpp` | Flat `extern "C"` API for DLL consumers. Owns opaque handles, parser-owned string returns, bounds-checked accessors, and lazy query caches. |
 | `DsonParser_Roadmap.md` | Current capability summary, audit history, known v1 limitations, and planned v2 formula parsing work. |
 
+The published surface is `DsonParserAPI.h` (the flat C ABI). The C++ model
+headers (`DsonDataTypes.h`, `DsonTypes.h`, `DsonHelpers.h`) are internal
+implementation detail — consumers never include them, and the RapidJSON they
+reference never reaches a consumer.
+
 ## Parsing Pipeline
 
 1. Callers create an opaque document handle with `DsonDocument_Create`.
