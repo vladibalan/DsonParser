@@ -19,6 +19,9 @@ Other docs:
 - [`DsonParser_Roadmap.md`](DsonParser_Roadmap.md) — capability summary, audit
   history, v1 limitations, planned v2 formula work.
 - [`docs/audit-prompts.md`](docs/audit-prompts.md) — prompts for DSON coverage audits.
+- [`docs/code-review-rules.md`](docs/code-review-rules.md) — **read before any code
+  review of this repo.** Return-value contract, DRY helpers, C++14/UE-agnostic
+  constraints, breaking-change discipline, and how to conduct the review.
 
 ## Do NOT read
 
