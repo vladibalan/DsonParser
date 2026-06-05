@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
 
     // File to load: first command-line argument, or a default test asset.
     // Always resolved from the TestFiles folder (the argument is a file name).
-    const std::string fileName = (argc > 1) ? argv[1] : "G9.duf";
+    const std::string fileName = (argc > 1) ? argv[1] : "Genesis3.duf";
     std::cout << "Looking for: " << fileName << "\n";
 
     std::string filepath = ResolveTestFile(fileName);

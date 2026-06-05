@@ -145,7 +145,10 @@ struct HuffmanTree {
             int canonical = nextCode[len]++;
             int node = 0;
             for (int bitIndex = 0; bitIndex < len; bitIndex++) {
-                int bit = (canonical >> bitIndex) & 1;
+                // DEFLATE Huffman codes are transmitted MSB-first, and Decode()
+                // walks the tree in that order, so insert the most-significant
+                // bit of the canonical code at the root edge (not LSB-first).
+                int bit = (canonical >> (len - 1 - bitIndex)) & 1;
                 if (nodes[node].child[bit] < 0) {
                     nodes[node].child[bit] = static_cast<int>(nodes.size());
                     nodes.push_back(HuffmanNode());
