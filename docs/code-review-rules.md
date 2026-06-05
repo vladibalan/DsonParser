@@ -151,6 +151,35 @@ In `DsonTypes.cpp`:
   former error/abort path into a "treated as empty" no-op (e.g. an invalid skin
   query now yields an unskinned mesh instead of aborting import).
 
+## 9. Keep agent-orientation docs in sync (LLM-facing artifacts)
+
+This repo is built to be navigated by agents **from its docs**, not by scanning
+the tree. So when a code change makes an orientation artifact stale, updating
+that artifact is part of the change — not a follow-up. A wrong file map or
+contract table actively misdirects the next agent, which is worse than no doc.
+
+- **R9.1 — `docs/dson-parsing-overview.md` is the source of truth; keep it in
+  sync.** Adding/removing/renaming a source file, moving a responsibility between
+  files, or changing the parsing pipeline or supported DSON sections requires a
+  matching edit to the overview's file map / pipeline / coverage. CLAUDE.md
+  defers to it, so the two must agree.
+- **R9.2 — Update CLAUDE.md's "Real source surface" table** on the same file-map
+  triggers as R9.1. The approximate line counts there (e.g. "~1160 lines") are
+  intentionally rough — refresh them only on large size changes, not every edit.
+- **R9.3 — Refresh the file's `orientation:` comment block.** If an edit changes
+  a file's purpose or responsibilities, update its top-of-file orientation block
+  in the same diff; agents read that block before the body.
+- **R9.4 — Keep this ruleset current.** A change to the C-ABI return contract,
+  the DRY helper set, or the language constraints must update the affected rule
+  here (§1 table, §3 helper list, §4) — same spirit as R1.4 for the header
+  comment. A stale rule mis-trains every later review.
+- **R9.5 — Sync the roadmap on capability changes.** New or removed DSON coverage
+  updates `DsonParser_Roadmap.md`'s capability summary / v1 limitations. A pure
+  refactor that doesn't change capability needs no roadmap edit.
+- **R9.6 — Make doc syncs visible.** List the documentation updates explicitly in
+  the change summary so the synchronization is reviewable, not silent. (Doc-only
+  edits are still handed to the user per R7.2.)
+
 ---
 
 ## Quick checklist
@@ -167,3 +196,4 @@ In `DsonTypes.cpp`:
 - [ ] Permissive parsing preserved; new known keys added to `knownKeys`. (R6)
 - [ ] Did not build; reported for user to compile. (R7)
 - [ ] Findings enumerate exact functions; completeness grep run family-wide. (R8)
+- [ ] Orientation docs synced with the code change: overview file map, CLAUDE.md table, `orientation:` blocks, this ruleset, roadmap. (R9)
