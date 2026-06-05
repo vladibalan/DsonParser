@@ -665,7 +665,7 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     ParseMember(json, "url", url);
 
     // Try "map" key first — can be a bare string or an object {"url":"..."} / {"file":"..."}
-    // v1 reads only the base LIE layer; full layered-image compositing is v2 scope.
+    // Uses the first map entry (the base LIE layer); overlay layers are not merged here.
     if (JsonHelper::HasMember(json, "map")) {
         std::string path;
         if (GetImageMapPath(json["map"], path)) {
