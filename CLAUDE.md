@@ -54,8 +54,8 @@ breaking-change rules are most often broken by "minor" tweaks.
 | --- | --- |
 | `DsonParser/DsonDataTypes.{h,cpp}` | Primitive JSON-backed value wrappers (`String`, `Vector3`, `FloatArray`, `IntArray`, `Url`, sparse `IndexedArray<T>`). |
 | `DsonParser/DsonTypes.h` | Typed DSON model structs (assets, nodes, geometry, materials, skin, modifiers, images, UV sets, scene, root document). |
-| `DsonParser/DsonTypes.cpp` | Main parser: RapidJSON → `Dson::*` model + post-parse image linkage. (~1160 lines) |
-| `DsonParser/DsonHelpers.h` | Safe RapidJSON accessor helpers (`JsonHelper`). Implementations live in `DsonTypes.cpp`. |
+| `DsonParser/DsonTypes.cpp` | Main parser: RapidJSON → `Dson::*` model + post-parse image linkage. (~900 lines) |
+| `DsonParser/DsonHelpers.{h,cpp}` | Safe RapidJSON accessor helpers (`JsonHelper`). Declarations in `.h`, implementations in `.cpp`. |
 | `DsonParser/DsonParserAPI.{h,cpp}` | Flat `extern "C"` C ABI: opaque handles, parser-owned string returns, bounds-checked accessors, lazy query caches. (`.cpp` ~1520 lines) |
 | `DsonTest2/DsonTest2.cpp` | Console test harness that exercises the C API. |
 

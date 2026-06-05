@@ -6,8 +6,8 @@
 // Helpers orientation:
 // Safe RapidJSON accessor API used by the parser to read keys without throwing:
 // typed GetXOrDefault lookups, out-param GetX existence-checked variants, and
-// array/object/member checks. Declarations only — implementations currently
-// live in DsonTypes.cpp alongside the parser that uses them.
+// array/object/member checks. Declarations only — implementations live in
+// DsonHelpers.cpp.
 
 namespace Dson {
 

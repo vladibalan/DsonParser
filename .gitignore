@@ -52,6 +52,11 @@ bld/
 packages/
 *.nupkg
 
+# ---- clangd index cache (generated; compile_commands.json itself is tracked) ----
+# clangd writes its background index under .cache/clangd/. The .clangd config
+# file (no trailing slash) and compile_commands.json are tracked, not ignored.
+.cache/
+
 # ---- OS noise ----
 Thumbs.db
 ehthumbs.db

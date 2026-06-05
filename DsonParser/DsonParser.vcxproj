@@ -149,6 +149,7 @@
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="DsonDataTypes.cpp" />
+    <ClCompile Include="DsonHelpers.cpp" />
     <ClCompile Include="DsonParserAPI.cpp" />
     <ClCompile Include="DsonTypes.cpp" />
     <ClCompile Include="pch.cpp">

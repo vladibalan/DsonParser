@@ -12,7 +12,7 @@ to start by reading the full implementation files.
 | `DsonParser/DsonDataTypes.h/.cpp` | Primitive JSON-backed wrappers such as `String`, `Vector3`, `FloatArray`, `IntArray`, `Url`, and sparse `IndexedArray<T>` types. |
 | `DsonParser/DsonTypes.h` | Typed DSON model: asset metadata, nodes, geometry, materials, skin bindings, modifiers, images, UV sets, scene instances, and root document. |
 | `DsonParser/DsonTypes.cpp` | Main parser implementation. Converts RapidJSON objects into the `Dson::*` model and performs limited post-parse image reference linkage. |
-| `DsonParser/DsonHelpers.h` | Safe RapidJSON helper API used by the parser. Implementations currently live in `DsonTypes.cpp`. |
+| `DsonParser/DsonHelpers.h/.cpp` | Safe RapidJSON helper API (`JsonHelper`) used by the parser. Declarations in `.h`, implementations in `.cpp`. |
 | `DsonParser/DsonParserAPI.h/.cpp` | Flat `extern "C"` API for DLL consumers. Owns opaque handles, parser-owned string returns, bounds-checked accessors, and lazy query caches. |
 | `DsonParser_Roadmap.md` | Current capability summary, audit history, known v1 limitations, and planned v2 formula parsing work. |
 

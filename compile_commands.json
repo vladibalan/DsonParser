@@ -1,0 +1,125 @@
+[
+    {
+        "directory":  "E:/Work/Code/DsonTest2",
+        "file":  "E:/Work/Code/DsonTest2/DsonParser/dllmain.cpp",
+        "arguments":  [
+                          "clang-cl",
+                          "/std:c++14",
+                          "/EHsc",
+                          "/DWIN32",
+                          "/DNDEBUG",
+                          "/DDSONPARSER_EXPORTS",
+                          "/D_WINDOWS",
+                          "/D_USRDLL",
+                          "/IE:/Work/Code/DsonTest2/DsonParser",
+                          "/IE:/Work/Code/DsonTest2/DsonParser/include",
+                          "/c",
+                          "E:/Work/Code/DsonTest2/DsonParser/dllmain.cpp"
+                      ]
+    },
+    {
+        "directory":  "E:/Work/Code/DsonTest2",
+        "file":  "E:/Work/Code/DsonTest2/DsonParser/DsonDataTypes.cpp",
+        "arguments":  [
+                          "clang-cl",
+                          "/std:c++14",
+                          "/EHsc",
+                          "/DWIN32",
+                          "/DNDEBUG",
+                          "/DDSONPARSER_EXPORTS",
+                          "/D_WINDOWS",
+                          "/D_USRDLL",
+                          "/IE:/Work/Code/DsonTest2/DsonParser",
+                          "/IE:/Work/Code/DsonTest2/DsonParser/include",
+                          "/c",
+                          "E:/Work/Code/DsonTest2/DsonParser/DsonDataTypes.cpp"
+                      ]
+    },
+    {
+        "directory":  "E:/Work/Code/DsonTest2",
+        "file":  "E:/Work/Code/DsonTest2/DsonParser/DsonHelpers.cpp",
+        "arguments":  [
+                          "clang-cl",
+                          "/std:c++14",
+                          "/EHsc",
+                          "/DWIN32",
+                          "/DNDEBUG",
+                          "/DDSONPARSER_EXPORTS",
+                          "/D_WINDOWS",
+                          "/D_USRDLL",
+                          "/IE:/Work/Code/DsonTest2/DsonParser",
+                          "/IE:/Work/Code/DsonTest2/DsonParser/include",
+                          "/c",
+                          "E:/Work/Code/DsonTest2/DsonParser/DsonHelpers.cpp"
+                      ]
+    },
+    {
+        "directory":  "E:/Work/Code/DsonTest2",
+        "file":  "E:/Work/Code/DsonTest2/DsonParser/DsonParserAPI.cpp",
+        "arguments":  [
+                          "clang-cl",
+                          "/std:c++14",
+                          "/EHsc",
+                          "/DWIN32",
+                          "/DNDEBUG",
+                          "/DDSONPARSER_EXPORTS",
+                          "/D_WINDOWS",
+                          "/D_USRDLL",
+                          "/IE:/Work/Code/DsonTest2/DsonParser",
+                          "/IE:/Work/Code/DsonTest2/DsonParser/include",
+                          "/c",
+                          "E:/Work/Code/DsonTest2/DsonParser/DsonParserAPI.cpp"
+                      ]
+    },
+    {
+        "directory":  "E:/Work/Code/DsonTest2",
+        "file":  "E:/Work/Code/DsonTest2/DsonParser/DsonTypes.cpp",
+        "arguments":  [
+                          "clang-cl",
+                          "/std:c++14",
+                          "/EHsc",
+                          "/DWIN32",
+                          "/DNDEBUG",
+                          "/DDSONPARSER_EXPORTS",
+                          "/D_WINDOWS",
+                          "/D_USRDLL",
+                          "/IE:/Work/Code/DsonTest2/DsonParser",
+                          "/IE:/Work/Code/DsonTest2/DsonParser/include",
+                          "/c",
+                          "E:/Work/Code/DsonTest2/DsonParser/DsonTypes.cpp"
+                      ]
+    },
+    {
+        "directory":  "E:/Work/Code/DsonTest2",
+        "file":  "E:/Work/Code/DsonTest2/DsonParser/pch.cpp",
+        "arguments":  [
+                          "clang-cl",
+                          "/std:c++14",
+                          "/EHsc",
+                          "/DWIN32",
+                          "/DNDEBUG",
+                          "/DDSONPARSER_EXPORTS",
+                          "/D_WINDOWS",
+                          "/D_USRDLL",
+                          "/IE:/Work/Code/DsonTest2/DsonParser",
+                          "/IE:/Work/Code/DsonTest2/DsonParser/include",
+                          "/c",
+                          "E:/Work/Code/DsonTest2/DsonParser/pch.cpp"
+                      ]
+    },
+    {
+        "directory":  "E:/Work/Code/DsonTest2",
+        "file":  "E:/Work/Code/DsonTest2/DsonTest2/DsonTest2.cpp",
+        "arguments":  [
+                          "clang-cl",
+                          "/std:c++14",
+                          "/EHsc",
+                          "/DWIN32",
+                          "/DNDEBUG",
+                          "/D_CONSOLE",
+                          "/IE:/Work/Code/DsonTest2/DsonParser",
+                          "/c",
+                          "E:/Work/Code/DsonTest2/DsonTest2/DsonTest2.cpp"
+                      ]
+    }
+]

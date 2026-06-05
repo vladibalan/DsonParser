@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(awk -F/ '{print $1}')",
-      "Bash(grep -oiE '\\\\.\\(cpp|h|hpp|c|cc|cxx|inl|md|txt\\)$')"
+      "Bash(grep -oiE '\\\\.\\(cpp|h|hpp|c|cc|cxx|inl|md|txt\\)$')",
+      "Bash(powershell -ExecutionPolicy Bypass -NoProfile -Command \"\\(Get-Content compile_commands.json -Raw | ConvertFrom-Json\\).Count; \\(\\(Get-Content compile_commands.json -Raw | ConvertFrom-Json\\)[0].arguments -join ' '\\)\")",
+      "Bash(git check-ignore *)",
+      "Bash(powershell -ExecutionPolicy Bypass -File tools/gen-compile-commands.ps1)",
+      "Bash(powershell -ExecutionPolicy Bypass -NoProfile -Command \"\\(Get-Content compile_commands.json -Raw | ConvertFrom-Json\\).file -match 'DsonHelpers'\")",
+      "Bash(grep -rn 'implementations live in DsonTypes\\\\|Implementations live in DsonTypes\\\\|live in `DsonTypes.cpp`\\\\|live in DsonTypes.cpp' DsonParser/DsonHelpers.h CLAUDE.md docs/dson-parsing-overview.md)"
     ]
   }
 }
