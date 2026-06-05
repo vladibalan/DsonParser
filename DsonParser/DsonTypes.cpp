@@ -41,6 +41,27 @@ static void ParseMember(const rapidjson::Value& obj, const char* key, T& out) {
     }
 }
 
+// Parse an array-of-objects member (a DSON library or scene instance array) into
+// a vector, appending each element that parses successfully. Element type T must
+// expose ParseFromJson(const rapidjson::Value&, std::set<std::string>*). Mirrors
+// the prior hand-written reserve/loop/push blocks exactly, including skipping
+// elements whose ParseFromJson returns false.
+template <class T>
+static void ParseObjectArray(const rapidjson::Value& container, const char* key,
+                             std::vector<T>& out, std::set<std::string>* unknownKeys) {
+    const rapidjson::Value* arr = nullptr;
+    if (!JsonHelper::GetArray(container, key, arr)) {
+        return;
+    }
+    out.reserve(out.size() + arr->Size());
+    for (rapidjson::SizeType i = 0; i < arr->Size(); i++) {
+        T item;
+        if (item.ParseFromJson((*arr)[i], unknownKeys)) {
+            out.push_back(item);
+        }
+    }
+}
+
 // Helper to track unknown keys
 static void TrackUnknownKeys(const rapidjson::Value& obj, const std::set<std::string>& knownKeys, std::set<std::string>* unknownKeys) {
     if (!unknownKeys || !obj.IsObject()) {
@@ -769,49 +790,10 @@ bool Scene::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
         "animations", "current_camera", "extra"
     };
 
-    const rapidjson::Value* nodeArray = nullptr;
-    if (JsonHelper::GetArray(json, "nodes", nodeArray)) {
-        nodes.reserve(nodeArray->Size());
-        for (rapidjson::SizeType i = 0; i < nodeArray->Size(); i++) {
-            Node node;
-            if (node.ParseFromJson((*nodeArray)[i], unknownKeys)) {
-                nodes.push_back(node);
-            }
-        }
-    }
-
-    const rapidjson::Value* modArray = nullptr;
-    if (JsonHelper::GetArray(json, "modifiers", modArray)) {
-        modifiers.reserve(modArray->Size());
-        for (rapidjson::SizeType i = 0; i < modArray->Size(); i++) {
-            Modifier mod;
-            if (mod.ParseFromJson((*modArray)[i], unknownKeys)) {
-                modifiers.push_back(mod);
-            }
-        }
-    }
-
-    const rapidjson::Value* matArray = nullptr;
-    if (JsonHelper::GetArray(json, "materials", matArray)) {
-        materials.reserve(matArray->Size());
-        for (rapidjson::SizeType i = 0; i < matArray->Size(); i++) {
-            Material mat;
-            if (mat.ParseFromJson((*matArray)[i], unknownKeys)) {
-                materials.push_back(mat);
-            }
-        }
-    }
-
-    const rapidjson::Value* uvArray = nullptr;
-    if (JsonHelper::GetArray(json, "uvs", uvArray)) {
-        uvs.reserve(uvArray->Size());
-        for (rapidjson::SizeType i = 0; i < uvArray->Size(); i++) {
-            UVSet uv;
-            if (uv.ParseFromJson((*uvArray)[i], unknownKeys)) {
-                uvs.push_back(uv);
-            }
-        }
-    }
+    ParseObjectArray(json, "nodes", nodes, unknownKeys);
+    ParseObjectArray(json, "modifiers", modifiers, unknownKeys);
+    ParseObjectArray(json, "materials", materials, unknownKeys);
+    ParseObjectArray(json, "uvs", uvs, unknownKeys);
 
     // presentation, animations, current_camera, extra are recognized but not parsed yet
     TrackUnknownKeys(json, knownKeys, unknownKeys);
@@ -849,77 +831,12 @@ bool DsonDocument::ParseFromJson(const rapidjson::Document& doc) {
         scene.ParseFromJson(*sceneObj, &unknown_keys["scene"]);
     }
     
-    // Parse node_library
-    const rapidjson::Value* nodeLib = nullptr;
-    if (JsonHelper::GetArray(doc, "node_library", nodeLib)) {
-        nodes.reserve(nodeLib->Size());
-        for (rapidjson::SizeType i = 0; i < nodeLib->Size(); i++) {
-            Node node;
-            if (node.ParseFromJson((*nodeLib)[i], &unknown_keys["node_library"])) {
-                nodes.push_back(node);
-            }
-        }
-    }
-    
-    // Parse geometry_library
-    const rapidjson::Value* geomLib = nullptr;
-    if (JsonHelper::GetArray(doc, "geometry_library", geomLib)) {
-        geometries.reserve(geomLib->Size());
-        for (rapidjson::SizeType i = 0; i < geomLib->Size(); i++) {
-            Geometry geom;
-            if (geom.ParseFromJson((*geomLib)[i], &unknown_keys["geometry_library"])) {
-                geometries.push_back(geom);
-            }
-        }
-    }
-    
-    // Parse material_library
-    const rapidjson::Value* matLib = nullptr;
-    if (JsonHelper::GetArray(doc, "material_library", matLib)) {
-        materials.reserve(matLib->Size());
-        for (rapidjson::SizeType i = 0; i < matLib->Size(); i++) {
-            Material mat;
-            if (mat.ParseFromJson((*matLib)[i], &unknown_keys["material_library"])) {
-                materials.push_back(mat);
-            }
-        }
-    }
-    
-    // Parse modifier_library
-    const rapidjson::Value* modLib = nullptr;
-    if (JsonHelper::GetArray(doc, "modifier_library", modLib)) {
-        modifiers.reserve(modLib->Size());
-        for (rapidjson::SizeType i = 0; i < modLib->Size(); i++) {
-            Modifier mod;
-            if (mod.ParseFromJson((*modLib)[i], &unknown_keys["modifier_library"])) {
-                modifiers.push_back(mod);
-            }
-        }
-    }
-    
-    // Parse image_library
-    const rapidjson::Value* imgLib = nullptr;
-    if (JsonHelper::GetArray(doc, "image_library", imgLib)) {
-        images.reserve(imgLib->Size());
-        for (rapidjson::SizeType i = 0; i < imgLib->Size(); i++) {
-            Image img;
-            if (img.ParseFromJson((*imgLib)[i], &unknown_keys["image_library"])) {
-                images.push_back(img);
-            }
-        }
-    }
-    
-    // Parse uv_set_library
-    const rapidjson::Value* uvLib = nullptr;
-    if (JsonHelper::GetArray(doc, "uv_set_library", uvLib)) {
-        uv_sets.reserve(uvLib->Size());
-        for (rapidjson::SizeType i = 0; i < uvLib->Size(); i++) {
-            UVSet uvset;
-            if (uvset.ParseFromJson((*uvLib)[i], &unknown_keys["uv_set_library"])) {
-                uv_sets.push_back(uvset);
-            }
-        }
-    }
+    ParseObjectArray(doc, "node_library", nodes, &unknown_keys["node_library"]);
+    ParseObjectArray(doc, "geometry_library", geometries, &unknown_keys["geometry_library"]);
+    ParseObjectArray(doc, "material_library", materials, &unknown_keys["material_library"]);
+    ParseObjectArray(doc, "modifier_library", modifiers, &unknown_keys["modifier_library"]);
+    ParseObjectArray(doc, "image_library", images, &unknown_keys["image_library"]);
+    ParseObjectArray(doc, "uv_set_library", uv_sets, &unknown_keys["uv_set_library"]);
     
     // Post-parse: resolve image_url → texture_path for every material channel in every collection.
     // Matching order: Image.id → Image.url → Image.map_file.
