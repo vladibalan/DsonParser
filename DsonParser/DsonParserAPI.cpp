@@ -5,6 +5,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <numeric>
 #include <unordered_map>
 
 // C API orientation:
@@ -110,7 +111,7 @@ static void RefreshCachesAfterLoad(DsonContext* ctx) {
     ctx->contextCache = ctx->document.GetAllContextsWithUnknownKeys();
 }
 
-typedef std::vector<std::pair<std::string, Dson::MaterialChannel>> MaterialChannelList;
+using MaterialChannelList = std::vector<std::pair<std::string, Dson::MaterialChannel>>;
 
 static const std::pair<std::string, Dson::MaterialChannel>* GetMaterialChannel(
     const MaterialChannelList& channels,
@@ -284,9 +285,9 @@ static void EnsureSkinCache(DsonContext* ctx, int modifierIndex) {
     }
 
     const auto& joints = doc.modifiers[modifierIndex].skin.joints;
-    for (int ji = 0; ji < static_cast<int>(joints.size()); ++ji) {
-        const auto& joint = joints[ji];
+    for (const auto& joint : joints) {
         const std::string& boneNodeId = joint.node.value;
+        // weight_indices and weights are parallel arrays, so index both together.
         for (int wi = 0; wi < static_cast<int>(joint.weight_indices.size()); ++wi) {
             int vertIdx = joint.weight_indices[wi];
             VertexInfluence inf;
@@ -300,10 +301,10 @@ static void EnsureSkinCache(DsonContext* ctx, int modifierIndex) {
         std::vector<VertexInfluence>& influences = kv.second;
         std::sort(influences.begin(), influences.end(),
             [](const VertexInfluence& a, const VertexInfluence& b) { return a.weight > b.weight; });
-        double sum = 0.0;
-        for (int i = 0; i < static_cast<int>(influences.size()); ++i) sum += influences[i].weight;
+        double sum = std::accumulate(influences.begin(), influences.end(), 0.0,
+            [](double acc, const VertexInfluence& inf) { return acc + inf.weight; });
         if (sum > 0.0) {
-            for (int i = 0; i < static_cast<int>(influences.size()); ++i) influences[i].weight /= sum;
+            for (VertexInfluence& inf : influences) inf.weight /= sum;
         }
     }
 
@@ -1018,8 +1019,8 @@ bool DsonDocument_GetVertexBoneInfluenceCapped(DsonDocumentHandle handle, int mo
     const std::vector<VertexInfluence>& influences = it->second;
     int cap = static_cast<int>(influences.size()) < maxInfluences ? static_cast<int>(influences.size()) : maxInfluences;
     if (influenceIndex < 0 || influenceIndex >= cap) return false;
-    double sum = 0.0;
-    for (int i = 0; i < cap; ++i) sum += influences[i].weight;
+    double sum = std::accumulate(influences.begin(), influences.begin() + cap, 0.0,
+        [](double acc, const VertexInfluence& inf) { return acc + inf.weight; });
     *boneNodeId = influences[influenceIndex].boneNodeId.c_str();
     *weight = (sum > 0.0) ? influences[influenceIndex].weight / sum : 0.0;
     return true;
