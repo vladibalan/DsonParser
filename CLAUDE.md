@@ -19,9 +19,28 @@ Other docs:
 - [`DsonParser_Roadmap.md`](DsonParser_Roadmap.md) — capability summary, audit
   history, v1 limitations, planned v2 formula work.
 - [`docs/audit-prompts.md`](docs/audit-prompts.md) — prompts for DSON coverage audits.
-- [`docs/code-review-rules.md`](docs/code-review-rules.md) — **read before any code
-  review of this repo.** Return-value contract, DRY helpers, C++14/UE-agnostic
-  constraints, breaking-change discipline, and how to conduct the review.
+- [`docs/code-review-rules.md`](docs/code-review-rules.md) — **read before
+  writing or reviewing any code in this repo** (see "Before editing source"
+  below). Return-value contract, DRY helpers, C++14/UE-agnostic constraints,
+  breaking-change discipline, and how to conduct the review.
+
+## Before editing source
+
+These rules govern *authoring*, not just review. Before you edit any file under
+`DsonParser/` (or `DsonTest2/DsonTest2.cpp`):
+
+1. **Read [`docs/code-review-rules.md`](docs/code-review-rules.md) first** if you
+   have not already this session. The hazards it encodes — the per-family C-ABI
+   return-value contract (R1), API changes as breaking changes (R2), the
+   established DRY helpers (R3), C++14-only / UE-agnostic constraints (R4) — are
+   easy to violate while writing and expensive to catch later. Write code that
+   already complies, rather than fixing it on review.
+2. **After each edit, self-audit the change against that doc's Quick checklist**
+   and state the result. Don't gesture ("looks fine"); name the rules you
+   checked against and confirm the diff satisfies them, or flag what doesn't.
+
+This applies even to small or comment-only edits — the return-value and
+breaking-change rules are most often broken by "minor" tweaks.
 
 ## Do NOT read
 
