@@ -380,6 +380,34 @@ int DsonDocument_LoadFromString(DsonDocumentHandle handle, const char* jsonStrin
     }
 }
 
+int DsonDocument_LoadFromBuffer(DsonDocumentHandle handle, const char* data, int length) {
+    if (!handle || !data || length < 0) {
+        StoreLastError("Invalid handle or buffer");
+        return 1;
+    }
+
+    try {
+        Dson::DsonDocument* doc = GetDocument(handle);
+        std::string errorMsg;
+        if (doc->LoadFromBuffer(data, static_cast<size_t>(length), errorMsg)) {
+            StoreLastError("");
+            DsonContext* ctx = GetContext(handle);
+            RefreshCachesAfterLoad(ctx);
+            return 0;
+        }
+        StoreLastError(errorMsg);
+        return 1;
+    }
+    catch (const std::exception& e) {
+        StoreLastError(std::string("Exception: ") + e.what());
+        return 1;
+    }
+    catch (...) {
+        StoreLastError("Unknown exception occurred");
+        return 1;
+    }
+}
+
 const char* DsonDocument_GetFileVersion(DsonDocumentHandle handle) {
     if (!handle) return "";
     Dson::DsonDocument* doc = GetDocument(handle);

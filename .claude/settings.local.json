@@ -7,7 +7,9 @@
       "Bash(git check-ignore *)",
       "Bash(powershell -ExecutionPolicy Bypass -File tools/gen-compile-commands.ps1)",
       "Bash(powershell -ExecutionPolicy Bypass -NoProfile -Command \"\\(Get-Content compile_commands.json -Raw | ConvertFrom-Json\\).file -match 'DsonHelpers'\")",
-      "Bash(grep -rn 'implementations live in DsonTypes\\\\|Implementations live in DsonTypes\\\\|live in `DsonTypes.cpp`\\\\|live in DsonTypes.cpp' DsonParser/DsonHelpers.h CLAUDE.md docs/dson-parsing-overview.md)"
+      "Bash(grep -rn 'implementations live in DsonTypes\\\\|Implementations live in DsonTypes\\\\|live in `DsonTypes.cpp`\\\\|live in DsonTypes.cpp' DsonParser/DsonHelpers.h CLAUDE.md docs/dson-parsing-overview.md)",
+      "Bash(ls -1 \"C:/Users/Dolphin/Downloads\" | grep -iE \"handoff|dson|phase|roadmap\" )",
+      "Bash(python3 -)"
     ]
   }
 }

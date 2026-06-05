@@ -18,7 +18,7 @@ This is the single biggest source of consumer bugs — review it first.
 
 | Family | Examples | Success / found | Failure / missing |
 | --- | --- | --- | --- |
-| **Loaders** (`int` status) | `DsonDocument_LoadFromFile/String` | `0` | non-zero (`1`) |
+| **Loaders** (`int` status) | `DsonDocument_LoadFromFile/String/Buffer` | `0` | non-zero (`1`) |
 | **Handle creator** (pointer) | `DsonDocument_Create` | non-null | `nullptr` |
 | **Counts** (`int`) | every `*_Get*Count` | element count (≥ 0) | `0` |
 | **Bool getters** (`bool`) | `*_GetVertexBoneInfluence(Capped)`, `*_Get*ChannelHasColor` | `true` | `false` |

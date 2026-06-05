@@ -8,11 +8,43 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <cstring>
+#include <vector>
 #define NOMINMAX
 #include <Windows.h>
 #include "../DsonParser/DsonParserAPI.h"
 
 #pragma comment(lib, "DsonParser.lib")
+
+// gzip of:
+//   {"asset_info":{"id":"/data/test/gzip_fixture.dsf","type":"figure"},"file_version":"0.6.0.0"}
+static const unsigned char kGzipFixture[] = {
+    0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x0d, 0x8a, 0x4b, 0x0a,
+    0xc0, 0x20, 0x0c, 0x05, 0xef, 0xf2, 0xd6, 0x12, 0x5d, 0x75, 0xe1, 0x65, 0x44, 0x30,
+    0x96, 0x40, 0xb1, 0xc5, 0xa4, 0xa5, 0x1f, 0xbc, 0x7b, 0xdd, 0x0d, 0x33, 0xf3, 0x21,
+    0xab, 0xb2, 0x25, 0x69, 0x75, 0x47, 0xfc, 0x20, 0x05, 0x11, 0xbe, 0x64, 0xcb, 0xde,
+    0x58, 0xcd, 0xaf, 0xaf, 0x1c, 0xa9, 0xca, 0x6d, 0x67, 0x67, 0x2a, 0x5a, 0xe1, 0x60,
+    0xcf, 0xc1, 0x73, 0xaa, 0xb2, 0x4e, 0x87, 0xe1, 0x26, 0x6d, 0x9c, 0x2e, 0xee, 0x2a,
+    0x7b, 0x9b, 0x21, 0xd0, 0x42, 0x81, 0x02, 0xc6, 0x0f, 0x69, 0x2a, 0x37, 0x53, 0x5c,
+    0x00, 0x00, 0x00
+};
+
+static const char kGzipFixtureJson[] =
+    "{\"asset_info\":{\"id\":\"/data/test/gzip_fixture.dsf\",\"type\":\"figure\"},"
+    "\"file_version\":\"0.6.0.0\"}";
+
+// Same as kGzipFixture but CRC32 byte at offset 93 corrupted (0x69 -> 0x68).
+// Valid DEFLATE + valid length; ONLY the CRC32 is wrong. Must be rejected.
+static const unsigned char kGzipFixtureBadCrc[] = {
+    0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x0d, 0x8a, 0x4b, 0x0a,
+    0xc0, 0x20, 0x0c, 0x05, 0xef, 0xf2, 0xd6, 0x12, 0x5d, 0x75, 0xe1, 0x65, 0x44, 0x30,
+    0x96, 0x40, 0xb1, 0xc5, 0xa4, 0xa5, 0x1f, 0xbc, 0x7b, 0xdd, 0x0d, 0x33, 0xf3, 0x21,
+    0xab, 0xb2, 0x25, 0x69, 0x75, 0x47, 0xfc, 0x20, 0x05, 0x11, 0xbe, 0x64, 0xcb, 0xde,
+    0x58, 0xcd, 0xaf, 0xaf, 0x1c, 0xa9, 0xca, 0x6d, 0x67, 0x67, 0x2a, 0x5a, 0xe1, 0x60,
+    0xcf, 0xc1, 0x73, 0xaa, 0xb2, 0x4e, 0x87, 0xe1, 0x26, 0x6d, 0x9c, 0x2e, 0xee, 0x2a,
+    0x7b, 0x9b, 0x21, 0xd0, 0x42, 0x81, 0x02, 0xc6, 0x0f, 0x68, 0x2a, 0x37, 0x53, 0x5c,
+    0x00, 0x00, 0x00
+};
 
 std::string GetWorkingDirectory() {
     char buffer[MAX_PATH];
@@ -46,6 +78,59 @@ std::string ResolveTestFile(const std::string& name) {
     return std::string();
 }
 
+void PrintGzipTestResult(const char* name, bool pass) {
+    std::cout << "gzip " << name << ": " << (pass ? "PASS" : "FAIL");
+    if (!pass) {
+        std::cout << " (" << DsonParser_GetLastError() << ")";
+    }
+    std::cout << "\n";
+}
+
+void RunGzipFixtureTests() {
+    std::cout << "=================================\n";
+    std::cout << "GZIP LOAD TESTS\n";
+    std::cout << "=================================\n\n";
+
+    DsonDocumentHandle gzipDoc = DsonDocument_Create();
+    DsonDocumentHandle plainDoc = DsonDocument_Create();
+    bool happyPass = false;
+    if (gzipDoc && plainDoc) {
+        int gzipResult = DsonDocument_LoadFromBuffer(
+            gzipDoc, reinterpret_cast<const char*>(kGzipFixture), static_cast<int>(sizeof(kGzipFixture)));
+        int plainResult = DsonDocument_LoadFromString(plainDoc, kGzipFixtureJson);
+        const char* gzipId = DsonDocument_GetAssetId(gzipDoc);
+        const char* plainId = DsonDocument_GetAssetId(plainDoc);
+        happyPass = gzipResult == 0
+            && plainResult == 0
+            && std::strcmp(gzipId, "/data/test/gzip_fixture.dsf") == 0
+            && std::strcmp(plainId, "/data/test/gzip_fixture.dsf") == 0
+            && std::strcmp(gzipId, plainId) == 0;
+    }
+    PrintGzipTestResult("happy path", happyPass);
+    if (gzipDoc) DsonDocument_Destroy(gzipDoc);
+    if (plainDoc) DsonDocument_Destroy(plainDoc);
+
+    DsonDocumentHandle crcDoc = DsonDocument_Create();
+    int crcResult = crcDoc
+        ? DsonDocument_LoadFromBuffer(
+            crcDoc, reinterpret_cast<const char*>(kGzipFixtureBadCrc), static_cast<int>(sizeof(kGzipFixtureBadCrc)))
+        : 1;
+    PrintGzipTestResult("CRC rejection", crcResult != 0);
+    if (crcDoc) DsonDocument_Destroy(crcDoc);
+
+    std::vector<unsigned char> corrupted(kGzipFixture, kGzipFixture + sizeof(kGzipFixture));
+    corrupted[40] ^= 0x01;
+    DsonDocumentHandle corruptDoc = DsonDocument_Create();
+    int corruptResult = corruptDoc
+        ? DsonDocument_LoadFromBuffer(
+            corruptDoc, reinterpret_cast<const char*>(corrupted.data()), static_cast<int>(corrupted.size()))
+        : 1;
+    PrintGzipTestResult("body corruption rejection", corruptResult != 0);
+    if (corruptDoc) DsonDocument_Destroy(corruptDoc);
+
+    std::cout << "\n";
+}
+
 int main(int argc, char* argv[])
 {
     std::cout << "DSON Parser Test\n";
@@ -53,6 +138,8 @@ int main(int argc, char* argv[])
 
     // Display current working directory
     std::cout << "Current working directory: " << GetWorkingDirectory() << "\n\n";
+
+    RunGzipFixtureTests();
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();

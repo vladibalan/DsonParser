@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #include <string>
 #include <vector>
 #include <map>
@@ -224,6 +225,7 @@ struct DsonDocument {
     bool ParseFromJson(const rapidjson::Document& doc);
     bool LoadFromFile(const char* filepath, std::string& errorMsg);
     bool LoadFromString(const char* jsonString, std::string& errorMsg);
+    bool LoadFromBuffer(const char* data, size_t size, std::string& errorMsg);
     
     // Legacy overloads without error messages (for backwards compatibility)
     bool LoadFromFile(const char* filepath);

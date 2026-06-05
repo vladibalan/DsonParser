@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "DsonTypes.h"
 #include "DsonHelpers.h"
+#include "DsonInflate.h"
 #include <cstdio>
+#include <cstring>
 #include <memory>
 #include <sstream>
 
@@ -12,7 +14,8 @@
 // default values, while unrecognized keys are recorded for audit diagnostics.
 //
 // Main flow:
-// - DsonDocument::LoadFromFile/LoadFromString parses JSON syntax with RapidJSON.
+// - DsonDocument::LoadFromFile/LoadFromString/LoadFromBuffer parses JSON syntax
+//   with RapidJSON, transparently inflating gzip-wrapped input first.
 // - DsonDocument::ParseFromJson dispatches top-level DSON sections:
 //   asset_info, scene, node_library, geometry_library, material_library,
 //   modifier_library, image_library, and uv_set_library.
@@ -833,12 +836,57 @@ bool DsonDocument::LoadFromFile(const char* filepath, std::string& errorMsg) {
     }
 
     std::unique_ptr<FILE, int(*)(FILE*)> file(fp, fclose);
-    std::vector<char> readBuffer(65536);
-    rapidjson::FileReadStream is(file.get(), readBuffer.data(), 65536);
+    std::string buffer;
+    char readBuffer[65536];
+    for (;;) {
+        size_t bytesRead = fread(readBuffer, 1, sizeof(readBuffer), file.get());
+        if (bytesRead > 0) {
+            buffer.append(readBuffer, bytesRead);
+        }
+        if (bytesRead < sizeof(readBuffer)) {
+            if (ferror(file.get())) {
+                std::ostringstream oss;
+                oss << "Failed to read file: " << filepath;
+                errorMsg = oss.str();
+                return false;
+            }
+            break;
+        }
+    }
+
+    return LoadFromBuffer(buffer.data(), buffer.size(), errorMsg);
+}
+
+bool DsonDocument::LoadFromString(const char* jsonString, std::string& errorMsg) {
+    size_t size = strlen(jsonString);
+    if (IsGzip(jsonString, size)) {
+        errorMsg = "LoadFromString cannot read binary gzip data; use LoadFromBuffer with an explicit length";
+        return false;
+    }
+    return LoadFromBuffer(jsonString, size, errorMsg);
+}
+
+bool DsonDocument::LoadFromBuffer(const char* data, size_t size, std::string& errorMsg) {
+    if (!data && size > 0) {
+        errorMsg = "Invalid buffer";
+        return false;
+    }
+
+    std::string inflated;
+    const char* parseData = (size == 0) ? "" : data;
+    size_t parseSize = size;
+
+    if (IsGzip(data, size)) {
+        if (!TryGunzip(data, size, inflated, errorMsg)) {
+            return false;
+        }
+        parseData = inflated.data();
+        parseSize = inflated.size();
+    }
 
     rapidjson::Document doc;
-    doc.ParseStream(is);
-
+    doc.Parse(parseData, parseSize);
+    
     if (doc.HasParseError()) {
         std::ostringstream oss;
         oss << "JSON parse error at offset " << doc.GetErrorOffset()
@@ -852,27 +900,6 @@ bool DsonDocument::LoadFromFile(const char* filepath, std::string& errorMsg) {
         return false;
     }
 
-    errorMsg.clear();
-    return true;
-}
-
-bool DsonDocument::LoadFromString(const char* jsonString, std::string& errorMsg) {
-    rapidjson::Document doc;
-    doc.Parse(jsonString);
-    
-    if (doc.HasParseError()) {
-        std::ostringstream oss;
-        oss << "JSON parse error at offset " << doc.GetErrorOffset() 
-            << ": " << rapidjson::GetParseError_En(doc.GetParseError());
-        errorMsg = oss.str();
-        return false;
-    }
-    
-    if (!ParseFromJson(doc)) {
-        errorMsg = "Failed to parse DSON structure from JSON";
-        return false;
-    }
-    
     errorMsg.clear();
     return true;
 }

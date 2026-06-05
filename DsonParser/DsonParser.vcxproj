@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClInclude Include="DsonDataTypes.h" />
     <ClInclude Include="DsonHelpers.h" />
+    <ClInclude Include="DsonInflate.h" />
     <ClInclude Include="DsonParserAPI.h" />
     <ClInclude Include="DsonTypes.h" />
     <ClInclude Include="framework.h" />
@@ -150,6 +151,7 @@
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="DsonDataTypes.cpp" />
     <ClCompile Include="DsonHelpers.cpp" />
+    <ClCompile Include="DsonInflate.cpp" />
     <ClCompile Include="DsonParserAPI.cpp" />
     <ClCompile Include="DsonTypes.cpp" />
     <ClCompile Include="pch.cpp">
