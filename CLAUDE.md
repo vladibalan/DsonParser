@@ -3,6 +3,21 @@
 A C++ DLL that parses DAZ Studio DSON/DSF/DUF (JSON) assets into a typed model
 and exposes it through a flat C ABI for engine importers (e.g. UE5).
 
+## Operating model (two-agent workflow)
+
+This repo is worked through two roles: a **Director** (takes your instructions,
+reads files, writes docs/instruction/config files, and authors prompts for the
+Implementer) and an **Implementer** (executes those prompts and edits source per
+the code-review rules). The user passes prompts between the two by hand. At
+session start the user states which role this session plays; if unstated, ask.
+
+**Both roles:** the user handles binary builds and git commits/pushes — never
+assume a build ran and never commit. If a needed file is missing from the
+project folder, ask the user to upload it rather than guessing its contents.
+
+**Read [`docs/agent-workflow.md`](docs/agent-workflow.md)** for the full role
+definitions, handoff sequence, and the Director's prompt template.
+
 ## Read this first (discovery shortcut)
 
 **For any question about parsing, data model, or the C API, read
@@ -16,6 +31,8 @@ comment block (purpose + responsibilities). Read that block first and only read
 the full body if the task is actually scoped to that file.
 
 Other docs:
+- [`docs/agent-workflow.md`](docs/agent-workflow.md) — Director/Implementer
+  roles, handoff sequence, shared boundaries, prompt template.
 - [`DsonParser_Roadmap.md`](DsonParser_Roadmap.md) — capability summary, audit
   history, v1 limitations, planned v2 formula work.
 - [`docs/audit-prompts.md`](docs/audit-prompts.md) — prompts for DSON coverage audits.
