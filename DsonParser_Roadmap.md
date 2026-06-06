@@ -112,6 +112,57 @@ The formula is a stack-based RPN expression. Operations include:
 `push` (push a constant or channel value), `mult`, `div`, `add`, `sub`,
 `pow`, `spline_tcb` (tension-continuity-bias interpolation).
 
+### Formula use cases — two distinct consumers (verified Jun 2026)
+
+The v1 importer integration surfaced that formulas drive **two** different
+features. The parser-side work below (store + expose per-morph formulas) serves
+**both**; only the consumer differs.
+
+**(a) Pose-driven correctives — JCM/FHM (runtime).**
+Driver = a bone rotation/transform channel; output targets a morph `?value` or a
+bone rigging property (e.g. `#head?center_point/x`). These must be evaluated each
+frame from the live pose. This is the case the "UE5 Plugin Side" section below
+(runtime evaluator / AnimInstance) addresses.
+
+**(b) Character / control morphs (import-time) — NEW finding.**
+A character is a **control morph** with a `channel` dial (0..1, e.g. label
+"Laura") and **no `morph`/`deltas` of its own**. Its `formulas` drive *other
+morphs'* `?value` channels. Those children are frequently **also** pure controls
+(formulas, no deltas) — so the graph is a **multi-level tree** that bottoms out at
+delta-bearing leaf morphs. The shape "Laura" is the weighted sum of those leaves
+at the dialed value.
+
+Worked example (Genesis 9, files under
+`…/data/Daz 3D/Genesis 9/Base/Morphs/Daz 3D/Base Characters 9/`):
+
+```
+Laura for Genesis 9.duf  → scene.modifiers (3 entries):
+  • body_bs_Navel_HD3   cv=1   → delta morph (72 deltas)     [imports today]
+  • SkinBinding                → Genesis9.dsf#SkinBinding (not a morph)
+  • Laura_figure_ctrl_Character cv=1 → CONTROL: 0 deltas, 2 formulas
+        ├─ output …Laura_head_bs_Head.dsf#Laura_head_bs_Head?value  (× dial)
+        │     └─ Laura_head_bs_Head.dsf : 0 deltas, 44 formulas → leaf morphs (deltas)
+        └─ output …Laura_body_bs_body.dsf#Laura_body_bs_body?value  (× dial)
+              └─ Laura_body_bs_body.dsf : 0 deltas, 9 formulas → leaf morphs (deltas)
+```
+
+Key structural facts (so this need not be re-derived from the DSON):
+- A morph modifier has **no `type` field**; delta morphs carry a nested `morph`
+  object (`morph.deltas` / `morph.normal_deltas`, values `[idx,dx,dy,dz]`),
+  control morphs carry `formulas` + `channel` and **no** `morph` block.
+- Formula `output` URL form: `Scheme:/path/File.dsf#ModifierId?property`
+  (character case: `property == value`). A `push` url form referencing the
+  current file is `Scheme:#ModifierId?value`.
+- The `.duf` lists **only the top control** (with `channel.current_value` = the
+  dial); the driven children appear **only** inside formulas, in **separate
+  `.dsf` files**.
+
+**Parser scope for (b):** the parser stays single-document and does NOT do
+recursive external loading or evaluation. It only needs to **store and expose the
+per-morph formulas** (the API below). Following `output` URLs to the child
+`.dsf` files, recursing the tree, evaluating the RPN, and composing/baking the
+result is **importer** work (the importer already loads external morph files).
+
 ### Work Required
 
 #### Parser Side (DsonParser v2)
@@ -162,11 +213,21 @@ A runtime evaluator that:
 - Drives `UMorphTarget` weights at runtime via the Animation Blueprint
   or a custom `UAnimInstance`
 
-**5. Integration point**
+**5. Integration point (case (a), runtime)**
 - A custom `UAnimInstance` subclass or `AnimNotify` that evaluates all
   formula chains each frame when the skeleton pose changes
 - Or: bake the corrective shapes into pose-driven `UPoseAsset` entries
   (simpler but less flexible)
+
+**6. Character / control morphs (case (b), import-time) — separate consumer**
+- This is NOT the runtime evaluator. At import the plugin must follow each
+  control's formula `output` URLs to the child `.dsf` files, recurse the tree to
+  the delta leaves, evaluate the RPN seeded by the scene modifier's
+  `current_value`, and compose the result (bake into base vertices and/or emit a
+  combined morph target). It reuses the existing external-morph loader.
+- The plugin-side design for this lives in the importer repo:
+  `Plugins/DsonToUnreal/Docs/FormulaMorphsV2.md`. It depends only on the
+  per-morph formula API (items 1–3 above).
 
 ### Audit Prompt for v2
 When ready to begin v2, rerun the audit prompt from pass 4 with one
