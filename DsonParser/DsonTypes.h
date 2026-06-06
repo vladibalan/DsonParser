@@ -164,6 +164,11 @@ struct Modifier {
     String skin_binding;
     String channel;
     std::string channel_label;
+    // Stored dial state only; formulas are still exposed as data and never evaluated here.
+    double channel_value = 0.0;   // resolved dial: current_value -> value -> 0.0
+    double channel_min = 0.0;
+    double channel_max = 1.0;
+    bool channel_clamped = false;
 
     // For morph modifiers - indexed deltas
     bool has_morph = false;

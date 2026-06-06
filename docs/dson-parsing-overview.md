@@ -88,8 +88,8 @@ current loader scope.
   values, colors, raw image URLs, and resolved texture paths.
 
 `modifier_library`
-: Parsed into `Modifier`. Captures morph deltas, normal deltas, channel
-  metadata, skin binding payloads, and formulas. Formula `output`, `stage`, and
+: Parsed into `Modifier`. Captures morph deltas, normal deltas, stored channel
+  dial metadata/value bounds, skin binding payloads, and formulas. Formula `output`, `stage`, and
   the source-order RPN `operations` (`op` plus `val`/`url`) are stored and
   exposed; the parser does not evaluate them or follow their channel references.
 
@@ -191,8 +191,9 @@ Morph position deltas and normal deltas are sparse. Each delta stores a source
 vertex index and XYZ offset. Consumers should apply deltas only to listed
 vertices.
 
-`DsonDocument_GetMorphGeometryId` extracts the geometry id fragment from the
-morph modifier's parent URL.
+`DsonDocument_GetMorphId` returns the modifier id in this filtered morph index
+space. `DsonDocument_GetMorphGeometryId` extracts the geometry id fragment from
+the morph modifier's parent URL.
 
 ## Formulas
 
@@ -214,7 +215,8 @@ index spaces, not on `morphIndex`:
   character control-morph top node carried inline in a `.duf`).
 
 Each family exposes formula count/output/stage and per-operation
-count/op/val/url. Evaluating the RPN, resolving `output`/`url` references, and
+count/op/val/url, plus stored channel value/min/max/clamped accessors for the
+modifier dial state. Evaluating the RPN, resolving `output`/`url` references, and
 recursively loading the referenced `.dsf` files remain importer responsibilities.
 
 ## Unknown-Key Diagnostics

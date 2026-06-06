@@ -665,6 +665,12 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     if (JsonHelper::GetObject(json, "channel", channelObj)) {
         channel.value = JsonHelper::GetStringOrDefault(*channelObj, "id");
         channel_label = JsonHelper::GetStringOrDefault(*channelObj, "label");
+        channel_value = channelObj->HasMember("current_value")
+            ? JsonHelper::GetDoubleOrDefault(*channelObj, "current_value", 0.0)
+            : JsonHelper::GetDoubleOrDefault(*channelObj, "value", 0.0);
+        channel_min = JsonHelper::GetDoubleOrDefault(*channelObj, "min", 0.0);
+        channel_max = JsonHelper::GetDoubleOrDefault(*channelObj, "max", 1.0);
+        channel_clamped = JsonHelper::GetBoolOrDefault(*channelObj, "clamped", false);
     }
 
     // Parse morph deltas as indexed array

@@ -236,6 +236,23 @@ static const Dson::Modifier* GetSceneModifier(DsonDocumentHandle handle, int sce
     return doc ? At(doc->scene.modifiers, sceneModifierIndex) : nullptr;
 }
 
+enum ModifierChannelComponent {
+    ModifierChannelValue,
+    ModifierChannelMin,
+    ModifierChannelMax
+};
+
+static double GetModifierChannelDouble(const Dson::Modifier* mod, ModifierChannelComponent component) {
+    if (!mod) return 0.0;
+    if (component == ModifierChannelMin) return mod->channel_min;
+    if (component == ModifierChannelMax) return mod->channel_max;
+    return mod->channel_value;
+}
+
+static bool GetModifierChannelClamped(const Dson::Modifier* mod) {
+    return mod ? mod->channel_clamped : false;
+}
+
 static const Dson::Formula* FormulaAt(const Dson::Modifier* mod, int formulaIndex) {
     return mod ? At(mod->formulas, formulaIndex) : nullptr;
 }
@@ -593,6 +610,22 @@ const char* DsonDocument_GetSceneModifierUrl(DsonDocumentHandle handle, int inde
     return mod ? mod->url.c_str() : "";
 }
 
+double DsonDocument_GetSceneModifierChannelValue(DsonDocumentHandle handle, int sceneModifierIndex) {
+    return GetModifierChannelDouble(GetSceneModifier(handle, sceneModifierIndex), ModifierChannelValue);
+}
+
+double DsonDocument_GetSceneModifierChannelMin(DsonDocumentHandle handle, int sceneModifierIndex) {
+    return GetModifierChannelDouble(GetSceneModifier(handle, sceneModifierIndex), ModifierChannelMin);
+}
+
+double DsonDocument_GetSceneModifierChannelMax(DsonDocumentHandle handle, int sceneModifierIndex) {
+    return GetModifierChannelDouble(GetSceneModifier(handle, sceneModifierIndex), ModifierChannelMax);
+}
+
+bool DsonDocument_GetSceneModifierChannelClamped(DsonDocumentHandle handle, int sceneModifierIndex) {
+    return GetModifierChannelClamped(GetSceneModifier(handle, sceneModifierIndex));
+}
+
 int DsonDocument_GetSceneModifierFormulaCount(DsonDocumentHandle handle, int sceneModifierIndex) {
     const Dson::Modifier* mod = GetSceneModifier(handle, sceneModifierIndex);
     return mod ? static_cast<int>(mod->formulas.size()) : 0;
@@ -734,6 +767,22 @@ const char* DsonDocument_GetModifierName(DsonDocumentHandle handle, int index) {
 const char* DsonDocument_GetModifierType(DsonDocumentHandle handle, int index) {
     const Dson::Modifier* mod = GetLibraryModifier(handle, index);
     return mod ? mod->type.c_str() : "";
+}
+
+double DsonDocument_GetModifierChannelValue(DsonDocumentHandle handle, int modifierIndex) {
+    return GetModifierChannelDouble(GetLibraryModifier(handle, modifierIndex), ModifierChannelValue);
+}
+
+double DsonDocument_GetModifierChannelMin(DsonDocumentHandle handle, int modifierIndex) {
+    return GetModifierChannelDouble(GetLibraryModifier(handle, modifierIndex), ModifierChannelMin);
+}
+
+double DsonDocument_GetModifierChannelMax(DsonDocumentHandle handle, int modifierIndex) {
+    return GetModifierChannelDouble(GetLibraryModifier(handle, modifierIndex), ModifierChannelMax);
+}
+
+bool DsonDocument_GetModifierChannelClamped(DsonDocumentHandle handle, int modifierIndex) {
+    return GetModifierChannelClamped(GetLibraryModifier(handle, modifierIndex));
 }
 
 int DsonDocument_GetModifierFormulaCount(DsonDocumentHandle handle, int modifierIndex) {
@@ -1484,6 +1533,13 @@ const char* DsonDocument_GetMorphName(DsonDocumentHandle handle, int morphIndex)
     const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
     if (!mod) return "";
     return mod->name.c_str();
+}
+
+const char* DsonDocument_GetMorphId(DsonDocumentHandle handle, int morphIndex) {
+    if (!handle) return "";
+    DsonContext* ctx = GetContext(handle);
+    const Dson::Modifier* mod = GetMorphByFilteredIndex(ctx, morphIndex);
+    return mod ? mod->id.c_str() : "";
 }
 
 const char* DsonDocument_GetMorphLabel(DsonDocumentHandle handle, int morphIndex) {

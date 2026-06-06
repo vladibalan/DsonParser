@@ -170,6 +170,15 @@ result is **importer** work (the importer already loads external morph files).
 > are parsed, stored on `Modifier`, and exposed through the C ABI. The exposed
 > API differs from the original item-3 sketch (see item 3 for the as-built
 > surface and rationale). UE5 Plugin Side (items 4–6) is still pending.
+>
+> **Next increment (item 3b, agreed Jun 2026):** planning the case-(b) importer
+> consumer showed the formula *tree* is traversable but not *evaluable* with the
+> current surface — the parser exposes no channel dial value, no clamp range, and
+> no morph identity to map a formula `output` fragment to its leaf morph. Item 3b
+> adds those stored-field accessors. It keeps the parser single-document and
+> non-evaluating (every accessor is a pure read of an already-or-newly-stored
+> field); the channel numeric fields are **not** parsed today and need a parse
+> extension on `Modifier`.
 
 #### Parser Side (DsonParser v2)
 
@@ -228,6 +237,45 @@ const char* DsonDocument_GetSceneModifierFormulaOperationOp(handle, sceneModifie
 double      DsonDocument_GetSceneModifierFormulaOperationVal(handle, sceneModifierIndex, formulaIndex, opIndex)
 const char* DsonDocument_GetSceneModifierFormulaOperationUrl(handle, sceneModifierIndex, formulaIndex, opIndex)
 ```
+
+**3b. Channel-value + identity accessors (formula-evaluation increment)**
+
+Items 1–3 let a consumer *walk* the formula tree. Evaluating it correctly needs
+three more reads the current surface does not provide. All are stored-field
+reads; the parser still neither evaluates RPN nor follows URLs.
+
+Parse extension (one place, serves both index spaces — `modifier_library` and
+`scene.modifiers` share the `Modifier` struct): `Modifier::ParseFromJson` today
+reads only the channel object's `id` and `label`. Extend it to also store the
+channel's numeric state — the dial value (`current_value`, falling back to
+`value`, else `0.0`) and, for clamp-correct evaluation, `min` / `max` /
+`clamped`. (The `channel` sub-object is not audited for unknown keys, so no
+`knownKeys` change is needed.)
+
+Required (correctness blockers):
+```
+double      DsonDocument_GetModifierChannelValue(handle, modifierIndex)        // current_value → value → 0.0
+double      DsonDocument_GetSceneModifierChannelValue(handle, sceneModifierIndex)
+const char* DsonDocument_GetMorphId(handle, morphIndex)                        // Modifier::id; already stored, just exposed
+```
+- `GetMorphId` maps a formula `output` `#fragment` (e.g. `…#Laura_head_bs_Head?value`)
+  to its delta-bearing leaf morph. `id` is already parsed; `GetMorphName`/`GetMorphLabel`
+  return name/label, not `id`, so a distinct accessor is needed.
+
+Recommended (clamp-correct evaluation; importer stays permissive if absent):
+```
+double DsonDocument_GetModifierChannelMin(handle, modifierIndex)              // min,  default 0.0
+double DsonDocument_GetModifierChannelMax(handle, modifierIndex)              // max,  default 1.0
+bool   DsonDocument_GetModifierChannelClamped(handle, modifierIndex)          // clamped, default false
+double DsonDocument_GetSceneModifierChannelMin(handle, sceneModifierIndex)
+double DsonDocument_GetSceneModifierChannelMax(handle, sceneModifierIndex)
+bool   DsonDocument_GetSceneModifierChannelClamped(handle, sceneModifierIndex)
+```
+
+Confirmed already correct (no change): `Get{Modifier,SceneModifier}FormulaOutput`
+returns the full output URL verbatim including the `?property` suffix; operation
+`op` strings are the literal DAZ tokens; for a `push` the discriminator is a
+non-empty `Url` (a constant `push` leaves `Url` empty and carries `Val`).
 
 #### UE5 Plugin Side (DsonImporter v2)
 
