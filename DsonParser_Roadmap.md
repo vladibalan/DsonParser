@@ -55,8 +55,15 @@ across 4 audit passes with zero remaining gaps.
   - 0 diffuse, 1 specular, 2 roughness, 3 normal (tangent-space),
     4 opacity, 5 subsurface, 6 emission, 7 bump (grayscale height)
 - Per channel: `value`, `color` (RGB), `has_color`, `image_url`, `texture_path`
-- `Image::map` handles plain string, `{"url":"..."}` object, and base-layer
-  URL/file from layered-image map array forms
+- `Image::map` handles plain string, `{"url":"..."}` object, and layered-image
+  (LIE) map arrays — all layers retained on `Image::layers` (url + label), with
+  `map_file` kept as the base layer for back-compatible single-texture resolution
+- Per scene-material-channel LIE layer surface (additive):
+  `GetSceneMaterialChannelLayer{Count,TexturePath,Label}` — `Count` is `0` for a
+  plain channel, `N ≥ 2` for a layered one; layer `0` == the channel's base
+  `TexturePath`. Layers attach only on an identity (id/url) image match, never on a
+  shared base-path match. Per-layer compositing metadata (operation/opacity/color/
+  transforms/active) deferred to a future consumer.
 - Post-parse image linkage pass resolves `image_url` → `texture_path`, including
   percent-decoded fragment ids
 - Material `groups` array for scene material → surface zone mapping

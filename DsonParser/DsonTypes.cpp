@@ -23,7 +23,8 @@
 //   import pipeline: geometry, skeleton nodes, skin weights, UVs, materials,
 //   images, morph deltas, formula payloads, and scene instances.
 // - A post-parse pass resolves material channel image references to image
-//   texture paths. Broader cross-file asset resolution is outside this parser.
+//   texture paths and, for identity-linked LIE images, their per-layer paths.
+//   Broader cross-file asset resolution is outside this parser.
 //
 // Deliberately not handled here:
 // - Formula evaluation / driven morph chains.
@@ -446,7 +447,8 @@ static MaterialChannel ParseMaterialChannel(const rapidjson::Value& container) {
 // block and/or inside extra[].studio_material_channels; both are normalized into
 // Material::channels as pairs of DAZ channel id plus parsed scalar/color/texture
 // data. Texture URLs are stored raw here; DsonDocument::ParseFromJson resolves
-// them to Image::map_file after image_library has been parsed.
+// them to Image::map_file and identity-linked LIE layers after image_library
+// has been parsed.
 bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -728,9 +730,23 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     ParseMember(json, "name", name);
     ParseMember(json, "url", url);
 
-    // Try "map" key first — can be a bare string or an object {"url":"..."} / {"file":"..."}
-    // Uses the first map entry (the base LIE layer); overlay layers are not merged here.
+    // Try "map" key first: can be a bare string, an object {"url":"..."} / {"file":"..."},
+    // or an array whose first element is the base LIE layer. Keep this assignment
+    // as the base map path so existing texture resolution remains unchanged.
     if (JsonHelper::HasMember(json, "map")) {
+        if (json["map"].IsArray()) {
+            const rapidjson::Value& map = json["map"];
+            layers.reserve(map.Size());
+            for (rapidjson::SizeType i = 0; i < map.Size(); i++) {
+                ImageLayer layer;
+                if (!GetImageMapPath(map[i], layer.url) || layer.url.empty()) {
+                    continue;
+                }
+                layer.label = map[i].IsObject() ? JsonHelper::GetStringOrDefault(map[i], "label") : "";
+                layers.push_back(layer);
+            }
+        }
+
         std::string path;
         if (GetImageMapPath(json["map"], path)) {
             map_file.value = path;
@@ -882,8 +898,9 @@ bool DsonDocument::ParseFromJson(const rapidjson::Document& doc) {
     ParseObjectArray(doc, "image_library", images, &unknown_keys["image_library"]);
     ParseObjectArray(doc, "uv_set_library", uv_sets, &unknown_keys["uv_set_library"]);
     
-    // Post-parse: resolve image_url → texture_path for every material channel in every collection.
-    // Matching order: Image.id → Image.url → Image.map_file.
+    // Post-parse: resolve image_url -> texture_path for every material channel in every collection.
+    // Matching order: Image.id -> Image.url -> Image.map_file. LIE layers copy only
+    // on identity matches so bare-path channels do not inherit colliding overlays.
     auto resolveChannel = [&](MaterialChannel& ch) {
         if (ch.image_url.empty()) return;
         std::string lookupId = ch.image_url;
@@ -892,10 +909,14 @@ bool DsonDocument::ParseFromJson(const rapidjson::Document& doc) {
         }
         lookupId = PercentDecode(lookupId);
         for (const auto& img : images) {
-            if (img.id.value == lookupId ||
-                img.url.value == ch.image_url ||
-                img.map_file.value == ch.image_url) {
+            bool identityMatch = (img.id.value == lookupId) ||
+                                 (!img.url.value.empty() && img.url.value == ch.image_url);
+            bool pathMatch = (img.map_file.value == ch.image_url);
+            if (identityMatch || pathMatch) {
                 ch.texture_path = img.map_file.value;
+                if (identityMatch && img.layers.size() >= 2) {
+                    ch.layers = img.layers;
+                }
                 return;
             }
         }

@@ -87,7 +87,14 @@ struct Geometry {
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
 
-// One PBR material channel: scalar/color value plus optional texture reference
+// One image map layer: layer 0 is the base texture; higher indexes are LIE overlays.
+struct ImageLayer {
+    std::string url;    // layer source path (map element "url"); layer 0 == base
+    std::string label;  // LIE layer label ("" if absent)
+};
+
+// One PBR material channel: scalar/color value plus optional texture reference.
+// LIE layers are populated only when the channel resolves by image identity.
 struct MaterialChannel {
     std::string type;        // DAZ raw type string ("float", "float_color", "bool", "string", etc.)
     double value = 0.0;      // scalar (roughness, opacity strength, normal strength, etc.)
@@ -96,6 +103,7 @@ struct MaterialChannel {
 
     std::string image_url;     // raw image reference from JSON (e.g. "#img-0" or a path); empty = no texture
     std::string texture_path;  // resolved absolute file path (filled by the post-parse linkage pass)
+    std::vector<ImageLayer> layers; // LIE layer paths/labels; empty for non-LIE and bare-path matches
 };
 
 // Material data
@@ -185,7 +193,8 @@ struct Modifier {
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
 
-// Image/Texture data
+// Image/Texture data. map_file is the base map path; layers retain LIE map-array
+// entries (base plus overlays) without modeling compositing metadata.
 struct Image {
     String id;
     String name;
@@ -193,6 +202,7 @@ struct Image {
     String map_file;
     Int map_width;
     Int map_height;
+    std::vector<ImageLayer> layers;
     
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

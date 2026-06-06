@@ -94,8 +94,10 @@ current loader scope.
   exposed; the parser does not evaluate them or follow their channel references.
 
 `image_library`
-: Parsed into `Image`. Captures id, name, URL, map file/path, including the
-  base layer URL/file from DAZ layered-image map arrays, and map size.
+: Parsed into `Image`. Captures id, name, URL, map file/path, and map size. For
+  DAZ layered-image (LIE) `map` arrays it retains every layer (url + label) on
+  `Image::layers`, not just the base; `map_file` stays the base layer (`map[0]`)
+  so existing single-texture resolution is unchanged.
 
 `uv_set_library`
 : Parsed into `UVSet`. Captures UV coordinates, vertex count, and sparse
@@ -160,6 +162,28 @@ references, and resolved texture paths. Image resolution happens after
 
 Scene materials and library materials use the same channel representation, but
 scene materials may include instance-level surface groups or channel values.
+
+### Layered Image (LIE) Channels
+
+A DAZ Layered Image Editor channel stores its layers as a `map` array on the
+`image_library` entry: element `[0]` is the base, elements `1..N-1` are overlays
+(makeup, brows, etc.). DAZ wraps even plain single textures in a one-element `map`
+array, so a true layered channel is one with **two or more** layers. The parser
+retains all layers on `Image::layers` and, during the post-parse linkage, copies
+them onto the matched material channel only when the channel references the image
+by **identity** (id/url) and the image has **≥ 2** layers — a bare-path reference
+resolves to the flat base only. The C API exposes the per-channel layer surface
+for scene materials:
+
+- `DsonDocument_GetSceneMaterialChannelLayerCount` — number of LIE layers; `0` for a
+  plain single-texture channel, `N ≥ 2` for a layered one.
+- `DsonDocument_GetSceneMaterialChannelLayerTexturePath` — layer path; layer `0`
+  equals the channel's existing `TexturePath`.
+- `DsonDocument_GetSceneMaterialChannelLayerLabel` — the LIE layer label.
+
+Per-layer compositing metadata (blend operation, opacity, color tint, transforms,
+active flag) is present in the DSON but intentionally not modeled in this surface;
+it is left for a future compositing consumer.
 
 ## Skin Binding
 

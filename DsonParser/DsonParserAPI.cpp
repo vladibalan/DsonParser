@@ -18,6 +18,7 @@
 // Responsibilities:
 // - Manage document lifetime, loading, clearing, and error reporting.
 // - Provide bounds-checked accessors for the typed data parsed in DsonTypes.cpp.
+// - Expose scene-material texture paths plus retained LIE layer paths/labels.
 // - Keep return values simple and ABI-friendly: strings are parser-owned
 //   const char*; invalid handles/indexes return "" / 0 / false. Count functions
 //   always return 0 on error (never -1); -1 is reserved for value/index
@@ -177,6 +178,29 @@ static const char* GetMaterialChannelTexturePath(const MaterialChannelList& chan
     const auto* channel = GetMaterialChannel(channels, channelIdx);
     if (!channel) return "";
     return channel->second.texture_path.c_str();
+}
+
+static int GetMaterialChannelLayerCount(const MaterialChannelList& channels, int channelIdx) {
+    const auto* channel = GetMaterialChannel(channels, channelIdx);
+    return channel ? static_cast<int>(channel->second.layers.size()) : 0;
+}
+
+static const char* GetMaterialChannelLayerTexturePath(
+    const MaterialChannelList& channels,
+    int channelIdx,
+    int layerIdx) {
+    const auto* channel = GetMaterialChannel(channels, channelIdx);
+    const Dson::ImageLayer* layer = channel ? At(channel->second.layers, layerIdx) : nullptr;
+    return layer ? layer->url.c_str() : "";
+}
+
+static const char* GetMaterialChannelLayerLabel(
+    const MaterialChannelList& channels,
+    int channelIdx,
+    int layerIdx) {
+    const auto* channel = GetMaterialChannel(channels, channelIdx);
+    const Dson::ImageLayer* layer = channel ? At(channel->second.layers, layerIdx) : nullptr;
+    return layer ? layer->label.c_str() : "";
 }
 
 // Morph accessors expose a dense list of morph modifiers. Real DAZ morphs are
@@ -1511,6 +1535,24 @@ const char* DsonDocument_GetSceneMaterialChannelTexturePath(DsonDocumentHandle h
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
     return mat ? GetMaterialChannelTexturePath(mat->channels, channelIdx) : "";
+}
+
+int DsonDocument_GetSceneMaterialChannelLayerCount(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerCount(mat->channels, channelIdx) : 0;
+}
+
+const char* DsonDocument_GetSceneMaterialChannelLayerTexturePath(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerTexturePath(mat->channels, channelIdx, layerIdx) : "";
+}
+
+const char* DsonDocument_GetSceneMaterialChannelLayerLabel(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerLabel(mat->channels, channelIdx, layerIdx) : "";
 }
 
 // ============================================================
