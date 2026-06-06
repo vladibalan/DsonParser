@@ -148,6 +148,7 @@ struct Modifier {
     std::string channel_label;
 
     // For morph modifiers - indexed deltas
+    bool has_morph = false;
     IndexedVector3Array morph_deltas;
     IndexedVector3Array normal_deltas;
 

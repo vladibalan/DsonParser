@@ -56,7 +56,7 @@ struct DsonContext {
     std::vector<std::string> contextCache;
     std::vector<std::string> unknownKeysCache;
     std::string unknownKeysCacheContext;
-    std::vector<int> morphIndexCache;   // indices into document.modifiers where type == "morph"
+    std::vector<int> morphIndexCache;   // indices into document.modifiers for morph modifiers
     bool morphIndexCacheDirty = true;
     VertexInfluenceCache skinCache;
     std::string lastMorphGeometryId;    // stable storage for GetMorphGeometryId return value
@@ -178,14 +178,17 @@ static const char* GetMaterialChannelTexturePath(const MaterialChannelList& chan
     return channel->second.texture_path.c_str();
 }
 
-// Morph accessors expose a dense list of modifiers where type == "morph".
+// Morph accessors expose a dense list of morph modifiers. Real DAZ morphs are
+// identified by their nested "morph" payload; legacy flat files may use
+// type == "morph".
 // The public morphIndex is therefore not the same number as the modifier_library
 // index used by DsonDocument_GetModifier* and skin-binding APIs.
 static void EnsureMorphCache(DsonContext* ctx) {
     if (!ctx->morphIndexCacheDirty) return;
     ctx->morphIndexCache.clear();
     for (int i = 0; i < static_cast<int>(ctx->document.modifiers.size()); i++) {
-        if (ctx->document.modifiers[i].type.value == "morph") {
+        const Dson::Modifier& mod = ctx->document.modifiers[i];
+        if (mod.type.value == "morph" || mod.has_morph) {
             ctx->morphIndexCache.push_back(i);
         }
     }

@@ -181,9 +181,10 @@ engine vertex formats.
 
 ## Morph Targets
 
-Morph APIs expose only modifiers where `type == "morph"`. The public
-`morphIndex` is therefore a filtered index and is not the same as the raw
-`modifier_library` index.
+Morph APIs expose modifiers with morph data. Real DAZ morph modifiers are
+identified by a nested `morph` payload, while legacy flat files may use
+`type == "morph"`. The public `morphIndex` is therefore a filtered index and is
+not the same as the raw `modifier_library` index.
 
 Morph position deltas and normal deltas are sparse. Each delta stores a source
 vertex index and XYZ offset. Consumers should apply deltas only to listed

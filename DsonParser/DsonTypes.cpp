@@ -611,7 +611,7 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     
     static const std::set<std::string> knownKeys = {
         "id", "name", "type", "url", "parent", "skin_binding", "channel",
-        "deltas", "normal_deltas", "vertex_count", "formulas", "region", "group", "skin"
+        "deltas", "normal_deltas", "vertex_count", "formulas", "region", "group", "skin", "morph"
     };
     
     ParseMember(json, "id", id);
@@ -638,6 +638,22 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     const rapidjson::Value* normalDeltasObj = nullptr;
     if (JsonHelper::GetObject(json, "normal_deltas", normalDeltasObj)) {
         normal_deltas.ParseFromJson(*normalDeltasObj);
+    }
+
+    // Real DAZ morph modifiers nest deltas under a "morph" payload.
+    const rapidjson::Value* morphObj = nullptr;
+    if (JsonHelper::GetObject(json, "morph", morphObj)) {
+        has_morph = true;
+
+        const rapidjson::Value* morphDeltasObj = nullptr;
+        if (JsonHelper::GetObject(*morphObj, "deltas", morphDeltasObj)) {
+            morph_deltas.ParseFromJson(*morphDeltasObj);
+        }
+
+        const rapidjson::Value* morphNormalDeltasObj = nullptr;
+        if (JsonHelper::GetObject(*morphObj, "normal_deltas", morphNormalDeltasObj)) {
+            normal_deltas.ParseFromJson(*morphNormalDeltasObj);
+        }
     }
 
     // Parse skin binding payload (the actual key is "skin", not "skin_binding")
