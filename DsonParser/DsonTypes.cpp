@@ -21,7 +21,7 @@
 //   modifier_library, image_library, and uv_set_library.
 // - Section structs parse only the fields needed by the public C API and UE5
 //   import pipeline: geometry, skeleton nodes, skin weights, UVs, materials,
-//   images, morph deltas, and scene instances.
+//   images, morph deltas, formula payloads, and scene instances.
 // - A post-parse pass resolves material channel image references to image
 //   texture paths. Broader cross-file asset resolution is outside this parser.
 //
@@ -599,11 +599,50 @@ bool SkinBinding::ParseFromJson(const rapidjson::Value& json, std::set<std::stri
     return true;
 }
 
+// Formula operation parser:
+// Stores one RPN operation exactly as authored. Unknown fields are preserved in
+// diagnostics so richer op payloads can be modeled later without hiding data.
+bool FormulaOperation::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
+    if (!json.IsObject()) {
+        return false;
+    }
+
+    static const std::set<std::string> knownKeys = {
+        "op", "val", "url"
+    };
+
+    op = JsonHelper::GetStringOrDefault(json, "op");
+    url = JsonHelper::GetStringOrDefault(json, "url");
+    val = JsonHelper::GetDoubleOrDefault(json, "val", 0.0);
+
+    TrackUnknownKeys(json, knownKeys, unknownKeys);
+    return true;
+}
+
+// Formula parser:
+// Captures the target output channel and source-order RPN operations only. The
+// importer remains responsible for evaluating operations and resolving URLs.
+bool Formula::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
+    if (!json.IsObject()) {
+        return false;
+    }
+
+    static const std::set<std::string> knownKeys = {
+        "output", "operations", "stage"
+    };
+
+    output = JsonHelper::GetStringOrDefault(json, "output");
+    stage = JsonHelper::GetStringOrDefault(json, "stage");
+    ParseObjectArray(json, "operations", operations, unknownKeys);
+
+    TrackUnknownKeys(json, knownKeys, unknownKeys);
+    return true;
+}
+
 // Modifier parser:
-// Handles the modifier payloads currently exposed by the API: morph deltas,
-// normal deltas, channel metadata, and skin_binding "skin" data. Formulas are
-// recognized as known keys for v1 audit cleanliness but are intentionally not
-// stored or evaluated yet; the roadmap documents that as v2 work.
+// Handles morph deltas, normal deltas, channel metadata, skin_binding "skin"
+// data, and stored formula RPN payloads. Formula evaluation and referenced-file
+// loading remain importer responsibilities.
 bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -661,6 +700,9 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     if (JsonHelper::GetObject(json, "skin", skinObj)) {
         has_skin = skin.ParseFromJson(*skinObj, unknownKeys);
     }
+
+    // Parse formulas (stored, not evaluated; key stays in knownKeys above).
+    ParseObjectArray(json, "formulas", formulas, unknownKeys);
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;

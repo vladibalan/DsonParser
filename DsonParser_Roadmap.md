@@ -70,10 +70,11 @@ across 4 audit passes with zero remaining gaps.
 - O(1) morph access via lazy `morphIndexCache`
 
 ### Known Limitations (v1)
-- **Formulas not parsed** — corrective morphs (JCMs, FHMs) and
-  formula-driven morph chains are suppressed in `knownKeys` but not stored
-  or exposed. Characters will import correctly but pose-driven corrective
-  shapes will not fire automatically.
+- **Formulas not evaluated** — as shipped in v1, formula keys were suppressed in
+  `knownKeys` and neither stored nor exposed. **Resolved at the parser level in
+  v2** (formulas are now stored and exposed; see v2 Parser Side below). Evaluation
+  and baking remain importer-side, so pose-driven correctives still require the
+  importer integration before they fire automatically.
 - **Windows only** — library validated and used on Win64. No Mac/Linux
   build configuration exists yet.
 - **No weight normalization at parse time** — raw weights are stored as-is;
@@ -165,6 +166,11 @@ result is **importer** work (the importer already loads external morph files).
 
 ### Work Required
 
+> **Status (Jun 2026):** Parser Side (items 1–3) is **implemented** — formulas
+> are parsed, stored on `Modifier`, and exposed through the C ABI. The exposed
+> API differs from the original item-3 sketch (see item 3 for the as-built
+> surface and rationale). UE5 Plugin Side (items 4–6) is still pending.
+
 #### Parser Side (DsonParser v2)
 
 **1. Formula struct**
@@ -184,23 +190,43 @@ struct Formula {
 
 **2. Add `std::vector<Formula> formulas` to `Modifier` struct**
 - In `DsonTypes.h`: add `formulas` field to `Modifier`
-- In `Modifier::ParseFromJson` (`DsonTypes.cpp`): remove `"formulas"` from
-  `knownKeys` suppression; parse the array of formula objects; for each
-  formula read `output` string and `operations` array; for each operation
-  read `op`, and conditionally `val` (double) or `url` (string)
+- In `Modifier::ParseFromJson` (`DsonTypes.cpp`): **keep** `"formulas"` in
+  `knownKeys` (a parsed key belongs there, or it shows up as a false-positive
+  unknown) and parse the array of formula objects; for each formula read
+  `output` string, `stage` string, and `operations` array; for each operation
+  read `op`, and conditionally `val` (double) or `url` (string). `Formula` and
+  `FormulaOperation` each get a `ParseFromJson` so they reuse `ParseObjectArray`,
+  and each tracks unknown keys so unmodeled op fields (e.g. `spline_tcb` knots)
+  surface in diagnostics instead of being dropped.
 
-**3. C API accessors**
+**3. C API accessors (as built)**
+
+The original sketch keyed these on `morphIndex` (the filtered morph list). That
+was changed during implementation: formulas frequently live on **control
+modifiers that have no `morph`/`deltas` block**, so they are not in the filtered
+morph list at all (case (b) above). Keying on `morphIndex` would have left every
+character control morph unreachable. Instead the accessors are exposed on **both
+modifier index spaces**, which together reach every stored formula (case (a)
+JCMs included, via their raw library index):
+
 ```
-// Per modifier (morph):
-int         DsonDocument_GetMorphFormulaCount(handle, morphIndex)
-const char* DsonDocument_GetMorphFormulaOutput(handle, morphIndex, formulaIndex)
-const char* DsonDocument_GetMorphFormulaStage(handle, morphIndex, formulaIndex)
+// Per modifier, by raw modifier_library index:
+int         DsonDocument_GetModifierFormulaCount(handle, modifierIndex)
+const char* DsonDocument_GetModifierFormulaOutput(handle, modifierIndex, formulaIndex)
+const char* DsonDocument_GetModifierFormulaStage(handle, modifierIndex, formulaIndex)
+int         DsonDocument_GetModifierFormulaOperationCount(handle, modifierIndex, formulaIndex)
+const char* DsonDocument_GetModifierFormulaOperationOp(handle, modifierIndex, formulaIndex, opIndex)
+double      DsonDocument_GetModifierFormulaOperationVal(handle, modifierIndex, formulaIndex, opIndex)
+const char* DsonDocument_GetModifierFormulaOperationUrl(handle, modifierIndex, formulaIndex, opIndex)
 
-// Per formula operation:
-int         DsonDocument_GetMorphFormulaOperationCount(handle, morphIndex, formulaIndex)
-const char* DsonDocument_GetMorphFormulaOperationOp(handle, morphIndex, formulaIndex, opIndex)
-double      DsonDocument_GetMorphFormulaOperationVal(handle, morphIndex, formulaIndex, opIndex)
-const char* DsonDocument_GetMorphFormulaOperationUrl(handle, morphIndex, formulaIndex, opIndex)
+// Same seven, by scene.modifiers index (the .duf control-morph top node):
+int         DsonDocument_GetSceneModifierFormulaCount(handle, sceneModifierIndex)
+const char* DsonDocument_GetSceneModifierFormulaOutput(handle, sceneModifierIndex, formulaIndex)
+const char* DsonDocument_GetSceneModifierFormulaStage(handle, sceneModifierIndex, formulaIndex)
+int         DsonDocument_GetSceneModifierFormulaOperationCount(handle, sceneModifierIndex, formulaIndex)
+const char* DsonDocument_GetSceneModifierFormulaOperationOp(handle, sceneModifierIndex, formulaIndex, opIndex)
+double      DsonDocument_GetSceneModifierFormulaOperationVal(handle, sceneModifierIndex, formulaIndex, opIndex)
+const char* DsonDocument_GetSceneModifierFormulaOperationUrl(handle, sceneModifierIndex, formulaIndex, opIndex)
 ```
 
 #### UE5 Plugin Side (DsonImporter v2)

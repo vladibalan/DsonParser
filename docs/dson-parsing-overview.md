@@ -89,8 +89,9 @@ current loader scope.
 
 `modifier_library`
 : Parsed into `Modifier`. Captures morph deltas, normal deltas, channel
-  metadata, and skin binding payloads. Formula keys are recognized but not yet
-  stored or evaluated.
+  metadata, skin binding payloads, and formulas. Formula `output`, `stage`, and
+  the source-order RPN `operations` (`op` plus `val`/`url`) are stored and
+  exposed; the parser does not evaluate them or follow their channel references.
 
 `image_library`
 : Parsed into `Image`. Captures id, name, URL, map file/path, including the
@@ -193,6 +194,29 @@ vertices.
 `DsonDocument_GetMorphGeometryId` extracts the geometry id fragment from the
 morph modifier's parent URL.
 
+## Formulas
+
+DAZ formulas drive corrective and control morphs. The parser stores each
+modifier's `formulas` array without evaluating it: per `Formula` it keeps the
+`output` channel URL, the optional `stage` (`"sum"`/`"mult"`), and a vector of
+`FormulaOperation` (`op`, plus `val` for a constant `push` or `url` for a
+channel-reference `push`). Operation fields beyond `op`/`val`/`url` are not
+modeled yet but are recorded in the unknown-key diagnostics rather than dropped.
+
+Formulas attach to ordinary modifiers, not to the filtered morph list, because
+the formula-bearing modifier is often a control with no `morph`/`deltas` block
+(so it is not a "morph"). The C API therefore exposes formulas on both modifier
+index spaces, not on `morphIndex`:
+
+- `DsonDocument_GetModifierFormula*` — raw `modifier_library` index (JCM/FHM
+  correctives and control-morph children in their own `.dsf` files).
+- `DsonDocument_GetSceneModifierFormula*` — `scene.modifiers` index (the
+  character control-morph top node carried inline in a `.duf`).
+
+Each family exposes formula count/output/stage and per-operation
+count/op/val/url. Evaluating the RPN, resolving `output`/`url` references, and
+recursively loading the referenced `.dsf` files remain importer responsibilities.
+
 ## Unknown-Key Diagnostics
 
 Each parser function has a known-key set for its current supported schema.
@@ -222,9 +246,10 @@ bounds-checked and does not throw exceptions across the C boundary.
 
 ## Current Boundaries
 
-The v1 parser deliberately does not handle:
+The parser deliberately does not handle:
 
-- Formula parsing or formula evaluation.
+- Formula evaluation, RPN solving, or following formula channel references
+  (formulas are parsed and stored, but never evaluated).
 - Pose-driven corrective morph chains.
 - Recursive loading of external referenced DSF/DUF assets.
 - Full DSON semantic validation.

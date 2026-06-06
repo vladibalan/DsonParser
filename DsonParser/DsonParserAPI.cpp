@@ -22,6 +22,7 @@
 //   const char*; invalid handles/indexes return "" / 0 / false. Count functions
 //   always return 0 on error (never -1); -1 is reserved for value/index
 //   accessors reporting "no such element".
+// - Expose raw stored formula RPN payloads without evaluating them.
 // - Build lazy query caches for morph indexes and per-vertex skin influences.
 //
 // Important behavior:
@@ -223,6 +224,28 @@ static double GetIndexedVector3Component(const Dson::IndexedVector3Array& deltas
 static const Dson::Node* GetLibraryNode(DsonDocumentHandle handle, int nodeIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     return doc ? At(doc->nodes, nodeIndex) : nullptr;
+}
+
+static const Dson::Modifier* GetLibraryModifier(DsonDocumentHandle handle, int modifierIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    return doc ? At(doc->modifiers, modifierIndex) : nullptr;
+}
+
+static const Dson::Modifier* GetSceneModifier(DsonDocumentHandle handle, int sceneModifierIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    return doc ? At(doc->scene.modifiers, sceneModifierIndex) : nullptr;
+}
+
+static const Dson::Formula* FormulaAt(const Dson::Modifier* mod, int formulaIndex) {
+    return mod ? At(mod->formulas, formulaIndex) : nullptr;
+}
+
+static const Dson::FormulaOperation* FormulaOpAt(
+    const Dson::Modifier* mod,
+    int formulaIndex,
+    int opIndex) {
+    const Dson::Formula* formula = FormulaAt(mod, formulaIndex);
+    return formula ? At(formula->operations, opIndex) : nullptr;
 }
 
 static double GetVector3Component(const Dson::Vector3& v, int component) {
@@ -561,15 +584,69 @@ int DsonDocument_GetSceneModifierCount(DsonDocumentHandle handle) {
 }
 
 const char* DsonDocument_GetSceneModifierId(DsonDocumentHandle handle, int index) {
-    Dson::DsonDocument* doc = Doc(handle);
-    const Dson::Modifier* mod = doc ? At(doc->scene.modifiers, index) : nullptr;
+    const Dson::Modifier* mod = GetSceneModifier(handle, index);
     return mod ? mod->id.c_str() : "";
 }
 
 const char* DsonDocument_GetSceneModifierUrl(DsonDocumentHandle handle, int index) {
-    Dson::DsonDocument* doc = Doc(handle);
-    const Dson::Modifier* mod = doc ? At(doc->scene.modifiers, index) : nullptr;
+    const Dson::Modifier* mod = GetSceneModifier(handle, index);
     return mod ? mod->url.c_str() : "";
+}
+
+int DsonDocument_GetSceneModifierFormulaCount(DsonDocumentHandle handle, int sceneModifierIndex) {
+    const Dson::Modifier* mod = GetSceneModifier(handle, sceneModifierIndex);
+    return mod ? static_cast<int>(mod->formulas.size()) : 0;
+}
+
+const char* DsonDocument_GetSceneModifierFormulaOutput(
+    DsonDocumentHandle handle,
+    int sceneModifierIndex,
+    int formulaIndex) {
+    const Dson::Formula* formula = FormulaAt(GetSceneModifier(handle, sceneModifierIndex), formulaIndex);
+    return formula ? formula->output.c_str() : "";
+}
+
+const char* DsonDocument_GetSceneModifierFormulaStage(
+    DsonDocumentHandle handle,
+    int sceneModifierIndex,
+    int formulaIndex) {
+    const Dson::Formula* formula = FormulaAt(GetSceneModifier(handle, sceneModifierIndex), formulaIndex);
+    return formula ? formula->stage.c_str() : "";
+}
+
+int DsonDocument_GetSceneModifierFormulaOperationCount(
+    DsonDocumentHandle handle,
+    int sceneModifierIndex,
+    int formulaIndex) {
+    const Dson::Formula* formula = FormulaAt(GetSceneModifier(handle, sceneModifierIndex), formulaIndex);
+    return formula ? static_cast<int>(formula->operations.size()) : 0;
+}
+
+const char* DsonDocument_GetSceneModifierFormulaOperationOp(
+    DsonDocumentHandle handle,
+    int sceneModifierIndex,
+    int formulaIndex,
+    int opIndex) {
+    const Dson::FormulaOperation* op = FormulaOpAt(GetSceneModifier(handle, sceneModifierIndex), formulaIndex, opIndex);
+    return op ? op->op.c_str() : "";
+}
+
+double DsonDocument_GetSceneModifierFormulaOperationVal(
+    DsonDocumentHandle handle,
+    int sceneModifierIndex,
+    int formulaIndex,
+    int opIndex) {
+    const Dson::FormulaOperation* op = FormulaOpAt(GetSceneModifier(handle, sceneModifierIndex), formulaIndex, opIndex);
+    return op ? op->val : 0.0;
+}
+
+const char* DsonDocument_GetSceneModifierFormulaOperationUrl(
+    DsonDocumentHandle handle,
+    int sceneModifierIndex,
+    int formulaIndex,
+    int opIndex) {
+    const Dson::FormulaOperation* op = FormulaOpAt(GetSceneModifier(handle, sceneModifierIndex), formulaIndex, opIndex);
+    return op ? op->url.c_str() : "";
 }
 
 // Scene material instances (scene.materials)
@@ -645,32 +722,83 @@ const char* DsonDocument_GetGeometryDefaultUVSetId(DsonDocumentHandle handle, in
 }
 
 const char* DsonDocument_GetModifierId(DsonDocumentHandle handle, int index) {
-    Dson::DsonDocument* doc = Doc(handle);
-    const Dson::Modifier* mod = doc ? At(doc->modifiers, index) : nullptr;
+    const Dson::Modifier* mod = GetLibraryModifier(handle, index);
     return mod ? mod->id.c_str() : "";
 }
 
 const char* DsonDocument_GetModifierName(DsonDocumentHandle handle, int index) {
-    Dson::DsonDocument* doc = Doc(handle);
-    const Dson::Modifier* mod = doc ? At(doc->modifiers, index) : nullptr;
+    const Dson::Modifier* mod = GetLibraryModifier(handle, index);
     return mod ? mod->name.c_str() : "";
 }
 
 const char* DsonDocument_GetModifierType(DsonDocumentHandle handle, int index) {
-    Dson::DsonDocument* doc = Doc(handle);
-    const Dson::Modifier* mod = doc ? At(doc->modifiers, index) : nullptr;
+    const Dson::Modifier* mod = GetLibraryModifier(handle, index);
     return mod ? mod->type.c_str() : "";
 }
 
+int DsonDocument_GetModifierFormulaCount(DsonDocumentHandle handle, int modifierIndex) {
+    const Dson::Modifier* mod = GetLibraryModifier(handle, modifierIndex);
+    return mod ? static_cast<int>(mod->formulas.size()) : 0;
+}
+
+const char* DsonDocument_GetModifierFormulaOutput(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int formulaIndex) {
+    const Dson::Formula* formula = FormulaAt(GetLibraryModifier(handle, modifierIndex), formulaIndex);
+    return formula ? formula->output.c_str() : "";
+}
+
+const char* DsonDocument_GetModifierFormulaStage(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int formulaIndex) {
+    const Dson::Formula* formula = FormulaAt(GetLibraryModifier(handle, modifierIndex), formulaIndex);
+    return formula ? formula->stage.c_str() : "";
+}
+
+int DsonDocument_GetModifierFormulaOperationCount(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int formulaIndex) {
+    const Dson::Formula* formula = FormulaAt(GetLibraryModifier(handle, modifierIndex), formulaIndex);
+    return formula ? static_cast<int>(formula->operations.size()) : 0;
+}
+
+const char* DsonDocument_GetModifierFormulaOperationOp(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int formulaIndex,
+    int opIndex) {
+    const Dson::FormulaOperation* op = FormulaOpAt(GetLibraryModifier(handle, modifierIndex), formulaIndex, opIndex);
+    return op ? op->op.c_str() : "";
+}
+
+double DsonDocument_GetModifierFormulaOperationVal(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int formulaIndex,
+    int opIndex) {
+    const Dson::FormulaOperation* op = FormulaOpAt(GetLibraryModifier(handle, modifierIndex), formulaIndex, opIndex);
+    return op ? op->val : 0.0;
+}
+
+const char* DsonDocument_GetModifierFormulaOperationUrl(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int formulaIndex,
+    int opIndex) {
+    const Dson::FormulaOperation* op = FormulaOpAt(GetLibraryModifier(handle, modifierIndex), formulaIndex, opIndex);
+    return op ? op->url.c_str() : "";
+}
+
 int DsonDocument_GetModifierSkinVertexCount(DsonDocumentHandle handle, int index) {
-    Dson::DsonDocument* doc = Doc(handle);
-    const Dson::Modifier* mod = doc ? At(doc->modifiers, index) : nullptr;
+    const Dson::Modifier* mod = GetLibraryModifier(handle, index);
     return mod ? static_cast<int>(mod->skin.vertex_count) : 0;
 }
 
 int DsonDocument_GetModifierSkinJointCount(DsonDocumentHandle handle, int index) {
-    Dson::DsonDocument* doc = Doc(handle);
-    const Dson::Modifier* mod = doc ? At(doc->modifiers, index) : nullptr;
+    const Dson::Modifier* mod = GetLibraryModifier(handle, index);
     return mod ? static_cast<int>(mod->skin.joints.size()) : 0;
 }
 

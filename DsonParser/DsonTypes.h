@@ -136,6 +136,24 @@ struct SkinBinding {
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
 
+// One operation in a formula's RPN expression.
+struct FormulaOperation {
+    std::string op;    // "push","mult","div","add","sub","pow","spline_tcb"
+    double val = 0.0;  // for op=="push" with a constant operand
+    std::string url;   // for op=="push" with a channel-reference operand
+
+    bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
+};
+
+// A single formula: an RPN expression driving an output channel.
+struct Formula {
+    std::string output;                        // target channel URL
+    std::vector<FormulaOperation> operations;  // evaluated left-to-right
+    std::string stage;                         // "sum"/"mult" (optional)
+
+    bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
+};
+
 // Modifier data (morphs, skins, formulas, etc.)
 struct Modifier {
     String id;
@@ -155,6 +173,9 @@ struct Modifier {
     // For skin_binding modifiers - the "skin" payload
     bool has_skin = false;
     SkinBinding skin;
+
+    // Formula-driven modifiers: JCM/FHM correctives and character control morphs.
+    std::vector<Formula> formulas;
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
