@@ -94,7 +94,9 @@ current loader scope.
   exposed; the parser does not evaluate them or follow their channel references.
 
 `image_library`
-: Parsed into `Image`. Captures id, name, URL, map file/path, and map size. For
+: Parsed into `Image`. Captures id, name, URL, map file/path, and the `map_size` pixel dimensions
+  (`map_width` / `map_height`, exposed via `DsonDocument_GetImageMapWidth` /
+  `GetImageMapHeight`). For
   DAZ layered-image (LIE) `map` arrays it retains every layer (url + label) on
   `Image::layers`, not just the base; `map_file` stays the base layer (`map[0]`)
   so existing single-texture resolution is unchanged.

@@ -476,27 +476,23 @@ int DsonDocument_LoadFromBuffer(DsonDocumentHandle handle, const char* data, int
 }
 
 const char* DsonDocument_GetFileVersion(DsonDocumentHandle handle) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    return doc->file_version.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    return doc ? doc->file_version.c_str() : "";
 }
 
 const char* DsonDocument_GetAssetId(DsonDocumentHandle handle) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    return doc->asset_info.id.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    return doc ? doc->asset_info.id.c_str() : "";
 }
 
 const char* DsonDocument_GetAssetType(DsonDocumentHandle handle) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    return doc->asset_info.type.c_str();
+    Dson::DsonDocument* doc = Doc(handle);
+    return doc ? doc->asset_info.type.c_str() : "";
 }
 
 double DsonDocument_GetUnitScale(DsonDocumentHandle handle) {
-    if (!handle) return 1.0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    return doc->asset_info.unit_scale;
+    Dson::DsonDocument* doc = Doc(handle);
+    return doc ? doc->asset_info.unit_scale : 1.0;
 }
 
 int DsonDocument_GetNodeCount(DsonDocumentHandle handle) {
@@ -875,6 +871,25 @@ int DsonDocument_GetModifierSkinJointCount(DsonDocumentHandle handle, int index)
     return mod ? static_cast<int>(mod->skin.joints.size()) : 0;
 }
 
+// ---- Images (image_library) ----
+const char* DsonDocument_GetImageId(DsonDocumentHandle handle, int imageIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Image* img = doc ? At(doc->images, imageIndex) : nullptr;
+    return img ? img->id.c_str() : "";
+}
+
+int DsonDocument_GetImageMapWidth(DsonDocumentHandle handle, int imageIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Image* img = doc ? At(doc->images, imageIndex) : nullptr;
+    return img ? static_cast<int>(img->map_width) : 0;
+}
+
+int DsonDocument_GetImageMapHeight(DsonDocumentHandle handle, int imageIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Image* img = doc ? At(doc->images, imageIndex) : nullptr;
+    return img ? static_cast<int>(img->map_height) : 0;
+}
+
 // Unknown-key diagnostics expose the parser's audit trail. Context names are
 // top-level parse scopes such as "geometry_library" or "scene"; values are keys
 // that were present in the JSON but not consumed by the current parser version.
@@ -1057,33 +1072,29 @@ const char* DsonDocument_GetPolygonMaterialGroupName(DsonDocumentHandle handle, 
 // ---- Material groups (library materials) ----
 
 int DsonDocument_GetMaterialGroupCount(DsonDocumentHandle handle, int matIndex) {
-    if (!handle) return 0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return 0;
-    return GetStringVectorCount(doc->materials[matIndex].groups);
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->materials, matIndex) : nullptr;
+    return mat ? GetStringVectorCount(mat->groups) : 0;
 }
 
 const char* DsonDocument_GetMaterialGroupName(DsonDocumentHandle handle, int matIndex, int groupIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (matIndex < 0 || matIndex >= static_cast<int>(doc->materials.size())) return "";
-    return GetStringVectorValue(doc->materials[matIndex].groups, groupIndex);
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->materials, matIndex) : nullptr;
+    return mat ? GetStringVectorValue(mat->groups, groupIndex) : "";
 }
 
 // ---- Material groups (scene material instances) ----
 
 int DsonDocument_GetSceneMaterialGroupCount(DsonDocumentHandle handle, int matIndex) {
-    if (!handle) return 0;
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (matIndex < 0 || matIndex >= static_cast<int>(doc->scene.materials.size())) return 0;
-    return GetStringVectorCount(doc->scene.materials[matIndex].groups);
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, matIndex) : nullptr;
+    return mat ? GetStringVectorCount(mat->groups) : 0;
 }
 
 const char* DsonDocument_GetSceneMaterialGroupName(DsonDocumentHandle handle, int matIndex, int groupIndex) {
-    if (!handle) return "";
-    Dson::DsonDocument* doc = GetDocument(handle);
-    if (matIndex < 0 || matIndex >= static_cast<int>(doc->scene.materials.size())) return "";
-    return GetStringVectorValue(doc->scene.materials[matIndex].groups, groupIndex);
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, matIndex) : nullptr;
+    return mat ? GetStringVectorValue(mat->groups, groupIndex) : "";
 }
 
 // ============================================================

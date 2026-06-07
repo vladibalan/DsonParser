@@ -464,9 +464,7 @@ bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     ParseMember(json, "url", url);
     ParseMember(json, "geometry", geometry);
 
-    if (json.HasMember("uv_set") && json["uv_set"].IsString()) {
-        uv_set_id.value = json["uv_set"].GetString();
-    }
+    ParseMember(json, "uv_set", uv_set_id);
 
     ParseStringValuedArray(json, "groups", groups);
 
@@ -753,11 +751,17 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
         }
     }
     // Try alternate key
-    else if (JsonHelper::HasMember(json, "map_file")) {
-        map_file.ParseFromJson(json["map_file"]);
+    else {
+        ParseMember(json, "map_file", map_file);
     }
     
-    ParseMember(json, "map_size", map_width);
+    // map_size is a [width, height] int array (e.g. [4096, 4096]).
+    // Permissive: absent or any other shape leaves the defaults (0).
+    const rapidjson::Value* mapSize = nullptr;
+    if (JsonHelper::GetArray(json, "map_size", mapSize) && mapSize->Size() >= 2) {
+        if ((*mapSize)[0].IsInt()) map_width.value  = (*mapSize)[0].GetInt();
+        if ((*mapSize)[1].IsInt()) map_height.value = (*mapSize)[1].GetInt();
+    }
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;

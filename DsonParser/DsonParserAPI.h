@@ -18,6 +18,7 @@
 // Index conventions:
 // - Node/geometry/material/modifier indexes address the corresponding library
 //   arrays parsed from *_library sections.
+// - Image indexes address the image_library array (size = GetImageCount).
 // - Scene node/material/modifier/UV indexes address scene.* instance arrays.
 // - Morph indexes address a filtered list of modifiers where type == "morph";
 //   they are not raw modifier_library indexes.
@@ -168,6 +169,13 @@ DSONPARSER_API const char* DsonDocument_GetModifierFormulaOperationUrl(DsonDocum
 // Skin binding info for a modifier (0 if the modifier has no skin payload)
 DSONPARSER_API int DsonDocument_GetModifierSkinVertexCount(DsonDocumentHandle handle, int index);
 DSONPARSER_API int DsonDocument_GetModifierSkinJointCount(DsonDocumentHandle handle, int index);
+
+// ---- Images (image_library) ----
+// imageIndex addresses the image_library array (count = DsonDocument_GetImageCount).
+// Map dimensions come from the entry's map_size [width, height]; 0 if absent.
+DSONPARSER_API const char* DsonDocument_GetImageId(DsonDocumentHandle handle, int imageIndex);
+DSONPARSER_API int         DsonDocument_GetImageMapWidth(DsonDocumentHandle handle, int imageIndex);
+DSONPARSER_API int         DsonDocument_GetImageMapHeight(DsonDocumentHandle handle, int imageIndex);
 
 // ---- B. Skeleton / Nodes ----
 DSONPARSER_API const char* DsonDocument_GetNodeParent(DsonDocumentHandle handle, int nodeIndex);

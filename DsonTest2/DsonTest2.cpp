@@ -131,6 +131,52 @@ void RunGzipFixtureTests() {
     std::cout << "\n";
 }
 
+// Verifies image map_size parsing and the image accessor family against a known
+// fixture (HID_Nancy_9.duf): the g09_Nancy_head_* image_library entries carry
+// map_size [4096, 4096]. Also confirms the out-of-range numeric sentinel (0).
+void RunImageMapSizeTest() {
+    std::cout << "=================================\n";
+    std::cout << "IMAGE map_size TEST\n";
+    std::cout << "=================================\n\n";
+
+    const std::string filepath = ResolveTestFile("HID_Nancy_9.duf");
+    if (filepath.empty()) {
+        std::cout << "HID_Nancy_9.duf not found (tried direct path and TestFiles); skipping.\n\n";
+        return;
+    }
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc) {
+        std::cout << "Failed to create document; skipping.\n\n";
+        return;
+    }
+
+    if (DsonDocument_LoadFromFile(doc, filepath.c_str()) != 0) {
+        std::cout << "Error loading HID_Nancy_9.duf: " << DsonParser_GetLastError() << "\n\n";
+        DsonDocument_Destroy(doc);
+        return;
+    }
+
+    const char* prefix = "g09_Nancy_head_";
+    int imgCount = DsonDocument_GetImageCount(doc);
+    std::cout << "Images (" << imgCount << "), \"" << prefix << "\" entries (expect 4096 x 4096):\n";
+    for (int i = 0; i < imgCount; i++) {
+        const char* id = DsonDocument_GetImageId(doc, i);
+        if (std::strncmp(id, prefix, std::strlen(prefix)) == 0) {
+            std::cout << "  [" << i << "] " << id << ": "
+                      << DsonDocument_GetImageMapWidth(doc, i) << " x "
+                      << DsonDocument_GetImageMapHeight(doc, i) << "\n";
+        }
+    }
+
+    // Out-of-range index: numeric getters must return the 0 sentinel (never -1).
+    std::cout << "Out-of-range [" << imgCount << "] map size: "
+              << DsonDocument_GetImageMapWidth(doc, imgCount) << " x "
+              << DsonDocument_GetImageMapHeight(doc, imgCount) << " (expect 0 x 0)\n\n";
+
+    DsonDocument_Destroy(doc);
+}
+
 int main(int argc, char* argv[])
 {
     std::cout << "DSON Parser Test\n";
@@ -140,6 +186,7 @@ int main(int argc, char* argv[])
     std::cout << "Current working directory: " << GetWorkingDirectory() << "\n\n";
 
     RunGzipFixtureTests();
+    RunImageMapSizeTest();
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();

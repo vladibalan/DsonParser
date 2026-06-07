@@ -16,11 +16,12 @@ across 4 audit passes with zero remaining gaps.
 | File | Responsibility |
 |---|---|
 | `DsonDataTypes.h/.cpp` | Primitive type wrappers: Bool, Int, Float, String, Vector2/3, Color, IntArray, FloatArray, IndexedArray\<T\>, IndexedVector3Array |
-| `DsonTypes.h/.cpp` | Domain structs + parse logic: AssetInfo, Node, NodeGeometryRef, Geometry, MaterialChannel, Material, SkinJoint, SkinBinding, Modifier, Image, UVSet, Scene, DsonDocument |
-| `DsonHelpers.h` | JsonHelper static utilities (GetString, GetDouble, GetArray, GetObject, GetDoubleOrDefault) |
+| `DsonTypes.h/.cpp` | Domain structs + parse logic: AssetInfo, Node, NodeGeometryRef, Geometry, MaterialChannel, ImageLayer, Material, SkinJoint, SkinBinding, FormulaOperation, Formula, Modifier, Image, UVOverride, UVSet, Scene, DsonDocument |
+| `DsonHelpers.h/.cpp` | `JsonHelper` safe-accessor utilities (`GetString`/`GetDouble`/`GetInt`/`GetBool`/`GetArray`/`GetObject` + `*OrDefault`, `HasMember`) |
+| `DsonInflate.h/.cpp` | Internal dependency-free gzip/DEFLATE inflater run before JSON parsing; verifies gzip CRC32 + ISIZE |
 | `DsonParserAPI.h/.cpp` | Flat C API (`extern "C"`) with opaque `DsonDocumentHandle`; per-vertex skin cache; morph index cache |
 
-### C API — 85 exported functions covering:
+### C API — ~180 exported functions covering:
 
 **Geometry (A)**
 - Vertex positions (X/Y/Z per vertex)
@@ -51,9 +52,12 @@ across 4 audit passes with zero remaining gaps.
 - Multiple UV channels
 
 **Materials (E)**
-- 8 PBR channels (channelId 0–7):
-  - 0 diffuse, 1 specular, 2 roughness, 3 normal (tangent-space),
-    4 opacity, 5 subsurface, 6 emission, 7 bump (grayscale height)
+- Source-order channels keyed by raw DAZ channel id — **no fixed engine-slot
+  layout**. `GetMaterialChannelCount` is the parsed channel count and
+  `GetMaterialChannelId` returns the DAZ id string (e.g. "diffuse",
+  "Metallic Weight", "Normal Map"); the top-level `diffuse` block plus every
+  `extra[].studio_material_channels.channels[]` entry are kept in file order, and
+  consumers iterate or search by id
 - Per channel: `value`, `color` (RGB), `has_color`, `image_url`, `texture_path`
 - `Image::map` handles plain string, `{"url":"..."}` object, and layered-image
   (LIE) map arrays — all layers retained on `Image::layers` (url + label), with
@@ -323,6 +327,31 @@ G. Formulas
   push (constant), push (url), mult, div, add, sub, pow, spline_tcb?
 - Are all formula C API accessors exposed?
 ```
+
+---
+
+## Recently completed (post-v1)
+
+### Image `map_size` (pixel dimensions) — ✅ implemented (Jun 2026)
+`map_size` (a `[width, height]` int array, e.g. `[ 4096, 4096 ]`, verified against
+`TestFiles/HID_Nancy_9.duf`) is now parsed in `Image::ParseFromJson` into
+`Image::map_width` / `map_height`, replacing the former silent no-op. It is exposed
+over the C ABI by three **additive** accessors alongside the existing `GetImageCount`:
+
+- `DsonDocument_GetImageId(handle, imageIndex)` — string getter, `""` on invalid index.
+- `DsonDocument_GetImageMapWidth(handle, imageIndex)` — numeric getter, `0` on invalid
+  index or absent `map_size`.
+- `DsonDocument_GetImageMapHeight(handle, imageIndex)` — same contract.
+
+Parser stays permissive (any non-`[w,h]` shape leaves the `0` defaults); `map_size`
+was already in `Image`'s `knownKeys`, so no knownKeys change. The DAZ LIE `map`
+compositing layers (blend operation/offsets) remain intentionally unmodeled — only
+each layer's `url`/`label` is retained on `Image::layers`. Covered by a harness check
+in `DsonTest2.cpp` (`HID_Nancy_9.duf`, expects 4096×4096 plus the `0` out-of-range
+sentinel).
+
+**Consumer note (additive, non-breaking):** the three new functions are available to
+the UE plugin; existing calls are unaffected.
 
 ---
 
