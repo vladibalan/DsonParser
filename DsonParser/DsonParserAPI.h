@@ -6,7 +6,14 @@
 #define DSONPARSER_API __declspec(dllimport)
 #endif
 
+// Canonical library-version macros (DSONPARSER_VERSION_*), published with this header.
+#include "DsonParserVersion.h"
+
 // Public C ABI orientation:
+// Library version 1.0.0 — query at runtime with DsonParser_GetVersion(), or at
+// compile time via DSONPARSER_VERSION_* in DsonParserVersion.h. See CHANGELOG.md
+// for what changed each release and docs/versioning.md for the SemVer/C-ABI policy.
+//
 // This header exposes a parsed DSON/DSF/DUF document through an opaque handle and
 // index-based accessors. The implementation owns all returned const char*
 // strings; copy them if they must survive DsonDocument_Clear/Destroy or later
@@ -330,6 +337,13 @@ DSONPARSER_API void DsonDocument_Destroy(DsonDocumentHandle handle);
 
 // Get last error message
 DSONPARSER_API const char* DsonParser_GetLastError();
+
+// Get this library's version string, e.g. "1.0.0" (mirrors DSONPARSER_VERSION_STRING).
+// Always returns a non-null, parser-owned static literal; it cannot fail.
+// This is the LIBRARY's own version — distinct from DsonDocument_GetFileVersion(),
+// which returns a parsed asset's file_version field.
+// @since 1.0.0
+DSONPARSER_API const char* DsonParser_GetVersion(void);
 
 #ifdef __cplusplus
 }

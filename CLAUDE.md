@@ -35,6 +35,10 @@ Other docs:
   roles, handoff sequence, shared boundaries, prompt template.
 - [`DsonParser_Roadmap.md`](DsonParser_Roadmap.md) — capability summary, audit
   history, v1 limitations, planned v2 formula work.
+- [`docs/versioning.md`](docs/versioning.md) — versioning & change-announcement
+  policy: SemVer-with-C-ABI, the carrier contract, how upstream agents consume it.
+- [`CHANGELOG.md`](CHANGELOG.md) — per-release C-ABI change log; ships beside the
+  header/DLL so consumers see what changed without this repo's source.
 - [`docs/audit-prompts.md`](docs/audit-prompts.md) — prompts for DSON coverage audits.
 - [`docs/code-review-rules.md`](docs/code-review-rules.md) — **read before
   writing or reviewing any code in this repo** (see "Before editing source"
@@ -75,6 +79,7 @@ breaking-change rules are most often broken by "minor" tweaks.
 | `DsonParser/DsonHelpers.{h,cpp}` | Safe RapidJSON accessor helpers (`JsonHelper`). Declarations in `.h`, implementations in `.cpp`. |
 | `DsonParser/DsonInflate.{h,cpp}` | Internal dependency-free gzip/DEFLATE inflater used by the loader; verifies CRC32 and ISIZE before JSON parsing. |
 | `DsonParser/DsonParserAPI.{h,cpp}` | Flat `extern "C"` C ABI: opaque handles, parser-owned string returns, bounds-checked accessors, lazy query caches. (`.cpp` ~1690 lines) |
+| `DsonParser/DsonParserVersion.h` | Canonical single-source-of-truth library version macros (`DSONPARSER_VERSION_*`); published with and included by `DsonParserAPI.h`. Backs `DsonParser_GetVersion()`. |
 | `DsonTest2/DsonTest2.cpp` | Console test harness that exercises the C API. |
 
 The published surface is `DsonParserAPI.h` (the flat C ABI). The C++ model

@@ -182,6 +182,40 @@ contract table actively misdirects the next agent, which is worse than no doc.
 
 ---
 
+## 10. Announce C-ABI changes (version + changelog)
+
+The library tells its upstream (LLM-agent) consumers what changed through
+artifacts that **ship with the DLL/header** — not through this repo's git log,
+which the consumer never sees. See [`versioning.md`](versioning.md) for the full
+policy. A change to the published surface (`DsonParserAPI.h`) carries its
+announcement in the *same* change.
+
+- **R10.1 — Classify the change (SemVer / C-ABI).** Decide MAJOR (breaking:
+  removed/renamed/changed export, changed return contract, behavior break — the
+  R2 case), MINOR (additive, binary-compatible: new export/field, all existing
+  symbols intact), or PATCH (internal fix; `DsonParserAPI.h` byte-identical).
+  State the classification in the change summary.
+- **R10.2 — Bump the canonical macros.** Update `DsonParserVersion.h`
+  (`DSONPARSER_VERSION_MAJOR/MINOR/PATCH` + `_STRING`) per R10.1. These macros
+  are the single source of truth; `DsonParser_GetVersion()` returns the string.
+- **R10.3 — Tag new symbols.** Add `@since <new version>` to each new exported
+  function in `DsonParserAPI.h` and refresh the header banner's "what's new"
+  line. (Zero-cost discovery: the agent already reads this header — same spirit
+  as R1.4.)
+- **R10.4 — Add a CHANGELOG entry.** Record the change under the new version
+  heading in `CHANGELOG.md`, naming the exact symbols and one-line semantics
+  (enumerate per R8). The heading must equal `DSONPARSER_VERSION_STRING`.
+- **R10.5 — PATCH bumps still announce.** An internal fix that does not touch
+  `DsonParserAPI.h` still gets a PATCH macro bump and a CHANGELOG `Fixed` entry,
+  but no `@since` / banner change.
+
+Per the two-agent workflow, the Director authors the CHANGELOG and policy text
+and the Implementer makes the `DsonParserVersion.h` / `@since` source edits — the
+change is not complete until both land. Cross-ref: R2 classifies the change;
+R9.6 requires listing these syncs in the change summary.
+
+---
+
 ## Quick checklist
 
 - [ ] Counts return `0` on error (never `-1`); value/index accessors return `-1`. (R1)
@@ -197,3 +231,4 @@ contract table actively misdirects the next agent, which is worse than no doc.
 - [ ] Did not build; reported for user to compile. (R7)
 - [ ] Findings enumerate exact functions; completeness grep run family-wide. (R8)
 - [ ] Orientation docs synced with the code change: overview file map, CLAUDE.md table, `orientation:` blocks, this ruleset, roadmap. (R9)
+- [ ] C-ABI surface change: SemVer classified, `DsonParserVersion.h` macros bumped, `@since` + banner updated, `CHANGELOG.md` entry added. (R10)

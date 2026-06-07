@@ -96,7 +96,8 @@ Context: <relevant files + the specific facts the Implementer needs;
 Task: <concrete, ordered steps or the precise change required>
 
 Constraints: follow docs/code-review-rules.md (R1 return-value contract,
-             R2 breaking-change discipline, R3 DRY helpers, R4 C++14/UE-agnostic);
+             R2 breaking-change discipline, R3 DRY helpers, R4 C++14/UE-agnostic,
+             R10 version bump + @since + CHANGELOG entry for any C-ABI change);
              self-audit against the Quick checklist after each edit.
 
 Feedback requested: <yes/no — if yes, what to assess before/instead of coding>

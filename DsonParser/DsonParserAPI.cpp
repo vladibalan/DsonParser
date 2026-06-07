@@ -1699,3 +1699,8 @@ const char* DsonDocument_GetMorphGeometryId(DsonDocumentHandle handle, int morph
 const char* DsonParser_GetLastError() {
     return s_lastError.c_str();
 }
+
+const char* DsonParser_GetVersion(void) {
+    // Static string literal: always valid, parser-owned, and cannot fail (no handle).
+    return DSONPARSER_VERSION_STRING;
+}

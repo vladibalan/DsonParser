@@ -177,6 +177,23 @@ void RunImageMapSizeTest() {
     DsonDocument_Destroy(doc);
 }
 
+// Verifies the library self-identifies over the C ABI: DsonParser_GetVersion() must
+// be non-empty and agree with the compile-time DSONPARSER_VERSION_STRING macro (the
+// runtime carrier vs. the header carrier). At the 1.0.0 baseline this is "1.0.0".
+void RunVersionTest() {
+    std::cout << "=================================\n";
+    std::cout << "LIBRARY VERSION TEST\n";
+    std::cout << "=================================\n\n";
+
+    const char* version = DsonParser_GetVersion();
+    bool pass = version != nullptr
+        && version[0] != '\0'
+        && std::strcmp(version, DSONPARSER_VERSION_STRING) == 0;
+    std::cout << "DsonParser_GetVersion(): \"" << (version ? version : "")
+              << "\" (expect \"" << DSONPARSER_VERSION_STRING << "\")\n";
+    std::cout << "version check: " << (pass ? "PASS" : "FAIL") << "\n\n";
+}
+
 int main(int argc, char* argv[])
 {
     std::cout << "DSON Parser Test\n";
@@ -185,6 +202,7 @@ int main(int argc, char* argv[])
     // Display current working directory
     std::cout << "Current working directory: " << GetWorkingDirectory() << "\n\n";
 
+    RunVersionTest();
     RunGzipFixtureTests();
     RunImageMapSizeTest();
 

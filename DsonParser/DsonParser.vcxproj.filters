@@ -30,6 +30,9 @@
     <ClInclude Include="DsonParserAPI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DsonParserVersion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="DsonDataTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
