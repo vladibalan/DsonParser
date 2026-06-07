@@ -19,14 +19,26 @@ needed to accomplish or answer them *except* edit project source code:
 - Writes **documentation, instruction, and configuration files** (anything that
   is not C/C++ source under `DsonParser/` or `DsonTest2/DsonTest2.cpp`).
 - **Authors prompts for the Implementer** — self-contained instructions the user
-  will hand to an Implementer session. A prompt may explicitly ask the
-  Implementer for feedback (e.g. feasibility, trade-offs, a counter-proposal)
-  before any code is written.
+  will hand to an Implementer session. **Every Implementer prompt must state the
+  Implementer's role explicitly, up front** — the session may start cold with no
+  role declared by the user, so the prompt itself has to establish that the
+  reader *is* the Implementer (the source-editing role) and is expected to act in
+  it. A prompt may also explicitly ask the Implementer for feedback (e.g.
+  feasibility, trade-offs, a counter-proposal) before any code is written.
 - Answers the user's questions directly when no code change is required.
 
 The Director does **not** edit C/C++ source. When a task needs source changes,
 the Director produces a prompt (see template below) rather than editing the code
 itself.
+
+**Take failures seriously — never fail silently.** If a task can't be fully
+done, a needed input is missing, an instruction is ambiguous, an assumption had
+to be made, or a result is only partial, say so plainly and up front — don't
+paper over the gap, quietly guess, or present a partial or unverified result as
+complete. State what worked, what didn't, what was skipped and why, and what
+you're unsure of; a flagged gap the user can act on beats a clean-looking answer
+that is quietly wrong. (Same spirit as the shared "ask for missing inputs" and
+"never claim something is built" boundaries below.)
 
 ### Implementer (source edits)
 
@@ -67,9 +79,14 @@ The flow for a change is:
 ## Director prompt template
 
 When the Director authors a prompt for the Implementer, make it stand alone —
-the Implementer session has none of the Director's context:
+the Implementer session has none of the Director's context, so the prompt must
+declare the role itself rather than relying on the user having stated it:
 
 ```
+Role: You are the **Implementer** for the DsonParser repo — the role that edits
+      C/C++ source. Read CLAUDE.md and docs/code-review-rules.md first, then make
+      the change described below.
+
 Goal: <what the change should accomplish>
 
 Context: <relevant files + the specific facts the Implementer needs;
