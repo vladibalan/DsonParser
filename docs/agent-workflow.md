@@ -70,9 +70,18 @@ All Director↔Implementer traffic for a change travels through two files:
 | `.handoff/task-<id>.md` | Director → Implementer | the self-contained prompt |
 | `.handoff/feedback-<id>.md` | Implementer → Director | the report (advisory) |
 
-- **`<id>` is a timestamp + short slug** — e.g.
-  `task-20260608-143022-uvset-accessor.md` — pairing a task with its feedback. It
-  needs no counter state and sorts chronologically.
+- **`<id>` = `YYYYMMDD-HHMMSS-<slug>`** — e.g.
+  `task-20260608-143022-uvset-accessor.md`. It pairs a task with its feedback,
+  needs no counter state, and sorts chronologically. The convention:
+  - **Timestamp** — `YYYYMMDD-HHMMSS` in **UTC**, 24-hour clock. The Director
+    mints it by *running* `(Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')`
+    (Windows PowerShell 5.1; `Get-Date -AsUTC` is PS 7+ only) when it writes the
+    task-file — read from the clock, never typed from memory, so ids stay accurate
+    and sort correctly.
+  - **Slug** — 2–4 words naming the task, lowercase kebab-case, ASCII `[a-z0-9-]`
+    only (e.g. `uvset-accessor`).
+  - The Director mints `<id>` **once** for `task-<id>.md` and reuses the **same**
+    `<id>` for `feedback-<id>.md`.
 - **`.handoff/` is gitignored and listed in `CLAUDE.md` "Do NOT read."** That
   keeps it out of the `git diff` the Director verifies against, and out of agent
   discovery. An agent reads **only the one task-file it is explicitly handed** —
