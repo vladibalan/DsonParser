@@ -35,6 +35,11 @@ flat C API**:
   `map_size`, formula, and LIE-layer surfaces were all MINOR-class additions.)
 - **PATCH** — an internal fix with **no** change to the published surface
   (`DsonParserAPI.h` byte-identical): a parser bug fix, a perf change, etc.
+- **Documentation-only** (no bump) — a comment/whitespace-only edit to
+  `DsonParserAPI.h` that changes no symbol, signature, `@since` value, or behavior
+  (e.g. tightening the header banner): **not** version-bumped, **no** CHANGELOG
+  entry. It breaks PATCH's byte-identical clause but has no functional effect, so
+  it sits outside MAJOR/MINOR/PATCH — nothing a consumer wires up changed.
 
 ### Capability milestones ≠ SemVer
 
@@ -56,9 +61,9 @@ mirrors them:
 ```
 
 `DsonParser_GetVersion()` returns `DSONPARSER_VERSION_STRING`; the `CHANGELOG.md`
-top version heading matches it; the header banner states the same string. On
-every release, the macros and the CHANGELOG heading are the two human-touched
-points — keep them equal.
+top heading leads with it; the header banner states the same string. On every
+release, the macros and the CHANGELOG heading are the two human-touched points —
+keep the heading's leading version equal to the macros.
 
 ### Naming note
 
@@ -83,7 +88,12 @@ Any change to the published surface (`DsonParserAPI.h`) must, in the same change
 2. **Bump** the macros in `DsonParserVersion.h`.
 3. **Tag** each new symbol with `@since <new version>` and refresh the header
    banner's "what's new" line.
-4. **Add a `CHANGELOG.md` entry** naming the exact symbols and one-line semantics.
+4. **Add a `CHANGELOG.md` entry**, newest first, under a heading that leads with
+   `DSONPARSER_VERSION_STRING` (`version — date · CLASS`): name each new symbol
+   with a one-line, sigil-prefixed semantic (`+` added / `~` changed / `-`
+   removed-or-deprecated / `!` fixed). Lean format — no empty subsection
+   scaffolding; the CHANGELOG is the only doc carrier that ships, so the repo's
+   token-economy principle applies.
 
 This is enforced as **R10** in [`code-review-rules.md`](code-review-rules.md). Per
 the two-agent workflow the Director authors the CHANGELOG/policy text and the

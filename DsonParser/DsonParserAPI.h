@@ -10,12 +10,9 @@
 #include "DsonParserVersion.h"
 
 // Public C ABI orientation:
-// Library version 1.1.0 — query at runtime with DsonParser_GetVersion(), or at
-// compile time via DSONPARSER_VERSION_* in DsonParserVersion.h. See CHANGELOG.md
-// for what changed each release and docs/versioning.md for the SemVer/C-ABI policy.
-// What's new in 1.1.0: scene post-load addon manifest accessors
-// (DsonDocument_GetScenePostLoadAddon*) expose the "Character Addon Loader"
-// companion figures a character preset loads but does not list in scene.nodes.
+// v1.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
+// Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 1.1.0: DsonDocument_GetScenePostLoadAddon* — "Character Addon Loader" companion figures (not in scene.nodes).
 //
 // This header exposes a parsed DSON/DSF/DUF document through an opaque handle and
 // index-based accessors. The implementation owns all returned const char*

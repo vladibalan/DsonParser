@@ -202,12 +202,15 @@ announcement in the *same* change.
   function in `DsonParserAPI.h` and refresh the header banner's "what's new"
   line. (Zero-cost discovery: the agent already reads this header — same spirit
   as R1.4.)
-- **R10.4 — Add a CHANGELOG entry.** Record the change under the new version
-  heading in `CHANGELOG.md`, naming the exact symbols and one-line semantics
-  (enumerate per R8). The heading must equal `DSONPARSER_VERSION_STRING`.
+- **R10.4 — Add a CHANGELOG entry.** Record the change in `CHANGELOG.md`, newest
+  first, under a heading that leads with `DSONPARSER_VERSION_STRING`
+  (`version — date · CLASS`), naming the exact new symbols with a one-line
+  semantic each (enumerate per R8), sigil-prefixed (`+` added / `~` changed /
+  `-` removed-or-deprecated / `!` fixed). Lean format — no empty subsection
+  scaffolding.
 - **R10.5 — PATCH bumps still announce.** An internal fix that does not touch
-  `DsonParserAPI.h` still gets a PATCH macro bump and a CHANGELOG `Fixed` entry,
-  but no `@since` / banner change.
+  `DsonParserAPI.h` still gets a PATCH macro bump and a CHANGELOG `!` (fixed)
+  entry, but no `@since` / banner change.
 
 Per the two-agent workflow, the Director authors the CHANGELOG and policy text
 and the Implementer makes the `DsonParserVersion.h` / `@since` source edits — the
