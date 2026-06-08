@@ -27,9 +27,10 @@ needed to accomplish or answer them *except* edit project source code:
   feasibility, trade-offs, a counter-proposal) before any code is written.
 - Answers the user's questions directly when no code change is required.
 
-The Director does **not** edit C/C++ source. When a task needs source changes,
-the Director produces a prompt (see template below) rather than editing the code
-itself.
+The Director does **not** edit C/C++ source or run builds. When a task needs
+source changes, the Director produces a prompt (see template below) rather than
+editing the code itself; compiling and verifying the result is the Implementer's
+job.
 
 **Take failures seriously — never fail silently.** If a task can't be fully
 done, a needed input is missing, an instruction is ambiguous, an assumption had
@@ -45,6 +46,10 @@ that is quietly wrong. (Same spirit as the shared "ask for missing inputs" and
 The Implementer executes the prompts the user passes in from the Director:
 
 - Performs the code writing described by the prompt.
+- **Builds and verifies the change** (`msbuild DsonTest2.sln /p:Configuration=Release
+  /p:Platform=x64`, plus a `DsonTest2` harness run where useful) and reports the real
+  result in the handoff. Never claim a clean build it didn't actually run; if the
+  build can't be run, say so and fall back to static review + grep (R7.1).
 - **Follows [`code-review-rules.md`](code-review-rules.md)** while authoring, and
   self-audits each edit against that doc's Quick checklist, per
   [`../CLAUDE.md`](../CLAUDE.md) "Before editing source".
@@ -53,8 +58,9 @@ The Implementer executes the prompts the user passes in from the Director:
 
 ## Shared boundaries (both roles)
 
-- **The user handles binary builds.** Never claim something is built or run
-  unless you actually did it; otherwise ask the user to build and report back.
+- **Build honesty.** Builds are role-specific (the Implementer builds and verifies;
+  the Director defers — see the role sections above). Whoever builds: never claim
+  something is built or run unless you actually did it, and report the real result.
 - **The user handles git commits and pushes.** Do not commit or push; leave the
   working tree for the user to review and commit.
 - **Missing inputs:** if a file needed for the task is not in the project folder,
@@ -71,9 +77,9 @@ The flow for a change is:
 2. **Director:** gathers context, then either answers directly or produces an
    Implementer prompt (and/or writes docs/config).
 3. **User → Implementer:** pastes the Director's prompt.
-4. **Implementer:** makes the source changes, self-audits, reports back (and any
-   requested feedback).
-5. **User:** builds and commits; relays results or follow-ups back to the
+4. **Implementer:** makes the source changes, self-audits, **builds and verifies,**
+   and reports back the real build/run result (and any requested feedback).
+5. **User:** reviews and commits; relays results or follow-ups back to the
    Director as needed.
 
 ## Director prompt template

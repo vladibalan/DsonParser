@@ -11,9 +11,14 @@ Implementer) and an **Implementer** (executes those prompts and edits source per
 the code-review rules). The user passes prompts between the two by hand. At
 session start the user states which role this session plays; if unstated, ask.
 
-**Both roles:** the user handles binary builds and git commits/pushes — never
-assume a build ran and never commit. If a needed file is missing from the
-project folder, ask the user to upload it rather than guessing its contents.
+**Both roles:** the user handles git commits/pushes — never commit. Report build
+and run results faithfully — never claim something compiled or ran unless you
+actually did. If a needed file is missing from the project folder, ask the user
+to upload it rather than guessing its contents.
+
+**Builds:** the **Implementer** builds and verifies its own changes
+(`msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64`) and reports the
+real result; the **Director** defers builds. See "Build & test" below.
 
 **Read [`docs/agent-workflow.md`](docs/agent-workflow.md)** for the full role
 definitions, handoff sequence, and the Director's prompt template.
@@ -94,8 +99,11 @@ Boilerplate (rarely relevant): `pch.{h,cpp}`, `framework.h`, `dllmain.cpp`.
 - This is a Visual Studio solution: `DsonTest2.sln` (`DsonParser` = DLL,
   `DsonTest2` = console test exe linking `DsonParser.lib`).
 - Typical build: `msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64`.
-- **The user runs builds.** Don't assume you've built or run anything unless you
-  actually did — report build/run results faithfully, or ask the user to build.
+- **The Implementer builds and verifies.** After source changes, compile (and run
+  the `DsonTest2` harness where useful) and report the real result — errors,
+  warnings, pass/fail — in the handoff. Never claim something compiled or ran
+  unless you actually did; if a build can't be run, say so and fall back to static
+  review + grep. The **Director** defers builds; the user still handles commits.
 
 ## Conventions
 

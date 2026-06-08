@@ -14,5 +14,7 @@ essentials, repeated here so they're never missed:
 4. Real source surface is small: `DsonDataTypes`, `DsonTypes`, `DsonHelpers`,
    `DsonParserAPI` (in `DsonParser/`) and `DsonTest2/DsonTest2.cpp`. Everything
    else is boilerplate or vendored. See `CLAUDE.md` for the per-file table.
-5. **The user runs builds** (`msbuild DsonTest2.sln /p:Configuration=Release
-   /p:Platform=x64`). Report build/run results faithfully; don't claim untested.
+5. **Implementers build and verify** (`msbuild DsonTest2.sln /p:Configuration=Release
+   /p:Platform=x64`) and report the real result; the Director defers builds, and the
+   user handles git commits. Report build/run results faithfully — never claim a clean
+   build you didn't run.

@@ -126,11 +126,15 @@ In `DsonTypes.cpp`:
 
 ## 7. Build & verification
 
-- **R7.1 — Do not build.** The user runs all builds (enforced by a `permissions.deny`
-  rule on `msbuild`/`dotnet build`/`devenv`). Verify changes by static review + grep,
-  and report results for the user to compile.
-- **R7.2** — Even comment-only or literal-only changes are handed to the user to
-  build; state that explicitly.
+- **R7.1 — Build and verify.** The Implementer builds its own changes
+  (`msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64`) and reports the
+  real result — errors, warnings, and a `DsonTest2` harness run where useful — in the
+  handoff. Never claim a clean build you didn't actually run; if a build can't be run
+  in your environment, say so and fall back to static review + grep. The Director does
+  not build.
+- **R7.2 — Build even small changes.** Comment-only or literal-only edits still get
+  compiled before handoff — a stray edit can still break the build — and the result is
+  stated explicitly.
 - **R7.3** — Files > 500 lines: confirm before reading in full. The two large files
   are `DsonParserAPI.cpp` (~1.5k) and `DsonTypes.cpp` (~1.1k).
 

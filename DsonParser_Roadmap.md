@@ -365,7 +365,7 @@ files (`preset_hierarchical_material` MAT presets / figure presets) remains impo
 work. The per-addon `SelectAddon` flag is **not** exposed — uniformly `false` across
 the samples, it is a UI hint, not a load gate. Manifest data verified against
 `TestFiles/{G9,HID_Nancy_9,Laura9}.duf` (5 / 4 / 5 addon slots); accessor behavior
-pending the user's build + harness run.
+pending a build + harness run.
 
 ### Image `map_size` (pixel dimensions) — ✅ implemented (Jun 2026)
 `map_size` (a `[width, height]` int array, e.g. `[ 4096, 4096 ]`, verified against
