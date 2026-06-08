@@ -838,13 +838,58 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     return true;
 }
 
+// SceneAnimation parser:
+// Reads one scene.animations entry: the verbatim url property pointer and the
+// first key's typed value. Permissive — missing url/keys or an unmodeled value
+// shape leaves kind at KindNull and url/str empty. Per R6.4, no data is applied
+// onto scene.materials; this is a raw passthrough only.
+bool SceneAnimation::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
+    if (!json.IsObject()) return false;
+
+    static const std::set<std::string> knownKeys = {"url", "keys"};
+
+    JsonHelper::GetString(json, "url", url);
+
+    const rapidjson::Value* keysArr = nullptr;
+    if (JsonHelper::GetArray(json, "keys", keysArr) && keysArr->Size() >= 1) {
+        const rapidjson::Value& key0 = (*keysArr)[0];
+        if (key0.IsArray() && key0.Size() >= 2) {
+            const rapidjson::Value& val = key0[1];
+            if (val.IsNull()) {
+                kind = KindNull;
+            } else if (val.IsBool()) {
+                kind = KindBool;
+                boolean = val.GetBool();
+            } else if (val.IsNumber()) {
+                kind = KindNumber;
+                number = val.GetDouble();
+            } else if (val.IsString()) {
+                kind = KindString;
+                str = val.GetString();
+            } else if (val.IsArray() && val.Size() >= 3 &&
+                       val[0].IsNumber() && val[1].IsNumber() && val[2].IsNumber()) {
+                kind = KindColor;
+                color.x = val[0].GetDouble();
+                color.y = val[1].GetDouble();
+                color.z = val[2].GetDouble();
+            }
+            // else: unmodeled shape — keep kind = KindNull (faithful boundary)
+        }
+    }
+
+    TrackUnknownKeys(json, knownKeys, unknownKeys);
+    return true;
+}
+
 // Scene parser:
 // Parses scene instance arrays separately from the library definitions. Scene
 // nodes/materials/modifiers/uvs usually reference library entries through URL
 // fields and may carry instance-level labels, surface groups, or channel values.
-// extra is read only for its PostLoadAddons "Character Addon Loader" manifest
-// (post_load_addons); presentation, animations, and camera remain recognized-but-
-// unparsed so the unknown-key diagnostics stay focused on new structure.
+// scene.animations is now parsed faithfully onto Scene::animations — per R6.4 it
+// is NOT applied onto scene.materials; the consumer resolves the pointers and
+// decides. extra is read only for its PostLoadAddons "Character Addon Loader"
+// manifest (post_load_addons); presentation and current_camera remain
+// recognized-but-unparsed so the unknown-key diagnostics stay focused on new structure.
 bool Scene::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -859,6 +904,7 @@ bool Scene::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     ParseObjectArray(json, "modifiers", modifiers, unknownKeys);
     ParseObjectArray(json, "materials", materials, unknownKeys);
     ParseObjectArray(json, "uvs", uvs, unknownKeys);
+    ParseObjectArray(json, "animations", animations, unknownKeys);
 
     // scene.extra "Character Addon Loader" manifest: companion figures a character
     // preset loads but does not list in scene.nodes. Flat walk across every
@@ -906,7 +952,7 @@ bool Scene::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
         }
     }
 
-    // presentation, animations, current_camera are recognized but not parsed yet;
+    // presentation and current_camera are recognized but not parsed yet;
     // extra is parsed only for its PostLoadAddons manifest above (rest is unmodeled).
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;

@@ -226,6 +226,23 @@ struct UVSet {
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
 
+// One scene.animations keyframe channel, stored faithfully: the verbatim DSON
+// property pointer plus the first key's typed value. Per R6.4 the parser never
+// applies this onto scene.materials — the consumer resolves the pointer and
+// decides. v1 reads the first key only.
+struct SceneAnimation {
+    // ValueKind: 0 null · 1 number · 2 bool · 3 string · 4 color
+    enum ValueKind { KindNull = 0, KindNumber = 1, KindBool = 2, KindString = 3, KindColor = 4 };
+    std::string url;        // raw pointer, verbatim (no decode, no decompose)
+    int kind = KindNull;    // ValueKind of keys[0][1]
+    double number = 0.0;    // kind == KindNumber
+    bool boolean = false;   // kind == KindBool
+    std::string str;        // kind == KindString (e.g. an image_file path)
+    Vector3 color = {};     // kind == KindColor (first 3 of a numeric array)
+
+    bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
+};
+
 // Post-load addon from a scene "Character Addon Loader" manifest
 // (scene.extra[].settings.PostLoadAddons): a companion figure a character preset
 // pulls in but does not list in scene.nodes (e.g. Genesis 9 eyes/mouth/eyelashes/
@@ -245,8 +262,9 @@ struct Scene {
     std::vector<Material> materials;
     std::vector<UVSet> uvs;
     std::vector<ScenePostLoadAddon> post_load_addons; // from scene.extra "Character Addon Loader" manifests
+    std::vector<SceneAnimation> animations;           // scene.animations: parsed faithfully, never applied onto scene.materials (R6.4)
     // Recognized by the parser but not (fully) read into typed fields:
-    //   presentation, animations, current_camera, extra
+    //   presentation, current_camera, extra
     //   (extra: only its PostLoadAddons "Character Addon Loader" manifest is modeled)
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);

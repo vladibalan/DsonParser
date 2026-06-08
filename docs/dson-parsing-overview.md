@@ -80,8 +80,10 @@ current loader scope.
   references to library entries. The parser currently reads scene nodes,
   modifiers, materials, and UV sets, plus the post-load addon manifest in
   `scene.extra` (the DAZ "Character Addon Loader" `PostLoadAddons`; see the Scene
-  Post-Load Addons section below). Presentation, animations, and current camera are
-  recognized but not stored as typed fields.
+  Post-Load Addons section below), and the `scene.animations` keyframe channels
+  (see the Scene Animations section below — stored faithfully, never applied onto
+  `scene.materials`). Presentation and current camera are recognized but not stored
+  as typed fields.
 
 `node_library`
 : Parsed into library `Node` definitions. Captures id, name, label, type,
@@ -157,6 +159,30 @@ loading the referenced `.duf` files remains an importer responsibility (consiste
 with the no-recursive-load boundary below). The per-addon `SelectAddon` flag is
 intentionally not exposed: observed uniformly `false` across sample characters, it
 is a UI hint, not a load gate.
+
+### Scene Animations
+
+DAZ `preset_hierarchical_material` presets (e.g. a Genesis 9 companion MAT preset)
+often declare `scene.materials` channels as bare `{id,type}` placeholders and park
+the real channel values and `image_file` paths in `scene.animations` as `{url, keys}`
+keyframes, where **key 0 is initialization data** (not runtime animation). The parser
+stores each entry faithfully on `Scene::animations` — the verbatim `url` property
+pointer plus the first key's typed value — and exposes it:
+
+- `DsonDocument_GetSceneAnimationCount`
+- `DsonDocument_GetSceneAnimationUrl` — the raw DSON pointer, e.g.
+  `Genesis9Mouth#materials/Mouth:?diffuse/image_file`.
+- `DsonDocument_GetSceneAnimationValueKind` — first-key value kind:
+  `0` null · `1` number · `2` bool · `3` string · `4` color (`-1` invalid).
+- `DsonDocument_GetSceneAnimationFloat` / `…Bool` / `…String` / `…ColorR` /
+  `…ColorG` / `…ColorB` — the value, read per kind.
+
+Per **R6.4** the parser does **not** apply these onto `scene.materials`: it does not
+resolve the pointer, match the target channel, or fill an empty channel, and it leaves
+the `image_file` string as the verbatim DSON path (not resolved against
+`image_library`). The consumer reads both sections and decides whether key 0 overrides
+its material. Every entry is exposed (including `image_modification`/tiling rows);
+v1 reads the first key only, so multi-key keyframes are not modeled.
 
 ## Geometry And Faces
 

@@ -644,6 +644,60 @@ const char* DsonDocument_GetScenePostLoadAddonMatPreset(DsonDocumentHandle handl
     return addon ? addon->mat_preset.c_str() : "";
 }
 
+// Scene animations (scene.animations)
+int DsonDocument_GetSceneAnimationCount(DsonDocumentHandle handle) {
+    Dson::DsonDocument* doc = Doc(handle);
+    return doc ? static_cast<int>(doc->scene.animations.size()) : 0;
+}
+
+const char* DsonDocument_GetSceneAnimationUrl(DsonDocumentHandle handle, int animIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::SceneAnimation* anim = doc ? At(doc->scene.animations, animIndex) : nullptr;
+    return anim ? anim->url.c_str() : "";
+}
+
+int DsonDocument_GetSceneAnimationValueKind(DsonDocumentHandle handle, int animIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::SceneAnimation* anim = doc ? At(doc->scene.animations, animIndex) : nullptr;
+    return anim ? anim->kind : -1;
+}
+
+double DsonDocument_GetSceneAnimationFloat(DsonDocumentHandle handle, int animIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::SceneAnimation* anim = doc ? At(doc->scene.animations, animIndex) : nullptr;
+    return (anim && anim->kind == Dson::SceneAnimation::KindNumber) ? anim->number : 0.0;
+}
+
+bool DsonDocument_GetSceneAnimationBool(DsonDocumentHandle handle, int animIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::SceneAnimation* anim = doc ? At(doc->scene.animations, animIndex) : nullptr;
+    return (anim && anim->kind == Dson::SceneAnimation::KindBool) ? anim->boolean : false;
+}
+
+const char* DsonDocument_GetSceneAnimationString(DsonDocumentHandle handle, int animIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::SceneAnimation* anim = doc ? At(doc->scene.animations, animIndex) : nullptr;
+    return (anim && anim->kind == Dson::SceneAnimation::KindString) ? anim->str.c_str() : "";
+}
+
+double DsonDocument_GetSceneAnimationColorR(DsonDocumentHandle handle, int animIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::SceneAnimation* anim = doc ? At(doc->scene.animations, animIndex) : nullptr;
+    return (anim && anim->kind == Dson::SceneAnimation::KindColor) ? anim->color.x : 0.0;
+}
+
+double DsonDocument_GetSceneAnimationColorG(DsonDocumentHandle handle, int animIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::SceneAnimation* anim = doc ? At(doc->scene.animations, animIndex) : nullptr;
+    return (anim && anim->kind == Dson::SceneAnimation::KindColor) ? anim->color.y : 0.0;
+}
+
+double DsonDocument_GetSceneAnimationColorB(DsonDocumentHandle handle, int animIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::SceneAnimation* anim = doc ? At(doc->scene.animations, animIndex) : nullptr;
+    return (anim && anim->kind == Dson::SceneAnimation::KindColor) ? anim->color.z : 0.0;
+}
+
 // Scene modifier instances (scene.modifiers)
 int DsonDocument_GetSceneModifierCount(DsonDocumentHandle handle) {
     Dson::DsonDocument* doc = Doc(handle);

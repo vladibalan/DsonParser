@@ -8,6 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <vector>
 #define NOMINMAX
@@ -194,6 +195,108 @@ void RunVersionTest() {
     std::cout << "version check: " << (pass ? "PASS" : "FAIL") << "\n\n";
 }
 
+// Verifies the scene.animations surface against Genesis_9_Mouth_MAT.duf:
+//   - Prints count + per-entry kind/url/value (eyeball check).
+//   - Asserts three anchor values for the Mouth material.
+//   - Asserts NO-MERGE: Mouth diffuse scene-material channel STILL reads its
+//     gray placeholder (R6.4); the parser must not have applied the anim value.
+void RunSceneAnimationsTest() {
+    std::cout << "=================================\n";
+    std::cout << "SCENE ANIMATIONS TEST\n";
+    std::cout << "=================================\n\n";
+
+    const std::string filepath = ResolveTestFile("Genesis_9_Mouth_MAT.duf");
+    if (filepath.empty()) {
+        std::cout << "Genesis_9_Mouth_MAT.duf not found (tried direct path and TestFiles); skipping.\n\n";
+        return;
+    }
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc) {
+        std::cout << "Failed to create document; skipping.\n\n";
+        return;
+    }
+
+    if (DsonDocument_LoadFromFile(doc, filepath.c_str()) != 0) {
+        std::cout << "Error loading Genesis_9_Mouth_MAT.duf: " << DsonParser_GetLastError() << "\n\n";
+        DsonDocument_Destroy(doc);
+        return;
+    }
+
+    // Print animation surface
+    int animCount = DsonDocument_GetSceneAnimationCount(doc);
+    std::cout << "scene.animations count: " << animCount << "\n";
+    const char* kindNames[] = {"null", "number", "bool", "string", "color"};
+    for (int i = 0; i < animCount; i++) {
+        int k = DsonDocument_GetSceneAnimationValueKind(doc, i);
+        const char* kName = (k >= 0 && k <= 4) ? kindNames[k] : "invalid";
+        std::cout << "  [" << i << "] kind=" << kName << " url=" << DsonDocument_GetSceneAnimationUrl(doc, i);
+        if (k == 1)       std::cout << " val=" << DsonDocument_GetSceneAnimationFloat(doc, i);
+        else if (k == 2)  std::cout << " val=" << (DsonDocument_GetSceneAnimationBool(doc, i) ? "true" : "false");
+        else if (k == 3)  std::cout << " val=\"" << DsonDocument_GetSceneAnimationString(doc, i) << "\"";
+        else if (k == 4)  std::cout << " val=(" << DsonDocument_GetSceneAnimationColorR(doc, i)
+                                    << "," << DsonDocument_GetSceneAnimationColorG(doc, i)
+                                    << "," << DsonDocument_GetSceneAnimationColorB(doc, i) << ")";
+        std::cout << "\n";
+    }
+    std::cout << "\n";
+
+    // Anchor 1: diffuse/image_file → String == expected path
+    const char* kImageFileSuffix  = "Mouth:?diffuse/image_file";
+    const char* kExpectedImagePath = "/Runtime/Textures/DAZ/Characters/Genesis9/Base/Genesis9_Mouth_D_1001.jpg";
+    // Anchor 2: Diffuse%20Roughness/value → Number == 0.3
+    const char* kDiffRoughSuffix  = "Mouth:?extra/studio_material_channels/channels/Diffuse%20Roughness/value";
+    // Anchor 3: Translucency%20Weight/value → Number == 0.8
+    const char* kTransWeightSuffix = "Mouth:?extra/studio_material_channels/channels/Translucency%20Weight/value";
+
+    bool anchor1Pass = false, anchor2Pass = false, anchor3Pass = false;
+    for (int i = 0; i < animCount; i++) {
+        std::string url = DsonDocument_GetSceneAnimationUrl(doc, i);
+        if (url.find(kImageFileSuffix) != std::string::npos) {
+            anchor1Pass = (DsonDocument_GetSceneAnimationValueKind(doc, i) == 3) &&
+                          (std::strcmp(DsonDocument_GetSceneAnimationString(doc, i), kExpectedImagePath) == 0);
+        }
+        if (url.find(kDiffRoughSuffix) != std::string::npos) {
+            anchor2Pass = (DsonDocument_GetSceneAnimationValueKind(doc, i) == 1) &&
+                          (std::fabs(DsonDocument_GetSceneAnimationFloat(doc, i) - 0.3) < 1e-9);
+        }
+        if (url.find(kTransWeightSuffix) != std::string::npos) {
+            anchor3Pass = (DsonDocument_GetSceneAnimationValueKind(doc, i) == 1) &&
+                          (std::fabs(DsonDocument_GetSceneAnimationFloat(doc, i) - 0.8) < 1e-9);
+        }
+    }
+    std::cout << "Anchor 1 (Mouth diffuse/image_file == expected path): " << (anchor1Pass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Anchor 2 (Diffuse Roughness/value == 0.3):            " << (anchor2Pass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Anchor 3 (Translucency Weight/value == 0.8):          " << (anchor3Pass ? "PASS" : "FAIL") << "\n\n";
+
+    // NO-MERGE check: Mouth scene material diffuse channel must still read ≈ 0.7529 (the gray placeholder)
+    int mouthMatIndex = -1;
+    int sceneMatCount = DsonDocument_GetSceneMaterialCount(doc);
+    for (int i = 0; i < sceneMatCount; i++) {
+        if (std::strcmp(DsonDocument_GetSceneMaterialId(doc, i), "Mouth") == 0) {
+            mouthMatIndex = i;
+            break;
+        }
+    }
+
+    bool noMergePass = false;
+    if (mouthMatIndex >= 0) {
+        int chanCount = DsonDocument_GetSceneMaterialChannelCount(doc, mouthMatIndex);
+        for (int c = 0; c < chanCount; c++) {
+            const char* chanId = DsonDocument_GetSceneMaterialChannelId(doc, mouthMatIndex, c);
+            if (std::strcmp(chanId, "diffuse") == 0) {
+                double r = DsonDocument_GetSceneMaterialChannelColorR(doc, mouthMatIndex, c);
+                // Gray placeholder ≈ 0.7529; anim value would be 1.0. Accept within 0.001.
+                noMergePass = (std::fabs(r - 0.7529414) < 0.001);
+                break;
+            }
+        }
+    }
+    std::cout << "NO-MERGE (Mouth diffuse ColorR ≈ 0.7529, not 1.0 from anim): " << (noMergePass ? "PASS" : "FAIL") << "\n\n";
+
+    DsonDocument_Destroy(doc);
+}
+
 int main(int argc, char* argv[])
 {
     std::cout << "DSON Parser Test\n";
@@ -205,6 +308,7 @@ int main(int argc, char* argv[])
     RunVersionTest();
     RunGzipFixtureTests();
     RunImageMapSizeTest();
+    RunSceneAnimationsTest();
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();

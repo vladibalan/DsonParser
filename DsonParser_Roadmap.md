@@ -339,6 +339,36 @@ G. Formulas
 
 ## Recently completed (post-v1)
 
+### Scene animations key-0 channel surface (`scene.animations`) — ✅ implemented (Jun 2026)
+DAZ `preset_hierarchical_material` presets park real material-channel values and
+`image_file` paths in `scene.animations` (`{url, keys}`, key 0 = initialization data)
+while leaving `scene.materials` channels as bare placeholders — the root cause of
+Genesis 9 mouth/teeth importing untextured/"metallic". `scene.animations` is now parsed
+in `Scene::ParseFromJson` onto `Scene::animations` (`SceneAnimation`: verbatim `url` +
+the first key's typed value) and exposed by nine **additive** accessors (library
+version **1.2.0**):
+
+- `DsonDocument_GetSceneAnimationCount` — `0` on invalid handle / no animations.
+- `DsonDocument_GetSceneAnimationUrl` — verbatim DSON property pointer.
+- `DsonDocument_GetSceneAnimationValueKind` — `0` null / `1` number / `2` bool /
+  `3` string / `4` color (`-1` invalid).
+- `DsonDocument_GetSceneAnimationFloat` / `…Bool` / `…String` / `…ColorR/G/B`.
+
+Faithful by design (**R6.4**): the parser does **not** apply the keyframes onto
+`scene.materials`, resolve the pointer, or resolve the `image_file` string against
+`image_library` — the consumer reads both sections and decides the override. Every
+entry is exposed (no filter); v1 reads the first key only, so `image_modification`/
+tiling and multi-key are recognized in the data but not modeled. Data shapes verified
+against `TestFiles/Genesis_9_Mouth_MAT.duf` (Mouth/Teeth: `diffuse/image_file` =
+`Genesis9_Mouth_D_1001.jpg`, `Diffuse Roughness` = 0.3, `Translucency Weight` = 0.8);
+verified by an independent Director build (Release|x64, clean) + a
+`DsonTest2 Genesis_9_Mouth_MAT.duf` harness run — the three anchors and the NO-MERGE
+check all pass.
+
+**Consumer note (additive, non-breaking):** existing calls are unaffected; the UE
+plugin opts into the new accessors and performs the key-0 override itself — it now owns
+that interpretation (R6.4).
+
 ### Scene post-load addon manifest (`scene.extra` Character Addon Loader) — ✅ implemented (Jun 2026)
 The DAZ "Character Addon Loader" `PostLoadAddons` block in `scene.extra` lists
 companion conforming figures (Genesis 9 eyes / mouth / eyelashes / tear / a
