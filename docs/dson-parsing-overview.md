@@ -41,6 +41,14 @@ The parser is intentionally permissive. Missing optional fields keep defaults,
 malformed entries inside arrays are usually skipped, and broad semantic
 validation is left to the importer or audit layer.
 
+The parser is also **faithful and non-interpretive**: it never overwrites or
+fills one section's data from another (e.g. it does not apply `scene.animations`
+onto `scene.materials`, even when a channel is empty). Merging overrides,
+evaluating formulas, and collapsing instances onto definitions are left to the
+consumer, which reads the faithful sections and decides. The only resolution it
+performs is intra-material image linkage (`image_url → texture_path`). This is
+rule R6.4 in [`code-review-rules.md`](code-review-rules.md).
+
 ### Compressed Input (gzip)
 
 DAZ files may keep `.duf`/`.dsf` extensions while storing a single gzip stream

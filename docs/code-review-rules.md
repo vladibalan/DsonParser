@@ -123,6 +123,19 @@ In `DsonTypes.cpp`:
 - **R6.3 — Scene vs library separation.** `scene.*` instances and `*_library`
   definitions are exposed by distinct accessors and must stay separate; don't
   collapse them.
+- **R6.4 — Faithful, non-interpretive parsing (no cross-section override).** The
+  parser reports each DSON section as the file states it and must not let one
+  section's data overwrite, fill, or override another's — *not even when the
+  target field is empty or defaulted*. Applying `scene.animations` keyframes onto
+  `scene.materials`, evaluating formulas, resolving override pointers, or
+  collapsing scene instances onto library definitions are **consumer** decisions.
+  Expose each section faithfully through its own accessors (as formulas are
+  *stored, not evaluated*, and R6.3 keeps scene/library separate); a consumer
+  wanting the merged result computes it from the faithful inputs. The lone
+  sanctioned exception is intra-material reference resolution
+  (`image_url → texture_path` against `image_library`) — it resolves a reference
+  the channel already holds, not another section's value. Treat any new
+  cross-section merge as a semantic shift requiring explicit sign-off (cf. R6.1).
 
 ## 7. Build & verification
 
@@ -235,6 +248,7 @@ R9.6 requires listing these syncs in the change summary.
 - [ ] Wrapper-in-ternary uses `static_cast`. (R5.1)
 - [ ] Unused value types left in place. (R5.2)
 - [ ] Permissive parsing preserved; new known keys added to `knownKeys`. (R6)
+- [ ] No cross-section merge/override; each section exposed faithfully, consumer interprets. (R6.4)
 - [ ] Did not build; reported for user to compile. (R7)
 - [ ] Findings enumerate exact functions; completeness grep run family-wide. (R8)
 - [ ] Orientation docs synced with the code change: overview file map, CLAUDE.md table, `orientation:` blocks, this ruleset, roadmap. (R9)
