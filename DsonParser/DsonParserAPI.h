@@ -10,9 +10,12 @@
 #include "DsonParserVersion.h"
 
 // Public C ABI orientation:
-// Library version 1.0.0 — query at runtime with DsonParser_GetVersion(), or at
+// Library version 1.1.0 — query at runtime with DsonParser_GetVersion(), or at
 // compile time via DSONPARSER_VERSION_* in DsonParserVersion.h. See CHANGELOG.md
 // for what changed each release and docs/versioning.md for the SemVer/C-ABI policy.
+// What's new in 1.1.0: scene post-load addon manifest accessors
+// (DsonDocument_GetScenePostLoadAddon*) expose the "Character Addon Loader"
+// companion figures a character preset loads but does not list in scene.nodes.
 //
 // This header exposes a parsed DSON/DSF/DUF document through an opaque handle and
 // index-based accessors. The implementation owns all returned const char*
@@ -301,6 +304,18 @@ DSONPARSER_API const char* DsonDocument_GetSceneMaterialChannelTexturePath(DsonD
 DSONPARSER_API int         DsonDocument_GetSceneMaterialChannelLayerCount(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx);
 DSONPARSER_API const char* DsonDocument_GetSceneMaterialChannelLayerTexturePath(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx);
 DSONPARSER_API const char* DsonDocument_GetSceneMaterialChannelLayerLabel(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx);
+
+// Scene post-load addon manifest (scene.extra "Character Addon Loader",
+// settings.PostLoadAddons): companion figures a character preset loads but does
+// not list in scene.nodes (e.g. Genesis 9 eyes/mouth/eyelashes/tears). index is a
+// flat walk across every manifest entry's slots, in document (.duf) order.
+// MatPreset may be "" for an addon slot that has no MAT preset.
+// @since 1.1.0
+DSONPARSER_API int         DsonDocument_GetScenePostLoadAddonCount(DsonDocumentHandle handle);
+DSONPARSER_API const char* DsonDocument_GetScenePostLoadAddonSlot(DsonDocumentHandle handle, int index);
+DSONPARSER_API const char* DsonDocument_GetScenePostLoadAddonAssetName(DsonDocumentHandle handle, int index);
+DSONPARSER_API const char* DsonDocument_GetScenePostLoadAddonAssetFile(DsonDocumentHandle handle, int index);
+DSONPARSER_API const char* DsonDocument_GetScenePostLoadAddonMatPreset(DsonDocumentHandle handle, int index);
 
 // ---- F. Morph Targets ----
 // morphIndex is an index into the filtered list of modifiers where type == "morph"

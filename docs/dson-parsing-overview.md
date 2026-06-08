@@ -70,8 +70,10 @@ current loader scope.
 `scene`
 : Parsed separately from libraries. Scene arrays contain placed instances and
   references to library entries. The parser currently reads scene nodes,
-  modifiers, materials, and UV sets. Presentation, animations, current camera,
-  and extra are recognized but not stored as typed fields.
+  modifiers, materials, and UV sets, plus the post-load addon manifest in
+  `scene.extra` (the DAZ "Character Addon Loader" `PostLoadAddons`; see the Scene
+  Post-Load Addons section below). Presentation, animations, and current camera are
+  recognized but not stored as typed fields.
 
 `node_library`
 : Parsed into library `Node` definitions. Captures id, name, label, type,
@@ -122,6 +124,31 @@ The C API keeps these separate:
 
 This distinction matters when an importer needs the base asset definition versus
 the configured scene instance.
+
+### Scene Post-Load Addons
+
+A DAZ "Character Addon Loader" entry in `scene.extra` lists companion conforming
+figures — Genesis 9 eyes, mouth, eyelashes, tear, and a character-dependent
+eyebrows figure — that a `character` preset pulls in but does **not** list in
+`scene.nodes`. The parser models this manifest
+(`scene.extra[].settings.PostLoadAddons`) on `Scene::post_load_addons` and exposes
+it as a flat, document-ordered list:
+
+- `DsonDocument_GetScenePostLoadAddonCount`
+- `DsonDocument_GetScenePostLoadAddonSlot` — the DAZ slot key, e.g.
+  `Follower/Attachment/Head/Face/Eyes`.
+- `DsonDocument_GetScenePostLoadAddonAssetName`
+- `DsonDocument_GetScenePostLoadAddonAssetFile` — content-relative loader `.duf`.
+- `DsonDocument_GetScenePostLoadAddonMatPreset` — content-relative MAT preset
+  `.duf`, or `""` when the slot has none.
+
+The index flattens slots across every `PostLoadAddons` map in `scene.extra`, in
+document order; a slot is kept only if it has a non-empty `AssetFile`. The parser
+surfaces the referenced paths only — resolving them against content roots and
+loading the referenced `.duf` files remains an importer responsibility (consistent
+with the no-recursive-load boundary below). The per-addon `SelectAddon` flag is
+intentionally not exposed: observed uniformly `false` across sample characters, it
+is a UI hint, not a load gate.
 
 ## Geometry And Faces
 

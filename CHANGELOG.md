@@ -20,6 +20,25 @@ new version heading that equals `DSONPARSER_VERSION_STRING`._
 ### Removed
 ### Fixed
 
+## [1.1.0] - 2026-06-08
+
+### Added
+- **Scene post-load addon manifest** — exposes the DAZ "Character Addon Loader"
+  `PostLoadAddons` carried in `scene.extra`, so an importer can discover companion
+  conforming figures (Genesis 9 eyes / mouth / eyelashes / tear / eyebrows) that a
+  `character` preset instances but does not list in `scene.nodes`. First typed
+  modeling of `scene.extra`:
+  - `DsonDocument_GetScenePostLoadAddonCount` — addon-slot count, flattened across
+    every `scene.extra` PostLoadAddons map in document order (`0` if none).
+  - `DsonDocument_GetScenePostLoadAddonSlot` — DAZ slot key
+    (e.g. `Follower/Attachment/Head/Face/Eyes`).
+  - `DsonDocument_GetScenePostLoadAddonAssetName` — addon asset name.
+  - `DsonDocument_GetScenePostLoadAddonAssetFile` — content-relative loader `.duf` path.
+  - `DsonDocument_GetScenePostLoadAddonMatPreset` — content-relative MAT preset
+    `.duf` path (`""` when the slot carries no material preset).
+  Paths only — resolving them against content roots and loading the referenced files
+  remain importer responsibilities.
+
 ## [1.0.0] - 2026-06-07
 
 First **versioned** release — labels the entire current C ABI (~180 exported
@@ -44,4 +63,5 @@ Pre-versioning history is not retro-numbered.
     accessors. Stored only, **not evaluated** (evaluation is importer-side).
 
 [Unreleased]: #unreleased
+[1.1.0]: #110---2026-06-08
 [1.0.0]: #100---2026-06-07

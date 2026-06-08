@@ -614,6 +614,36 @@ const char* DsonDocument_GetSceneNodeGeometryUrl(DsonDocumentHandle handle, int 
     return geom ? geom->url.c_str() : "";
 }
 
+// Scene post-load addon manifest (scene.extra "Character Addon Loader")
+int DsonDocument_GetScenePostLoadAddonCount(DsonDocumentHandle handle) {
+    Dson::DsonDocument* doc = Doc(handle);
+    return doc ? static_cast<int>(doc->scene.post_load_addons.size()) : 0;
+}
+
+const char* DsonDocument_GetScenePostLoadAddonSlot(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::ScenePostLoadAddon* addon = doc ? At(doc->scene.post_load_addons, index) : nullptr;
+    return addon ? addon->slot.c_str() : "";
+}
+
+const char* DsonDocument_GetScenePostLoadAddonAssetName(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::ScenePostLoadAddon* addon = doc ? At(doc->scene.post_load_addons, index) : nullptr;
+    return addon ? addon->asset_name.c_str() : "";
+}
+
+const char* DsonDocument_GetScenePostLoadAddonAssetFile(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::ScenePostLoadAddon* addon = doc ? At(doc->scene.post_load_addons, index) : nullptr;
+    return addon ? addon->asset_file.c_str() : "";
+}
+
+const char* DsonDocument_GetScenePostLoadAddonMatPreset(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::ScenePostLoadAddon* addon = doc ? At(doc->scene.post_load_addons, index) : nullptr;
+    return addon ? addon->mat_preset.c_str() : "";
+}
+
 // Scene modifier instances (scene.modifiers)
 int DsonDocument_GetSceneModifierCount(DsonDocumentHandle handle) {
     Dson::DsonDocument* doc = Doc(handle);

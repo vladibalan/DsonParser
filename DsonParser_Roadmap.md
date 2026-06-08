@@ -339,6 +339,34 @@ G. Formulas
 
 ## Recently completed (post-v1)
 
+### Scene post-load addon manifest (`scene.extra` Character Addon Loader) — ✅ implemented (Jun 2026)
+The DAZ "Character Addon Loader" `PostLoadAddons` block in `scene.extra` lists
+companion conforming figures (Genesis 9 eyes / mouth / eyelashes / tear / a
+character-dependent eyebrows figure) that a `character` preset instances but does
+**not** list in `scene.nodes`. It is now parsed in `Scene::ParseFromJson` onto
+`Scene::post_load_addons` (`ScenePostLoadAddon`: `slot` / `asset_name` /
+`asset_file` / `mat_preset`) and exposed by five **additive** accessors (library
+version **1.1.0**):
+
+- `DsonDocument_GetScenePostLoadAddonCount` — `0` on invalid handle / no manifest.
+- `DsonDocument_GetScenePostLoadAddonSlot` — DAZ slot key, e.g.
+  `Follower/Attachment/Head/Face/Eyes`.
+- `DsonDocument_GetScenePostLoadAddonAssetName`
+- `DsonDocument_GetScenePostLoadAddonAssetFile` — content-relative loader `.duf`.
+- `DsonDocument_GetScenePostLoadAddonMatPreset` — content-relative MAT preset
+  `.duf`; `""` when the slot has none.
+
+The index is a flat, document-ordered walk across every `PostLoadAddons` map in
+`scene.extra`. The slot map is iterated by member (not `ParseObjectArray`, which is
+for arrays); a slot is kept only when it has a non-empty `AssetFile`, so the count
+is meaningful. Parser stays permissive (any missing hop skips that slot, never
+errors) and single-document — resolving the paths and loading the referenced `.duf`
+files (`preset_hierarchical_material` MAT presets / figure presets) remains importer
+work. The per-addon `SelectAddon` flag is **not** exposed — uniformly `false` across
+the samples, it is a UI hint, not a load gate. Manifest data verified against
+`TestFiles/{G9,HID_Nancy_9,Laura9}.duf` (5 / 4 / 5 addon slots); accessor behavior
+pending the user's build + harness run.
+
 ### Image `map_size` (pixel dimensions) — ✅ implemented (Jun 2026)
 `map_size` (a `[width, height]` int array, e.g. `[ 4096, 4096 ]`, verified against
 `TestFiles/HID_Nancy_9.duf`) is now parsed in `Image::ParseFromJson` into

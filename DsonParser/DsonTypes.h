@@ -226,6 +226,17 @@ struct UVSet {
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
 
+// Post-load addon from a scene "Character Addon Loader" manifest
+// (scene.extra[].settings.PostLoadAddons): a companion figure a character preset
+// pulls in but does not list in scene.nodes (e.g. Genesis 9 eyes/mouth/eyelashes/
+// tears). One entry per addon slot.
+struct ScenePostLoadAddon {
+    std::string slot;        // PostLoadAddons.value member name (e.g. "Follower/Attachment/Head/Face/Eyes")
+    std::string asset_name;  // <slot>.value.AssetName
+    std::string asset_file;  // <slot>.value.AssetFile (the loader .duf)
+    std::string mat_preset;  // <slot>.value.Presets.value.Mat.value.PresetFile (MAT preset .duf; may be empty)
+};
+
 // Scene - the DSON "scene" object: a collection of instances hooked into the scene.
 // Distinct from the *_library definitions on DsonDocument below.
 struct Scene {
@@ -233,8 +244,10 @@ struct Scene {
     std::vector<Modifier> modifiers;
     std::vector<Material> materials;
     std::vector<UVSet> uvs;
-    // Recognized by the parser but not yet read into typed fields:
+    std::vector<ScenePostLoadAddon> post_load_addons; // from scene.extra "Character Addon Loader" manifests
+    // Recognized by the parser but not (fully) read into typed fields:
     //   presentation, animations, current_camera, extra
+    //   (extra: only its PostLoadAddons "Character Addon Loader" manifest is modeled)
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

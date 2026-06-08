@@ -842,8 +842,9 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
 // Parses scene instance arrays separately from the library definitions. Scene
 // nodes/materials/modifiers/uvs usually reference library entries through URL
 // fields and may carry instance-level labels, surface groups, or channel values.
-// Presentation, animations, camera, and extra are treated as recognized-but-
-// unparsed fields so the unknown-key diagnostics stay focused on new structure.
+// extra is read only for its PostLoadAddons "Character Addon Loader" manifest
+// (post_load_addons); presentation, animations, and camera remain recognized-but-
+// unparsed so the unknown-key diagnostics stay focused on new structure.
 bool Scene::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -859,7 +860,54 @@ bool Scene::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     ParseObjectArray(json, "materials", materials, unknownKeys);
     ParseObjectArray(json, "uvs", uvs, unknownKeys);
 
-    // presentation, animations, current_camera, extra are recognized but not parsed yet
+    // scene.extra "Character Addon Loader" manifest: companion figures a character
+    // preset loads but does not list in scene.nodes. Flat walk across every
+    // scene.extra entry that carries settings.PostLoadAddons.value, in document
+    // order. PostLoadAddons.value is an object keyed by slot (not an array), so it
+    // is iterated by member rather than via ParseObjectArray. Every hop is a
+    // checked JsonHelper accessor and any missing one just skips that entry/slot,
+    // so the parse stays permissive (never errors). The IsObject() guards are
+    // required: GetObject/GetString call HasMember, which requires an object.
+    const rapidjson::Value* extra = nullptr;
+    if (JsonHelper::GetArray(json, "extra", extra)) {
+        for (rapidjson::SizeType i = 0; i < extra->Size(); ++i) {
+            const rapidjson::Value& entry = (*extra)[i];
+            if (!entry.IsObject()) continue;
+            const rapidjson::Value* settings = nullptr;
+            const rapidjson::Value* addons = nullptr;
+            const rapidjson::Value* slots = nullptr;
+            if (!JsonHelper::GetObject(entry, "settings", settings)) continue;
+            if (!JsonHelper::GetObject(*settings, "PostLoadAddons", addons)) continue;
+            if (!JsonHelper::GetObject(*addons, "value", slots)) continue;
+            for (auto it = slots->MemberBegin(); it != slots->MemberEnd(); ++it) {
+                const rapidjson::Value* sv = nullptr;
+                if (!it->value.IsObject() ||
+                    !JsonHelper::GetObject(it->value, "value", sv)) {
+                    continue;
+                }
+                ScenePostLoadAddon addon;
+                addon.slot = it->name.GetString();
+                JsonHelper::GetString(*sv, "AssetName", addon.asset_name);
+                JsonHelper::GetString(*sv, "AssetFile", addon.asset_file);
+                const rapidjson::Value* presets = nullptr;
+                const rapidjson::Value* presetsValue = nullptr;
+                const rapidjson::Value* mat = nullptr;
+                const rapidjson::Value* matValue = nullptr;
+                if (JsonHelper::GetObject(*sv, "Presets", presets) &&
+                    JsonHelper::GetObject(*presets, "value", presetsValue) &&
+                    JsonHelper::GetObject(*presetsValue, "Mat", mat) &&
+                    JsonHelper::GetObject(*mat, "value", matValue)) {
+                    JsonHelper::GetString(*matValue, "PresetFile", addon.mat_preset);
+                }
+                if (!addon.asset_file.empty()) { // permissive: only keep loadable addons
+                    post_load_addons.push_back(addon);
+                }
+            }
+        }
+    }
+
+    // presentation, animations, current_camera are recognized but not parsed yet;
+    // extra is parsed only for its PostLoadAddons manifest above (rest is unmodeled).
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
 }
