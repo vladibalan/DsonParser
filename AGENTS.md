@@ -8,13 +8,14 @@ essentials, repeated here so they're never missed:
    opening source files. It is the authoritative map (file table, pipeline,
    supported sections, boundaries). Most tasks need that doc + one source file.
 2. **Never read `DsonParser/include/rapidjson/**`** — vendored third-party
-   (~35 headers, the bulk of the repo). Not the answer to any task here.
+   (~35 headers, the bulk of the repo). Not the answer to any task here. Likewise
+   **don't browse `.handoff/`** — read only the specific task-file you are handed.
 3. Each source file opens with an `orientation:` comment block. Read that block
    before reading the full body.
 4. Real source surface is small: `DsonDataTypes`, `DsonTypes`, `DsonHelpers`,
    `DsonParserAPI` (in `DsonParser/`) and `DsonTest2/DsonTest2.cpp`. Everything
    else is boilerplate or vendored. See `CLAUDE.md` for the per-file table.
 5. **Implementers build and verify** (`msbuild DsonTest2.sln /p:Configuration=Release
-   /p:Platform=x64`) and report the real result; the Director defers builds, and the
-   user handles git commits. Report build/run results faithfully — never claim a clean
-   build you didn't run.
+   /p:Platform=x64`) and report the real result; the Director re-runs that build itself
+   to verify the returned change, and the user handles git commits. Report build/run
+   results faithfully — never claim a clean build you didn't run.

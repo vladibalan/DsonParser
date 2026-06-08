@@ -6,10 +6,12 @@ and exposes it through a flat C ABI for engine importers (e.g. UE5).
 ## Operating model (two-agent workflow)
 
 This repo is worked through two roles: a **Director** (takes your instructions,
-reads files, writes docs/instruction/config files, and authors prompts for the
-Implementer) and an **Implementer** (executes those prompts and edits source per
-the code-review rules). The user passes prompts between the two by hand. At
-session start the user states which role this session plays; if unstated, ask.
+reads files, writes docs/instruction/config files, writes task-files for the
+Implementer, and verifies the returned change) and an **Implementer** (any LLM
+coding agent the user launches on a task-file — edits source per the code-review
+rules and writes back a feedback-file). The handoff is file-based via `.handoff/`;
+the user launches each run by hand. At session start the user states which role
+this session plays; if unstated, ask.
 
 **Both roles:** the user handles git commits/pushes — never commit. Report build
 and run results faithfully — never claim something compiled or ran unless you
@@ -18,10 +20,13 @@ to upload it rather than guessing its contents.
 
 **Builds:** the **Implementer** builds and verifies its own changes
 (`msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64`) and reports the
-real result; the **Director** defers builds. See "Build & test" below.
+real result; the **Director** re-runs that build itself to verify the returned
+change (it confirms the result rather than trusting a self-report). See "Build &
+test" below.
 
 **Read [`docs/agent-workflow.md`](docs/agent-workflow.md)** for the full role
-definitions, handoff sequence, and the Director's prompt template.
+definitions, the file-based handoff sequence, and the task-file / feedback-file
+templates.
 
 ## Read this first (discovery shortcut)
 
@@ -37,7 +42,8 @@ the full body if the task is actually scoped to that file.
 
 Other docs:
 - [`docs/agent-workflow.md`](docs/agent-workflow.md) — Director/Implementer
-  roles, handoff sequence, shared boundaries, prompt template.
+  roles, file-based handoff sequence, shared boundaries, task-file/feedback
+  templates.
 - [`DsonParser_Roadmap.md`](DsonParser_Roadmap.md) — capability summary, audit
   history, v1 limitations, planned v2 formula work.
 - [`docs/versioning.md`](docs/versioning.md) — versioning & change-announcement
@@ -73,6 +79,10 @@ breaking-change rules are most often broken by "minor" tweaks.
 - `DsonParser/include/rapidjson/**` — **vendored third-party** (RapidJSON, ~35
   headers). This is the bulk of the repo's files and is never the answer to a
   task here. Don't read or modify it.
+- `.handoff/**` — **agent handoff scratch** (per-task `task-<id>.md` /
+  `feedback-<id>.md` and their `history/` archive). Read only the specific
+  task-file you are explicitly handed; never browse `.handoff/`. See
+  [`docs/agent-workflow.md`](docs/agent-workflow.md).
 
 ## Real source surface (everything else is boilerplate or vendored)
 
@@ -101,9 +111,11 @@ Boilerplate (rarely relevant): `pch.{h,cpp}`, `framework.h`, `dllmain.cpp`.
 - Typical build: `msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64`.
 - **The Implementer builds and verifies.** After source changes, compile (and run
   the `DsonTest2` harness where useful) and report the real result — errors,
-  warnings, pass/fail — in the handoff. Never claim something compiled or ran
-  unless you actually did; if a build can't be run, say so and fall back to static
-  review + grep. The **Director** defers builds; the user still handles commits.
+  warnings, pass/fail — in the feedback-file. Never claim something compiled or
+  ran unless you actually did; if a build can't be run, say so and fall back to
+  static review + grep. **The Director re-runs the build itself to verify the
+  returned change** (repo as ground truth, feedback-file as advisory); the user
+  still handles commits.
 
 ## Conventions
 

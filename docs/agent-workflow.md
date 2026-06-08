@@ -1,8 +1,10 @@
 # Agent Workflow — Director & Implementer
 
-This repo is worked through a **two-agent, human-mediated workflow**. There are
-two roles. A session plays exactly one of them, and the **user passes prompts
-between the two roles by hand** — the agents do not call each other directly.
+This repo is worked through a **two-role, human-mediated workflow** with a
+**file-based handoff**. A session plays exactly one role. The **Implementer is
+LLM-agnostic** — it can be any coding agent the user launches (Claude Code,
+Codex, Cline, or a future one) — so the handoff travels through files in the
+repo, not through any one tool's chat.
 
 At the start of a session the user declares the role ("You are the Director" /
 "You are the Implementer"). If no role is declared, ask which one before doing
@@ -10,94 +12,172 @@ work that is role-specific.
 
 ## Roles
 
-### Director (coordination, no source edits)
+### Director (coordination + verification, no source edits)
 
-The Director receives the user's instructions and queries and does everything
-needed to accomplish or answer them *except* edit project source code:
+The Director receives the user's instructions and does everything needed to
+accomplish them *except edit project source* and *except launch the agent* — the
+user launches it:
 
-- Reads project files and the docs to build the context for a task or answer.
+- Reads project files and docs to build the context for a task or answer.
 - Writes **documentation, instruction, and configuration files** (anything that
   is not C/C++ source under `DsonParser/` or `DsonTest2/DsonTest2.cpp`).
-- **Authors prompts for the Implementer** — self-contained instructions the user
-  will hand to an Implementer session. **Every Implementer prompt must state the
-  Implementer's role explicitly, up front** — the session may start cold with no
-  role declared by the user, so the prompt itself has to establish that the
-  reader *is* the Implementer (the source-editing role) and is expected to act in
-  it. A prompt may also explicitly ask the Implementer for feedback (e.g.
-  feasibility, trade-offs, a counter-proposal) before any code is written.
+- For a source change, **writes a task-file** — a self-contained Implementer
+  prompt — into `.handoff/` (see protocol below) and hands the user a one-line
+  launch instruction.
+- **After the run, verifies against the repo** — `git diff` for what changed, its
+  own `msbuild` build, and a `docs/code-review-rules.md` pass — then reports (see
+  Reporting). The repo is ground truth; the feedback-file is advisory.
 - Answers the user's questions directly when no code change is required.
 
-The Director does **not** edit C/C++ source or run builds. When a task needs
-source changes, the Director produces a prompt (see template below) rather than
-editing the code itself; compiling and verifying the result is the Implementer's
-job.
+The Director does **not** edit C/C++ source, and does **not** launch the
+Implementer — it produces the task-file; the user launches it. Verification
+builds *are* the Director's (it confirms the result itself rather than trusting a
+self-report); anything the build or review surfaces goes back through a follow-up
+task-file, never a Director hand-edit.
 
-**Take failures seriously — never fail silently.** If a task can't be fully
-done, a needed input is missing, an instruction is ambiguous, an assumption had
-to be made, or a result is only partial, say so plainly and up front — don't
-paper over the gap, quietly guess, or present a partial or unverified result as
-complete. State what worked, what didn't, what was skipped and why, and what
-you're unsure of; a flagged gap the user can act on beats a clean-looking answer
-that is quietly wrong. (Same spirit as the shared "ask for missing inputs" and
-"never claim something is built" boundaries below.)
+**Never fail silently.** If a task can't be fully done, a needed input is
+missing, an instruction is ambiguous, an assumption had to be made, or a result
+is only partial — say so plainly and up front. A flagged gap the user can act on
+beats a clean-looking answer that is quietly wrong.
 
-### Implementer (source edits)
+### Implementer (source edits — any LLM agent the user launches)
 
-The Implementer executes the prompts the user passes in from the Director:
+The Implementer is whatever coding agent the user points at the task-file. Its
+contract is deliberately tool-neutral — *read a file, edit the tree, write a
+file* — so it holds for Claude Code, Codex, Cline, or anything else:
 
-- Performs the code writing described by the prompt.
-- **Builds and verifies the change** (`msbuild DsonTest2.sln /p:Configuration=Release
-  /p:Platform=x64`, plus a `DsonTest2` harness run where useful) and reports the real
-  result in the handoff. Never claim a clean build it didn't actually run; if the
-  build can't be run, say so and fall back to static review + grep (R7.1).
-- **Follows [`code-review-rules.md`](code-review-rules.md)** while authoring, and
-  self-audits each edit against that doc's Quick checklist, per
-  [`../CLAUDE.md`](../CLAUDE.md) "Before editing source".
-- Provides feedback when the prompt asks for it (and may raise blocking concerns
-  even when it doesn't, instead of implementing something it believes is wrong).
+- **Reads the task-file it is handed**, and — since a non-Claude agent won't
+  auto-load them — reads `CLAUDE.md` and `docs/code-review-rules.md` as the
+  task-file instructs.
+- Performs the code change described.
+- **Builds and verifies** (`msbuild DsonTest2.sln /p:Configuration=Release
+  /p:Platform=x64`, plus a `DsonTest2` run where useful) so it can iterate to a
+  clean state. (The Director re-builds independently to confirm.)
+- **Self-audits** each edit against `docs/code-review-rules.md` (the Quick
+  checklist), per [`../CLAUDE.md`](../CLAUDE.md) "Before editing source".
+- **Writes its report to the feedback-file** using the template below.
+- **On a block — a build failure, an ambiguity, a needed assumption, a rule
+  conflict — it halts and records it in the feedback-file rather than guessing
+  past it.** It may raise a blocking concern or counter-proposal even when the
+  task didn't ask for one.
+
+## The handoff is file-based (`.handoff/`)
+
+All Director↔Implementer traffic for a change travels through two files:
+
+| File | Direction | Contents |
+| --- | --- | --- |
+| `.handoff/task-<id>.md` | Director → Implementer | the self-contained prompt |
+| `.handoff/feedback-<id>.md` | Implementer → Director | the report (advisory) |
+
+- **`<id>` is a timestamp + short slug** — e.g.
+  `task-20260608-143022-uvset-accessor.md` — pairing a task with its feedback. It
+  needs no counter state and sorts chronologically.
+- **`.handoff/` is gitignored and listed in `CLAUDE.md` "Do NOT read."** That
+  keeps it out of the `git diff` the Director verifies against, and out of agent
+  discovery. An agent reads **only the one task-file it is explicitly handed** —
+  it never browses `.handoff/`.
+- **The repo is the source of truth; the feedback-file is advisory.** The
+  Director confirms what changed / whether it builds / whether it complies from
+  the repo itself, not from the feedback-file's claims. An unsubstantiated
+  "success" is treated as a block. If a primitive agent writes a poor feedback
+  file or forgets it, the run isn't lost — the Director still has the repo.
+
+## Flow
+
+1. **User → Director:** instruction or query.
+2. **Director:** gathers context, then either answers directly (no code change)
+   or writes `.handoff/task-<id>.md`. For a **substantial** task it asks the user
+   to review the task-file before launching; for a **minor** one it just reports
+   the task-file is ready.
+3. **Director → User:** the one-line launch instruction —
+   *"Read and follow `.handoff/task-<id>.md`."*
+4. **User:** pastes that into whichever agent. The agent edits the working tree,
+   builds, and writes `.handoff/feedback-<id>.md`.
+5. **User → Director:** "done, `<id>`."
+6. **Director:** reads the feedback-file (advisory), **verifies against the repo**
+   (`git diff` + `msbuild` + review pass), and **reports** two-tier.
+7. **User:** reviews and commits — git stays with the user.
+8. **Director:** on task-close, moves the pair to `.handoff/history/` and prunes
+   old history (see History & cleanup).
+
+Because the user launches every run, **every task-file is on disk and reviewable
+before it executes** — visibility is a property of the flow, not a promise.
+
+## Verification & the uniform review gate
+
+The Director's own review pass is **not redundant** with the Implementer's
+self-audit. The self-audit is the author grading its own work mid-write; the
+Director pass is independent second-eyes on the finished diff — and, crucially,
+different agents apply `code-review-rules.md` differently, or not at all. The
+Director pass is the **single uniform quality gate**, so output quality stays
+agent-independent even though the agents aren't. It is positioned to catch
+whole-change issues a single-file author can miss — version bump ↔ `CHANGELOG` ↔
+`@since` consistency (R10), the C-ABI return contract across a whole family (R1).
+
+The Director reviews; it does not hand-fix source. A finding goes back as a
+follow-up task-file:
+
+- **Determinate rule violation with an obvious fix** → the Director issues a
+  fix task-file (shown to the user first), re-verifies, and **discloses the loop**
+  in the report. Not silent.
+- **Judgment call / ambiguous / implies a breaking-change or design decision** →
+  that's a block: full details, the user decides.
+
+## Reporting (two-tier)
+
+- **Smooth → short after-action report.** "Smooth" = completed as written, build
+  clean (Release|x64), review clean, no ambiguity or assumption hit. A few lines:
+  what changed and which files; the **real** build line + harness result (a
+  summary, not an unverified "looks good"); "in your working tree, uncommitted,
+  ready to review/commit"; any **new** compiler warnings; "Director review:
+  clean."
+- **Block → full details, the user decides.** A "block" is anything that isn't
+  clean completion: build failure, an ambiguity or missing input, an assumption
+  the Implementer had to make, a rule conflict (e.g. the change implies a breaking
+  C-ABI change, R2), partial completion, deviation from the task, or a concern the
+  Implementer raised. The report gives: the blockage itself; a complete account of
+  what the Implementer did (files / diff, how far it got); the raw `msbuild` /
+  harness output; the agent's reasoning or proposed options; and the working-tree
+  state — so the user can decide the resolution. The Director does not pick it.
+
+## History & cleanup
+
+- On task-close the `task-<id>` / `feedback-<id>` pair moves to
+  `.handoff/history/`.
+- History is pruned of entries **older than 30 days**, on archive or at session
+  start, so it stays bounded and self-maintaining.
+- The whole tree (active + `history/`) is gitignored, dot-prefixed, and "Do NOT
+  read," so it never reaches agent discovery; only the Director dips into history,
+  and only for audit.
 
 ## Shared boundaries (both roles)
 
-- **Build honesty.** Builds are role-specific (the Implementer builds and verifies;
-  the Director defers — see the role sections above). Whoever builds: never claim
-  something is built or run unless you actually did it, and report the real result.
+- **Build honesty.** Never claim a build or run you didn't do; report the real
+  result. The Director confirms with an actual `msbuild` rather than trusting a
+  self-report.
 - **The user handles git commits and pushes.** Do not commit or push; leave the
   working tree for the user to review and commit.
 - **Missing inputs:** if a file needed for the task is not in the project folder,
   **ask the user to upload it** rather than fabricating or guessing its contents.
-- The C++14-only / UE-agnostic / breaking-change constraints in
+- The **C++14-only / UE-agnostic / breaking-change** constraints in
   [`../CLAUDE.md`](../CLAUDE.md) and [`code-review-rules.md`](code-review-rules.md)
   apply to both roles.
 
-## Handoff
+## Task-file template (Director → Implementer)
 
-The flow for a change is:
-
-1. **User → Director:** instruction or query.
-2. **Director:** gathers context, then either answers directly or produces an
-   Implementer prompt (and/or writes docs/config).
-3. **User → Implementer:** pastes the Director's prompt.
-4. **Implementer:** makes the source changes, self-audits, **builds and verifies,**
-   and reports back the real build/run result (and any requested feedback).
-5. **User:** reviews and commits; relays results or follow-ups back to the
-   Director as needed.
-
-## Director prompt template
-
-When the Director authors a prompt for the Implementer, make it stand alone —
-the Implementer session has none of the Director's context, so the prompt must
-declare the role itself rather than relying on the user having stated it:
+The task-file must stand alone — the agent starts cold and may not be Claude, so
+state the role and point at the rules explicitly:
 
 ```
 Role: You are the **Implementer** for the DsonParser repo — the role that edits
       C/C++ source. Read CLAUDE.md and docs/code-review-rules.md first, then make
-      the change described below.
+      the change below. You may be any coding agent; these rules still apply.
 
 Goal: <what the change should accomplish>
 
-Context: <relevant files + the specific facts the Implementer needs;
-          point to docs/dson-parsing-overview.md and the one or two source
-          files in scope>
+Context: <relevant files + the specific facts the Implementer needs; point at
+          docs/dson-parsing-overview.md and the one or two source files in scope>
 
 Task: <concrete, ordered steps or the precise change required>
 
@@ -106,5 +186,31 @@ Constraints: follow docs/code-review-rules.md (R1 return-value contract,
              R10 version bump + @since + CHANGELOG entry for any C-ABI change);
              self-audit against the Quick checklist after each edit.
 
+Build & verify: msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64
+                (run the DsonTest2 harness where useful). Iterate to a clean
+                build before reporting.
+
+Report: write your results to .handoff/feedback-<id>.md using the feedback
+        template in docs/agent-workflow.md. On any block — build failure,
+        ambiguity, needed assumption, rule conflict — halt and report it there
+        rather than guessing past it.
+
 Feedback requested: <yes/no — if yes, what to assess before/instead of coding>
+```
+
+## Feedback-file template (Implementer → Director)
+
+```
+Status: smooth | blocked
+
+Files changed: <paths, one per line>
+
+Build result: <exact command> -> <clean | warnings | errors, with the key lines>
+
+What I did: <concise account of the change>
+
+Blockers & assumptions: <anything that blocked, any assumption made, any
+                         question for the Director — or "none">
+
+Notes: <optional: reasoning, alternatives considered, follow-ups>
 ```
