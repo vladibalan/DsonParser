@@ -36,7 +36,7 @@ source files.** It contains the authoritative file map, parsing pipeline,
 supported DSON sections, ownership rules, and known boundaries. Most tasks need
 only that doc plus one source file — you do not need to scan the tree.
 
-Then, if you still need code: every source file opens with an `orientation:`
+Then, if you still need code: every real source file opens with an `orientation:`
 comment block (purpose + responsibilities). Read that block first and only read
 the full body if the task is actually scoped to that file.
 

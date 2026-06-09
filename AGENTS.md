@@ -10,7 +10,7 @@ essentials, repeated here so they're never missed:
 2. **Never read `DsonParser/include/rapidjson/**`** — vendored third-party
    (~35 headers, the bulk of the repo). Not the answer to any task here. Likewise
    **don't browse `.handoff/`** — read only the specific task-file you are handed.
-3. Each source file opens with an `orientation:` comment block. Read that block
+3. Each real source file opens with an `orientation:` comment block. Read that block
    before reading the full body.
 4. Real source surface is small: `DsonDataTypes`, `DsonTypes`, `DsonHelpers`,
    `DsonParserAPI` (in `DsonParser/`) and `DsonTest2/DsonTest2.cpp`. Everything
