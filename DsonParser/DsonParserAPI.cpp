@@ -974,6 +974,26 @@ int DsonDocument_GetImageMapHeight(DsonDocumentHandle handle, int imageIndex) {
     return img ? static_cast<int>(img->map_height) : 0;
 }
 
+int DsonDocument_GetImageLayerCount(DsonDocumentHandle handle, int imageIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Image* img = doc ? At(doc->images, imageIndex) : nullptr;
+    return img ? static_cast<int>(img->layers.size()) : 0;
+}
+
+const char* DsonDocument_GetImageLayerTexturePath(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Image* img = doc ? At(doc->images, imageIndex) : nullptr;
+    const Dson::ImageLayer* layer = img ? At(img->layers, layerIdx) : nullptr;
+    return layer ? layer->url.c_str() : "";
+}
+
+const char* DsonDocument_GetImageLayerLabel(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Image* img = doc ? At(doc->images, imageIndex) : nullptr;
+    const Dson::ImageLayer* layer = img ? At(img->layers, layerIdx) : nullptr;
+    return layer ? layer->label.c_str() : "";
+}
+
 // Unknown-key diagnostics expose the parser's audit trail. Context names are
 // top-level parse scopes such as "geometry_library" or "scene"; values are keys
 // that were present in the JSON but not consumed by the current parser version.

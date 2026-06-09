@@ -112,7 +112,10 @@ current loader scope.
   `GetImageMapHeight`). For
   DAZ layered-image (LIE) `map` arrays it retains every layer (url + label) on
   `Image::layers`, not just the base; `map_file` stays the base layer (`map[0]`)
-  so existing single-texture resolution is unchanged.
+  so existing single-texture resolution is unchanged. Those `Image::layers` are
+  exposed by image index via
+  `DsonDocument_GetImageLayer{Count,TexturePath,Label}` (see Layered Image (LIE)
+  Channels below).
 
 `uv_set_library`
 : Parsed into `UVSet`. Captures UV coordinates, vertex count, and sparse
@@ -244,6 +247,23 @@ for scene materials:
 - `DsonDocument_GetSceneMaterialChannelLayerTexturePath` — layer path; layer `0`
   equals the channel's existing `TexturePath`.
 - `DsonDocument_GetSceneMaterialChannelLayerLabel` — the LIE layer label.
+
+The same layer stack is also addressable **by image index** (the `GetImageId` index
+space), for an image referenced from outside an inline material channel — e.g. a
+`scene.animations` `diffuse/image` binding to a base-figure LIE such as the Genesis 9
+eyes, which no channel references inline:
+
+- `DsonDocument_GetImageLayerCount` — textured-layer count of `Image::layers`. Unlike
+  the per-channel count, this is the **faithful stack size**: `1` for a plain single
+  texture, `N` for a LIE, `0` for a non-array or absent `map`. A color-only base layer
+  (a `map` element with no `url`) is not counted, so the Genesis 9 "Eye Color-3" stack
+  (Base[no url] / Sclera / Iris) reports `2`.
+- `DsonDocument_GetImageLayerTexturePath` / `…Label` — per-layer path/label by
+  `(imageIndex, layerIdx)`; layer `0` is the first textured map element.
+
+Resolving the `scene.animations` `"#fragment"` reference to an image index
+(percent-decode, then match against `GetImageId`) and compositing the layers remain
+consumer responsibilities.
 
 Per-layer compositing metadata (blend operation, opacity, color tint, transforms,
 active flag) is present in the DSON but intentionally not modeled in this surface;

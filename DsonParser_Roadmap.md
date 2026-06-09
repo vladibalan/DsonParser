@@ -75,6 +75,12 @@ across 4 audit passes with zero remaining gaps.
   `TexturePath`. Layers attach only on an identity (id/url) image match, never on a
   shared base-path match. Per-layer compositing metadata (operation/opacity/color/
   transforms/active) deferred to a future consumer.
+- Per-`image_library`-index LIE layer surface (additive, 1.3.0):
+  `GetImageLayer{Count,TexturePath,Label}` — the same parsed `Image::layers`, addressed
+  by the `GetImageId` index space, for an image referenced outside an inline channel
+  (e.g. a `scene.animations` LIE binding such as the Genesis 9 eyes). `Count` is the
+  faithful stack size (`1` plain / `N` LIE / `0` none), differing from the per-channel
+  `0`-for-plain.
 - Post-parse image linkage pass resolves `image_url` → `texture_path`, including
   percent-decoded fragment ids
 - Material `groups` array for scene material → surface zone mapping
