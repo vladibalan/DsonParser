@@ -247,6 +247,8 @@ for scene materials:
 - `DsonDocument_GetSceneMaterialChannelLayerTexturePath` — layer path; layer `0`
   equals the channel's existing `TexturePath`.
 - `DsonDocument_GetSceneMaterialChannelLayerLabel` — the LIE layer label.
+- `DsonDocument_GetSceneMaterialChannelLayer{BlendMode,Opacity,Active,Invert,ColorR,ColorG,ColorB,Rotation,ScaleX,ScaleY,OffsetX,OffsetY,MirrorX,MirrorY}` —
+  the per-layer compositing metadata (see Per-Layer Compositing below).
 
 The same layer stack is also addressable **by image index** (the `GetImageId` index
 space), for an image referenced from outside an inline material channel — e.g. a
@@ -260,14 +262,28 @@ eyes, which no channel references inline:
   (Base[no url] / Sclera / Iris) reports `2`.
 - `DsonDocument_GetImageLayerTexturePath` / `…Label` — per-layer path/label by
   `(imageIndex, layerIdx)`; layer `0` is the first textured map element.
+- `DsonDocument_GetImageLayer{BlendMode,Opacity,Active,Invert,ColorR,ColorG,ColorB,Rotation,ScaleX,ScaleY,OffsetX,OffsetY,MirrorX,MirrorY}` —
+  the same per-layer compositing metadata by `(imageIndex, layerIdx)` (see Per-Layer
+  Compositing below).
 
 Resolving the `scene.animations` `"#fragment"` reference to an image index
 (percent-decode, then match against `GetImageId`) and compositing the layers remain
 consumer responsibilities.
 
-Per-layer compositing metadata (blend operation, opacity, color tint, transforms,
-active flag) is present in the DSON but intentionally not modeled in this surface;
-it is left for a future compositing consumer.
+#### Per-Layer Compositing
+
+Per-layer compositing metadata is also modeled (1.4.0). Each `map` element's blend
+`operation`, `transparency` (opacity), `active`/`invert` flags, `color` tint, and 2D
+transform (`rotation`, `xscale`/`yscale`, `xoffset`/`yoffset`, `xmirror`/`ymirror`) are
+parsed verbatim onto `Image::layers` with DAZ-semantic defaults, and exposed by the 14
+`…Layer{BlendMode,Opacity,Active,Invert,ColorR,ColorG,ColorB,Rotation,ScaleX,ScaleY,OffsetX,OffsetY,MirrorX,MirrorY}`
+accessors on **each** of the two surfaces above. The parser performs **no** compositing,
+blending, or transform evaluation (R6.4) — a downstream consumer re-composites from the
+raw values; `Opacity` is the raw `transparency` (1 = opaque). Sentinels follow the R1
+family contract (string `""`, bool `false`, numeric `0.0`, scales `1.0`), so bound-check
+the layer `Count` first — e.g. `Opacity`'s `0.0` sentinel is also a legitimate value. A
+color-only base layer with no `url` stays excluded from `Image::layers` (so its
+compositing fields are unreachable), unchanged from 1.3.0.
 
 ## Skin Binding
 

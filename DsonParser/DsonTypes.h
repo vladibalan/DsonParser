@@ -88,9 +88,24 @@ struct Geometry {
 };
 
 // One image map layer: layer 0 is the base texture; higher indexes are LIE overlays.
+// Per-layer compositing metadata is parsed faithfully from the DAZ map-array element
+// as raw values verbatim; no compositing is performed here.
 struct ImageLayer {
-    std::string url;    // layer source path (map element "url"); layer 0 == base
-    std::string label;  // LIE layer label ("" if absent)
+    std::string url;          // map element "url"; layer 0 == base
+    std::string label;        // LIE layer label ("" if absent)
+    // Per-layer LIE compositing metadata — raw DAZ map-element values, verbatim.
+    std::string blend_op;     // "operation" (e.g. "blend_source_over"); "" if absent
+    double opacity   = 1.0;   // "transparency" (1 = opaque, 0 = transparent)
+    bool   active    = true;  // "active"
+    bool   invert    = false; // "invert"
+    Vector3 color    = {};    // "color" [r,g,b] tint (default 0,0,0)
+    double rotation  = 0.0;   // "rotation" (degrees)
+    double scale_x   = 1.0;   // "xscale"
+    double scale_y   = 1.0;   // "yscale"
+    double offset_x  = 0.0;   // "xoffset"
+    double offset_y  = 0.0;   // "yoffset"
+    bool   mirror_x  = false; // "xmirror"
+    bool   mirror_y  = false; // "ymirror"
 };
 
 // One PBR material channel: scalar/color value plus optional texture reference.
@@ -194,7 +209,8 @@ struct Modifier {
 };
 
 // Image/Texture data. map_file is the base map path; layers retain LIE map-array
-// entries (base plus overlays) without modeling compositing metadata.
+// entries (base plus overlays) with full per-layer compositing metadata (blend op,
+// opacity, active/invert, color tint, 2D transform) as raw parsed values.
 struct Image {
     String id;
     String name;

@@ -62,13 +62,15 @@ bool FileExists(const char* filepath) {
 // Resolve a file path for loading. Accepts either:
 //   - an absolute path (e.g. D:/Content/file.duf)
 //   - a filename that lives inside DsonTest2/TestFiles
-// Depending on how the program is launched the working directory is either the
-// project dir or the build output dir (x64/Debug), so try both TestFiles
-// locations. The direct/absolute path is always tried first.
+// Depending on how the program is launched the working directory is one of:
+//   repo/solution root (e.g. msbuild launch), project dir, or build output dir
+// (x64/Debug). Try all three TestFiles locations. The direct/absolute path is
+// always tried first.
 std::string ResolveTestFile(const std::string& name) {
     const std::string candidates[] = {
         name,                                      // direct or absolute path
         "TestFiles/" + name,                       // cwd = project dir
+        "DsonTest2/TestFiles/" + name,             // cwd = repo / solution root
         "../../DsonTest2/TestFiles/" + name        // cwd = x64/<Config>
     };
     for (const std::string& path : candidates) {
@@ -195,6 +197,217 @@ void RunVersionTest() {
     std::cout << "version check: " << (pass ? "PASS" : "FAIL") << "\n\n";
 }
 
+// Verifies the per-image LIE compositing metadata accessors (1.4.0) against
+// HID_Nancy_9.duf: finds the two 4-layer head stacks by layer count and confirms
+// blend ops, opacity, transforms, and color per the task spec.
+void RunImageLayerCompositingTest() {
+    std::cout << "=================================\n";
+    std::cout << "IMAGE LAYER COMPOSITING TEST (1.4.0)\n";
+    std::cout << "=================================\n\n";
+
+    const std::string filepath = ResolveTestFile("HID_Nancy_9.duf");
+    if (filepath.empty()) {
+        std::cout << "HID_Nancy_9.duf not found; skipping.\n\n";
+        return;
+    }
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc) { std::cout << "Failed to create document; skipping.\n\n"; return; }
+
+    if (DsonDocument_LoadFromFile(doc, filepath.c_str()) != 0) {
+        std::cout << "Error loading HID_Nancy_9.duf: " << DsonParser_GetLastError() << "\n\n";
+        DsonDocument_Destroy(doc);
+        return;
+    }
+
+    // Find the two 4-layer stacks by path suffix.
+    int imgCount = DsonDocument_GetImageCount(doc);
+    int diffuseIdx = -1, sssIdx = -1;
+    for (int i = 0; i < imgCount; i++) {
+        if (DsonDocument_GetImageLayerCount(doc, i) != 4) continue;
+        const char* path = DsonDocument_GetImageLayerTexturePath(doc, i, 0);
+        std::string p(path ? path : "");
+        if (p.find("head_base.jpg") != std::string::npos && diffuseIdx < 0) diffuseIdx = i;
+        if (p.find("head_sss.jpg")  != std::string::npos && sssIdx    < 0) sssIdx    = i;
+    }
+    std::cout << "Diffuse 4-layer index: " << diffuseIdx
+              << ", SSS 4-layer index: "   << sssIdx << "\n";
+
+    bool pass = true;
+
+    // --- Diffuse stack ---
+    if (diffuseIdx >= 0) {
+        // L0: identity blend op, opacity 1, active true, all transforms 0/1, color 0
+        bool l0 = std::strcmp(DsonDocument_GetImageLayerBlendMode(doc, diffuseIdx, 0), "blend_source_over") == 0
+               && std::fabs(DsonDocument_GetImageLayerOpacity(doc, diffuseIdx, 0) - 1.0) < 1e-9
+               && DsonDocument_GetImageLayerActive(doc, diffuseIdx, 0) == true
+               && DsonDocument_GetImageLayerInvert(doc, diffuseIdx, 0) == false
+               && std::fabs(DsonDocument_GetImageLayerOffsetX(doc, diffuseIdx, 0)) < 1e-9
+               && std::fabs(DsonDocument_GetImageLayerOffsetY(doc, diffuseIdx, 0)) < 1e-9
+               && std::fabs(DsonDocument_GetImageLayerScaleX(doc, diffuseIdx, 0) - 1.0) < 1e-9
+               && std::fabs(DsonDocument_GetImageLayerScaleY(doc, diffuseIdx, 0) - 1.0) < 1e-9
+               && std::fabs(DsonDocument_GetImageLayerRotation(doc, diffuseIdx, 0)) < 1e-9
+               && DsonDocument_GetImageLayerMirrorX(doc, diffuseIdx, 0) == false
+               && DsonDocument_GetImageLayerMirrorY(doc, diffuseIdx, 0) == false
+               && std::fabs(DsonDocument_GetImageLayerColorR(doc, diffuseIdx, 0)) < 1e-9
+               && std::fabs(DsonDocument_GetImageLayerColorG(doc, diffuseIdx, 0)) < 1e-9
+               && std::fabs(DsonDocument_GetImageLayerColorB(doc, diffuseIdx, 0)) < 1e-9;
+        std::cout << "Diffuse L0 (identity blend_source_over): " << (l0 ? "PASS" : "FAIL") << "\n";
+        pass = pass && l0;
+
+        // L1: label contains brows_base, blend_multiply, opacity 1
+        bool l1 = std::strcmp(DsonDocument_GetImageLayerBlendMode(doc, diffuseIdx, 1), "blend_multiply") == 0
+               && std::fabs(DsonDocument_GetImageLayerOpacity(doc, diffuseIdx, 1) - 1.0) < 1e-9;
+        const char* l1label = DsonDocument_GetImageLayerLabel(doc, diffuseIdx, 1);
+        std::cout << "Diffuse L1 label: \"" << (l1label ? l1label : "") << "\"\n";
+        std::cout << "Diffuse L1 (blend_multiply, opacity 1): " << (l1 ? "PASS" : "FAIL") << "\n";
+        pass = pass && l1;
+
+        // L2/L3: blend_source_over, opacity 1
+        for (int li = 2; li <= 3; li++) {
+            bool ln = std::strcmp(DsonDocument_GetImageLayerBlendMode(doc, diffuseIdx, li), "blend_source_over") == 0
+                   && std::fabs(DsonDocument_GetImageLayerOpacity(doc, diffuseIdx, li) - 1.0) < 1e-9;
+            std::cout << "Diffuse L" << li << " (blend_source_over, opacity 1): " << (ln ? "PASS" : "FAIL") << "\n";
+            pass = pass && ln;
+        }
+    } else {
+        std::cout << "Diffuse 4-layer stack not found: FAIL\n";
+        pass = false;
+    }
+
+    // --- SSS stack ---
+    if (sssIdx >= 0) {
+        // L0: blend_source_over, opacity 1
+        bool s0 = std::strcmp(DsonDocument_GetImageLayerBlendMode(doc, sssIdx, 0), "blend_source_over") == 0
+               && std::fabs(DsonDocument_GetImageLayerOpacity(doc, sssIdx, 0) - 1.0) < 1e-9;
+        std::cout << "SSS L0 (blend_source_over, opacity 1): " << (s0 ? "PASS" : "FAIL") << "\n";
+        pass = pass && s0;
+
+        // L1..L3: opacity 0.5
+        for (int li = 1; li <= 3; li++) {
+            bool sn = std::fabs(DsonDocument_GetImageLayerOpacity(doc, sssIdx, li) - 0.5) < 1e-9;
+            std::cout << "SSS L" << li << " (opacity 0.5): " << (sn ? "PASS" : "FAIL") << "\n";
+            pass = pass && sn;
+        }
+    } else {
+        std::cout << "SSS 4-layer stack not found: FAIL\n";
+        pass = false;
+    }
+
+    std::cout << "\nPer-image compositing test overall: " << (pass ? "PASS" : "FAIL") << "\n\n";
+    DsonDocument_Destroy(doc);
+}
+
+// Verifies the per-channel LIE compositing accessors (1.4.0) with a crafted
+// inline DSON using an identity-matched "#lie0" image reference so layers copy
+// onto the channel, then asserts all 14 new fields on both layers.
+void RunChannelLayerCompositingTest() {
+    std::cout << "=================================\n";
+    std::cout << "CHANNEL LAYER COMPOSITING TEST (1.4.0)\n";
+    std::cout << "=================================\n\n";
+
+    // Minimal DSON: image_library entry "lie0" with 2-element LIE map; scene
+    // material diffuse channel references "#lie0" for identity-match linkage.
+    static const char kLieDson[] =
+        "{\"file_version\":\"0.6.0.0\","
+        "\"image_library\":[{"
+          "\"id\":\"lie0\",\"name\":\"lie0\","
+          "\"map\":["
+            "{"
+              "\"url\":\"/base.jpg\",\"label\":\"Base\","
+              "\"operation\":\"blend_source_over\","
+              "\"transparency\":1.0,\"active\":true,\"invert\":false,"
+              "\"color\":[0,0,0],"
+              "\"rotation\":0.0,\"xscale\":1.0,\"yscale\":1.0,"
+              "\"xoffset\":0.0,\"yoffset\":0.0,\"xmirror\":false,\"ymirror\":false"
+            "},"
+            "{"
+              "\"url\":\"/overlay.jpg\",\"label\":\"Overlay\","
+              "\"operation\":\"blend_multiply\","
+              "\"transparency\":0.75,\"active\":true,\"invert\":true,"
+              "\"color\":[1.0,0.5,0.25],"
+              "\"rotation\":45.0,\"xscale\":2.0,\"yscale\":3.0,"
+              "\"xoffset\":0.1,\"yoffset\":0.2,\"xmirror\":true,\"ymirror\":false"
+            "}"
+          "]"
+        "}],"
+        "\"scene\":{\"materials\":[{"
+          "\"id\":\"LIETestMat\",\"name\":\"LIETestMat\","
+          "\"diffuse\":{"
+            "\"channel\":{"
+              "\"id\":\"diffuse\",\"type\":\"float_color\","
+              "\"current_value\":[1,1,1],"
+              "\"image\":\"#lie0\""
+            "}"
+          "}"
+        "}]}}";
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc) { std::cout << "Failed to create document; skipping.\n\n"; return; }
+
+    if (DsonDocument_LoadFromString(doc, kLieDson) != 0) {
+        std::cout << "Error loading crafted DSON: " << DsonParser_GetLastError() << "\n\n";
+        DsonDocument_Destroy(doc);
+        return;
+    }
+
+    // Scene material 0, channel 0 (diffuse) should have 2 layers after linkage.
+    int layerCount = DsonDocument_GetSceneMaterialChannelLayerCount(doc, 0, 0);
+    std::cout << "Channel layer count (expect 2): " << layerCount << "\n";
+    bool pass = (layerCount == 2);
+
+    if (layerCount >= 2) {
+        // Layer 0: blend_source_over, opacity 1, active, not invert, color 0/0/0, identity transform
+        bool l0 = std::strcmp(DsonDocument_GetSceneMaterialChannelLayerBlendMode(doc, 0, 0, 0), "blend_source_over") == 0
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerOpacity(doc, 0, 0, 0) - 1.0) < 1e-9
+               && DsonDocument_GetSceneMaterialChannelLayerActive(doc, 0, 0, 0) == true
+               && DsonDocument_GetSceneMaterialChannelLayerInvert(doc, 0, 0, 0) == false
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerColorR(doc, 0, 0, 0)) < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerColorG(doc, 0, 0, 0)) < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerColorB(doc, 0, 0, 0)) < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerRotation(doc, 0, 0, 0)) < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerScaleX(doc, 0, 0, 0) - 1.0) < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerScaleY(doc, 0, 0, 0) - 1.0) < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerOffsetX(doc, 0, 0, 0)) < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerOffsetY(doc, 0, 0, 0)) < 1e-9
+               && DsonDocument_GetSceneMaterialChannelLayerMirrorX(doc, 0, 0, 0) == false
+               && DsonDocument_GetSceneMaterialChannelLayerMirrorY(doc, 0, 0, 0) == false;
+        std::cout << "Channel L0 (all fields identity): " << (l0 ? "PASS" : "FAIL") << "\n";
+        pass = pass && l0;
+
+        // Layer 1: blend_multiply, opacity 0.75, invert, color 1/0.5/0.25, non-identity transform
+        bool l1 = std::strcmp(DsonDocument_GetSceneMaterialChannelLayerBlendMode(doc, 0, 0, 1), "blend_multiply") == 0
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerOpacity(doc, 0, 0, 1) - 0.75) < 1e-9
+               && DsonDocument_GetSceneMaterialChannelLayerActive(doc, 0, 0, 1) == true
+               && DsonDocument_GetSceneMaterialChannelLayerInvert(doc, 0, 0, 1) == true
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerColorR(doc, 0, 0, 1) - 1.0)  < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerColorG(doc, 0, 0, 1) - 0.5)  < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerColorB(doc, 0, 0, 1) - 0.25) < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerRotation(doc, 0, 0, 1) - 45.0) < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerScaleX(doc, 0, 0, 1) - 2.0) < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerScaleY(doc, 0, 0, 1) - 3.0) < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerOffsetX(doc, 0, 0, 1) - 0.1) < 1e-9
+               && std::fabs(DsonDocument_GetSceneMaterialChannelLayerOffsetY(doc, 0, 0, 1) - 0.2) < 1e-9
+               && DsonDocument_GetSceneMaterialChannelLayerMirrorX(doc, 0, 0, 1) == true
+               && DsonDocument_GetSceneMaterialChannelLayerMirrorY(doc, 0, 0, 1) == false;
+        std::cout << "Channel L1 (blend_multiply, non-identity): " << (l1 ? "PASS" : "FAIL") << "\n";
+        pass = pass && l1;
+
+        // Out-of-range sentinel checks: ScaleX/Y return 1.0; others return 0/false/"".
+        bool oob = std::fabs(DsonDocument_GetSceneMaterialChannelLayerScaleX(doc, 0, 0, 99) - 1.0) < 1e-9
+                && std::fabs(DsonDocument_GetSceneMaterialChannelLayerScaleY(doc, 0, 0, 99) - 1.0) < 1e-9
+                && std::fabs(DsonDocument_GetSceneMaterialChannelLayerOpacity(doc, 0, 0, 99)) < 1e-9
+                && DsonDocument_GetSceneMaterialChannelLayerActive(doc, 0, 0, 99) == false
+                && std::strcmp(DsonDocument_GetSceneMaterialChannelLayerBlendMode(doc, 0, 0, 99), "") == 0;
+        std::cout << "Out-of-range sentinels (ScaleX/Y=1, Opacity/Active/BlendMode=0/false/\"\"): "
+                  << (oob ? "PASS" : "FAIL") << "\n";
+        pass = pass && oob;
+    }
+
+    std::cout << "\nPer-channel compositing test overall: " << (pass ? "PASS" : "FAIL") << "\n\n";
+    DsonDocument_Destroy(doc);
+}
+
 // Verifies the scene.animations surface against Genesis_9_Mouth_MAT.duf:
 //   - Prints count + per-entry kind/url/value (eyeball check).
 //   - Asserts three anchor values for the Mouth material.
@@ -308,6 +521,8 @@ int main(int argc, char* argv[])
     RunVersionTest();
     RunGzipFixtureTests();
     RunImageMapSizeTest();
+    RunImageLayerCompositingTest();
+    RunChannelLayerCompositingTest();
     RunSceneAnimationsTest();
 
     // Create a DSON document

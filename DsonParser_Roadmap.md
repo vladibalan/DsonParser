@@ -73,8 +73,10 @@ across 4 audit passes with zero remaining gaps.
   `GetSceneMaterialChannelLayer{Count,TexturePath,Label}` — `Count` is `0` for a
   plain channel, `N ≥ 2` for a layered one; layer `0` == the channel's base
   `TexturePath`. Layers attach only on an identity (id/url) image match, never on a
-  shared base-path match. Per-layer compositing metadata (operation/opacity/color/
-  transforms/active) deferred to a future consumer.
+  shared base-path match. Per-layer compositing metadata — blend `operation`, opacity,
+  active/invert, color tint, and the 2D transform — is exposed on **both** layer
+  surfaces via the matching `…Layer{BlendMode,Opacity,Active,Invert,ColorR,ColorG,ColorB,Rotation,ScaleX,ScaleY,OffsetX,OffsetY,MirrorX,MirrorY}`
+  accessors (1.4.0; raw values, no compositing performed).
 - Per-`image_library`-index LIE layer surface (additive, 1.3.0):
   `GetImageLayer{Count,TexturePath,Label}` — the same parsed `Image::layers`, addressed
   by the `GetImageId` index space, for an image referenced outside an inline channel
@@ -345,6 +347,27 @@ G. Formulas
 
 ## Recently completed (post-v1)
 
+### Per-layer LIE compositing metadata (`Image::layers`) — ✅ implemented (Jun 2026)
+DAZ Layered Image (LIE) `map` elements carry per-layer compositing instructions — blend
+`operation`, `transparency` (opacity), `active`/`invert` flags, `color` tint, and a 2D
+transform (`rotation`, `xscale`/`yscale`, `xoffset`/`yoffset`, `xmirror`/`ymirror`).
+Through 1.3.0 only each layer's `url`/`label` was retained; these are now parsed
+faithfully onto `Dson::ImageLayer` (raw values, DAZ-semantic defaults) and exposed by
+**28 additive** accessors (library version **1.4.0**) — 14 shared suffixes across both
+the per-`image_library`-index surface (`DsonDocument_GetImageLayer*`) and the
+per-scene-material-channel surface (`DsonDocument_GetSceneMaterialChannelLayer*`):
+`{BlendMode, Opacity, Active, Invert, ColorR, ColorG, ColorB, Rotation, ScaleX, ScaleY,
+OffsetX, OffsetY, MirrorX, MirrorY}`. Sentinels follow the R1 family contract (string
+`""`, bool `false`, numeric `0.0`, scales `1.0`); `Opacity` is the raw `transparency`
+(1 = opaque). The parser performs no compositing — a downstream consumer re-composites
+from the raw layers (R6.4). A color-only base layer with no `url` stays excluded from
+`Image::layers`, unchanged from 1.3.0. Verified against `TestFiles/HID_Nancy_9.duf` (G9
+HID Nancy head diffuse + SSS Color, 4-layer stacks) and a crafted inline-`#id`
+per-channel snippet in `DsonTest2.cpp`.
+
+**Consumer note (additive, non-breaking):** the 28 new functions are available to the
+UE plugin; existing calls are unaffected.
+
 ### Scene animations key-0 channel surface (`scene.animations`) — ✅ implemented (Jun 2026)
 DAZ `preset_hierarchical_material` presets park real material-channel values and
 `image_file` paths in `scene.animations` (`{url, keys}`, key 0 = initialization data)
@@ -415,9 +438,10 @@ over the C ABI by three **additive** accessors alongside the existing `GetImageC
 - `DsonDocument_GetImageMapHeight(handle, imageIndex)` — same contract.
 
 Parser stays permissive (any non-`[w,h]` shape leaves the `0` defaults); `map_size`
-was already in `Image`'s `knownKeys`, so no knownKeys change. The DAZ LIE `map`
-compositing layers (blend operation/offsets) remain intentionally unmodeled — only
-each layer's `url`/`label` is retained on `Image::layers`. Covered by a harness check
+was already in `Image`'s `knownKeys`, so no knownKeys change. (At that time the DAZ LIE
+`map` per-layer compositing fields were unmodeled — only each layer's `url`/`label` was
+retained on `Image::layers`; the full per-layer compositing set was added later in
+1.4.0, see Recently completed.) Covered by a harness check
 in `DsonTest2.cpp` (`HID_Nancy_9.duf`, expects 4096×4096 plus the `0` out-of-range
 sentinel).
 

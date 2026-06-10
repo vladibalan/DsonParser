@@ -93,7 +93,7 @@ breaking-change rules are most often broken by "minor" tweaks.
 | `DsonParser/DsonTypes.cpp` | Main parser: RapidJSON → `Dson::*` model + post-parse image linkage. (~1160 lines) |
 | `DsonParser/DsonHelpers.{h,cpp}` | Safe RapidJSON accessor helpers (`JsonHelper`). Declarations in `.h`, implementations in `.cpp`. |
 | `DsonParser/DsonInflate.{h,cpp}` | Internal dependency-free gzip/DEFLATE inflater used by the loader; verifies CRC32 and ISIZE before JSON parsing. |
-| `DsonParser/DsonParserAPI.{h,cpp}` | Flat `extern "C"` C ABI: opaque handles, parser-owned string returns, bounds-checked accessors, lazy query caches. (`.cpp` ~1810 lines) |
+| `DsonParser/DsonParserAPI.{h,cpp}` | Flat `extern "C"` C ABI: opaque handles, parser-owned string returns, bounds-checked accessors, lazy query caches. (`.cpp` ~2025 lines) |
 | `DsonParser/DsonParserVersion.h` | Canonical single-source-of-truth library version macros (`DSONPARSER_VERSION_*`); published with and included by `DsonParserAPI.h`. Backs `DsonParser_GetVersion()`. |
 | `DsonTest2/DsonTest2.cpp` | Console test harness that exercises the C API. |
 

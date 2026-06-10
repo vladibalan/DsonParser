@@ -740,7 +740,26 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
                 if (!GetImageMapPath(map[i], layer.url) || layer.url.empty()) {
                     continue;
                 }
-                layer.label = map[i].IsObject() ? JsonHelper::GetStringOrDefault(map[i], "label") : "";
+                if (map[i].IsObject()) {
+                    layer.label    = JsonHelper::GetStringOrDefault(map[i], "label");
+                    layer.blend_op = JsonHelper::GetStringOrDefault(map[i], "operation");
+                    layer.opacity  = JsonHelper::GetDoubleOrDefault(map[i], "transparency", 1.0);
+                    layer.active   = JsonHelper::GetBoolOrDefault  (map[i], "active",  true);
+                    layer.invert   = JsonHelper::GetBoolOrDefault  (map[i], "invert",  false);
+                    layer.rotation = JsonHelper::GetDoubleOrDefault(map[i], "rotation", 0.0);
+                    layer.scale_x  = JsonHelper::GetDoubleOrDefault(map[i], "xscale",  1.0);
+                    layer.scale_y  = JsonHelper::GetDoubleOrDefault(map[i], "yscale",  1.0);
+                    layer.offset_x = JsonHelper::GetDoubleOrDefault(map[i], "xoffset", 0.0);
+                    layer.offset_y = JsonHelper::GetDoubleOrDefault(map[i], "yoffset", 0.0);
+                    layer.mirror_x = JsonHelper::GetBoolOrDefault  (map[i], "xmirror", false);
+                    layer.mirror_y = JsonHelper::GetBoolOrDefault  (map[i], "ymirror", false);
+                    const rapidjson::Value* c = nullptr;
+                    if (JsonHelper::GetArray(map[i], "color", c) && c->Size() >= 3) {
+                        if ((*c)[0].IsNumber()) layer.color.x = (*c)[0].GetDouble();
+                        if ((*c)[1].IsNumber()) layer.color.y = (*c)[1].GetDouble();
+                        if ((*c)[2].IsNumber()) layer.color.z = (*c)[2].GetDouble();
+                    }
+                }
                 layers.push_back(layer);
             }
         }

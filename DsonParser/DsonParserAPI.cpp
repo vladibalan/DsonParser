@@ -18,7 +18,8 @@
 // Responsibilities:
 // - Manage document lifetime, loading, clearing, and error reporting.
 // - Provide bounds-checked accessors for the typed data parsed in DsonTypes.cpp.
-// - Expose scene-material texture paths plus retained LIE layer paths/labels.
+// - Expose scene-material texture paths plus retained LIE layer paths/labels and
+//   per-layer compositing metadata (blend op, opacity, active/invert, color, transform).
 // - Keep return values simple and ABI-friendly: strings are parser-owned
 //   const char*; invalid handles/indexes return "" / 0 / false. Count functions
 //   always return 0 on error (never -1); -1 is reserved for value/index
@@ -203,6 +204,84 @@ static const char* GetMaterialChannelLayerLabel(
     return layer ? layer->label.c_str() : "";
 }
 
+// Shared resolver for per-channel layer compositing accessors.
+static const Dson::ImageLayer* GetMaterialChannelLayerPtr(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const auto* channel = GetMaterialChannel(channels, channelIdx);
+    return channel ? At(channel->second.layers, layerIdx) : nullptr;
+}
+
+static const char* GetMaterialChannelLayerBlendMode(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->blend_op.c_str() : "";
+}
+static double GetMaterialChannelLayerOpacity(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->opacity : 0.0;
+}
+static bool GetMaterialChannelLayerActive(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->active : false;
+}
+static bool GetMaterialChannelLayerInvert(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->invert : false;
+}
+static double GetMaterialChannelLayerColorR(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->color.x : 0.0;
+}
+static double GetMaterialChannelLayerColorG(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->color.y : 0.0;
+}
+static double GetMaterialChannelLayerColorB(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->color.z : 0.0;
+}
+static double GetMaterialChannelLayerRotation(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->rotation : 0.0;
+}
+static double GetMaterialChannelLayerScaleX(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->scale_x : 1.0;
+}
+static double GetMaterialChannelLayerScaleY(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->scale_y : 1.0;
+}
+static double GetMaterialChannelLayerOffsetX(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->offset_x : 0.0;
+}
+static double GetMaterialChannelLayerOffsetY(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->offset_y : 0.0;
+}
+static bool GetMaterialChannelLayerMirrorX(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->mirror_x : false;
+}
+static bool GetMaterialChannelLayerMirrorY(
+    const MaterialChannelList& channels, int channelIdx, int layerIdx) {
+    const Dson::ImageLayer* L = GetMaterialChannelLayerPtr(channels, channelIdx, layerIdx);
+    return L ? L->mirror_y : false;
+}
+
 // Morph accessors expose a dense list of morph modifiers. Real DAZ morphs are
 // identified by their nested "morph" payload; legacy flat files may use
 // type == "morph".
@@ -377,6 +456,13 @@ static void EnsureSkinCache(DsonContext* ctx, int modifierIndex) {
     }
 
     ctx->skinCache.built = true;
+}
+
+// Shared resolver for per-image layer compositing accessors.
+static const Dson::ImageLayer* GetImageLayer(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Image* img = doc ? At(doc->images, imageIndex) : nullptr;
+    return img ? At(img->layers, layerIdx) : nullptr;
 }
 
 } // namespace
@@ -992,6 +1078,63 @@ const char* DsonDocument_GetImageLayerLabel(DsonDocumentHandle handle, int image
     const Dson::Image* img = doc ? At(doc->images, imageIndex) : nullptr;
     const Dson::ImageLayer* layer = img ? At(img->layers, layerIdx) : nullptr;
     return layer ? layer->label.c_str() : "";
+}
+
+const char* DsonDocument_GetImageLayerBlendMode(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->blend_op.c_str() : "";
+}
+double DsonDocument_GetImageLayerOpacity(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->opacity : 0.0;
+}
+bool DsonDocument_GetImageLayerActive(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->active : false;
+}
+bool DsonDocument_GetImageLayerInvert(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->invert : false;
+}
+double DsonDocument_GetImageLayerColorR(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->color.x : 0.0;
+}
+double DsonDocument_GetImageLayerColorG(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->color.y : 0.0;
+}
+double DsonDocument_GetImageLayerColorB(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->color.z : 0.0;
+}
+double DsonDocument_GetImageLayerRotation(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->rotation : 0.0;
+}
+double DsonDocument_GetImageLayerScaleX(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->scale_x : 1.0;
+}
+double DsonDocument_GetImageLayerScaleY(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->scale_y : 1.0;
+}
+double DsonDocument_GetImageLayerOffsetX(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->offset_x : 0.0;
+}
+double DsonDocument_GetImageLayerOffsetY(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->offset_y : 0.0;
+}
+bool DsonDocument_GetImageLayerMirrorX(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->mirror_x : false;
+}
+bool DsonDocument_GetImageLayerMirrorY(DsonDocumentHandle handle, int imageIndex, int layerIdx) {
+    const Dson::ImageLayer* L = GetImageLayer(handle, imageIndex, layerIdx);
+    return L ? L->mirror_y : false;
 }
 
 // Unknown-key diagnostics expose the parser's audit trail. Context names are
@@ -1668,6 +1811,77 @@ const char* DsonDocument_GetSceneMaterialChannelLayerLabel(DsonDocumentHandle ha
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
     return mat ? GetMaterialChannelLayerLabel(mat->channels, channelIdx, layerIdx) : "";
+}
+
+const char* DsonDocument_GetSceneMaterialChannelLayerBlendMode(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerBlendMode(mat->channels, channelIdx, layerIdx) : "";
+}
+double DsonDocument_GetSceneMaterialChannelLayerOpacity(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerOpacity(mat->channels, channelIdx, layerIdx) : 0.0;
+}
+bool DsonDocument_GetSceneMaterialChannelLayerActive(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerActive(mat->channels, channelIdx, layerIdx) : false;
+}
+bool DsonDocument_GetSceneMaterialChannelLayerInvert(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerInvert(mat->channels, channelIdx, layerIdx) : false;
+}
+double DsonDocument_GetSceneMaterialChannelLayerColorR(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerColorR(mat->channels, channelIdx, layerIdx) : 0.0;
+}
+double DsonDocument_GetSceneMaterialChannelLayerColorG(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerColorG(mat->channels, channelIdx, layerIdx) : 0.0;
+}
+double DsonDocument_GetSceneMaterialChannelLayerColorB(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerColorB(mat->channels, channelIdx, layerIdx) : 0.0;
+}
+double DsonDocument_GetSceneMaterialChannelLayerRotation(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerRotation(mat->channels, channelIdx, layerIdx) : 0.0;
+}
+double DsonDocument_GetSceneMaterialChannelLayerScaleX(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerScaleX(mat->channels, channelIdx, layerIdx) : 1.0;
+}
+double DsonDocument_GetSceneMaterialChannelLayerScaleY(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerScaleY(mat->channels, channelIdx, layerIdx) : 1.0;
+}
+double DsonDocument_GetSceneMaterialChannelLayerOffsetX(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerOffsetX(mat->channels, channelIdx, layerIdx) : 0.0;
+}
+double DsonDocument_GetSceneMaterialChannelLayerOffsetY(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerOffsetY(mat->channels, channelIdx, layerIdx) : 0.0;
+}
+bool DsonDocument_GetSceneMaterialChannelLayerMirrorX(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerMirrorX(mat->channels, channelIdx, layerIdx) : false;
+}
+bool DsonDocument_GetSceneMaterialChannelLayerMirrorY(DsonDocumentHandle handle, int sceneMatIndex, int channelIdx, int layerIdx) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Material* mat = doc ? At(doc->scene.materials, sceneMatIndex) : nullptr;
+    return mat ? GetMaterialChannelLayerMirrorY(mat->channels, channelIdx, layerIdx) : false;
 }
 
 // ============================================================
