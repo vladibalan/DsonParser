@@ -101,3 +101,63 @@ changes, C API additions, unknown-key changes, and tests needed to support
 formula operations such as push url, push val, mult, div, add, sub, pow, and
 spline_tcb. Do not implement; produce a concrete implementation checklist.
 ```
+
+## Accessor Fan-Out (C ABI Maintenance Tripwire)
+
+```text
+This is a maintenance-health tripwire, not a coverage audit: it watches whether
+the flat C ABI's per-field accessor fan-out is outgrowing the model it exposes,
+so the threshold for a struct-returning C ABI is caught on the trend rather than
+after the fact. Start with docs/dson-parsing-overview.md (API Ownership section)
+and docs/code-review-rules.md (R1 per-family return-value contract, R2
+API-change-is-breaking rule, R3 DRY helpers). Inspect DsonParserAPI.h,
+DsonParserAPI.cpp, DsonTypes.h, and CHANGELOG.md. Do not implement; report
+findings + a verdict.
+
+Measure (countable):
+1. Accessor/field ratio. Count exported DsonDocument_* functions in
+   DsonParserAPI.h vs the data-carrying members across the DsonTypes.h structs.
+   Flag if the function count is growing faster than the model (super-linear
+   fan-out). Reference point: ImageLayer is one struct exposed via 14 accessors.
+2. Mirrored families. Find leaf-struct accessor families re-emitted under more
+   than one parent path for the SAME physically-shared data -- e.g. the per-layer
+   compositing family exposed both as DsonDocument_GetSceneMaterialChannelLayer*
+   and DsonDocument_GetImageLayer* (both read the one Image::layers stack).
+   EXCLUDE the deliberate library-vs-scene instance pairs (GetMaterial* /
+   GetSceneMaterial*, GetMaterialChannel* / GetSceneMaterialChannel*,
+   GetModifierFormula* / GetSceneModifierFormula*, the Modifier channel-dial
+   pair, the material-groups pair): those mirror the DSON library/instance
+   duality over DIFFERENT data populations and are mandated by the Scene-vs-
+   Library design, not fan-out. Count only genuine same-data mirrors, and list
+   how many surfaces reach each. Baseline 2026-06-11: 1 (ImageLayer).
+3. Max index arity. Find the highest number of index parameters on any accessor
+   (today: 3 -- material, channel, layer). Flag any accessor at 4+.
+
+Judge (qualitative):
+4. R1 slips on the newest accessors. For the most recently added families, check
+   the R1 family return-value contract holds: correct sentinel for the family
+   ("" / 0 / 0.0 / false / -1), bounds-check before access, and the
+   count-accessor and value-accessor agreeing on what is valid. Recurring slips
+   on freshly added accessors mean the flat pattern is generating this bug class
+   by construction.
+5. Ceremony vs logic. Across recent CHANGELOG.md releases, judge whether the bulk
+   of each release is mechanical accessor/header/version fan-out rather than
+   parsing logic. (Do NOT browse .handoff/ -- it is off-limits per CLAUDE.md; use
+   CHANGELOG.md and the source.)
+
+Verdict (recurrence, not magnitude, is the trigger):
+- GREEN: no mirrored family beyond the one known (layer compositing), max arity
+  <= 3, no R1-slip cluster on new accessors.
+- YELLOW: a SECOND leaf family gets hand-mirrored across surfaces, OR an accessor
+  reaches 4 indices, OR R1 slips recur on new accessors.
+- RED: multiple newly mirrored families / pervasive fan-out across the surface.
+
+If YELLOW/RED and the cause is leaf-heavy structs reached from multiple paths,
+the bounded remedy is a struct-returning C ABI for those sections (return a small
+POD per channel/layer): it keeps ABI safety and SemVer-over-C-ABI stability while
+cutting both call count and accessor boilerplate. Do NOT reach for it if the real
+pain is instead ABI instability (a struct return makes that worse), data-shape
+comprehension (fix dson-parsing-overview.md, not the API shape), or a recomputed
+view (use a bulk accessor or a lazy cache). Report the metric values, the
+GREEN/YELLOW/RED verdict, and the recommendation with file/line references.
+```
