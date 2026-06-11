@@ -149,7 +149,7 @@ In `DsonTypes.cpp`:
   compiled before handoff — a stray edit can still break the build — and the result is
   stated explicitly.
 - **R7.3** — Files > 500 lines: confirm before reading in full. The two large files
-  are `DsonParserAPI.cpp` (~1.8k) and `DsonTypes.cpp` (~1.2k).
+  are `DsonParserAPI.cpp` (~2.0k) and `DsonTypes.cpp` (~1.2k).
 
 ## 8. How to conduct & report the review
 

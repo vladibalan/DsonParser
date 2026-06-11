@@ -51,7 +51,8 @@ bumps within `1.x` — adding a capability does not imply `2.0.0`. A `2.0.0` com
 ## Single source of truth
 
 `DsonParser/DsonParserVersion.h` holds the canonical macros; everything else
-mirrors them:
+mirrors them (format shown — the live values are whatever the header currently
+declares, illustrated here at the `1.0.0` baseline):
 
 ```c
 #define DSONPARSER_VERSION_MAJOR  1
@@ -74,11 +75,13 @@ field — a property of the loaded DSON file, not of this library.
 
 ## Baseline
 
-**1.0.0** is the first *versioned* release: it labels the entire current tree
-(all ~180 C ABI functions, including the post-v1 additive surfaces). Pre-
-versioning history is **not** retro-numbered — it predates any shipped version.
-Capability detail for the baseline lives in `DsonParser_Roadmap.md`; changes from
-here forward are tracked per release in [`../CHANGELOG.md`](../CHANGELOG.md).
+**1.0.0** is the first *versioned* release: it labels the tree as of that release
+(~180 C ABI functions, including the post-v1-epoch additive surfaces folded in by
+then). Pre-versioning history is **not** retro-numbered — it predates any shipped
+version. Surfaces added *since* 1.0.0 ship as additive MINOR bumps (1.1.0+), so
+the live total is higher than the baseline ~180; those changes are tracked per
+release in [`../CHANGELOG.md`](../CHANGELOG.md), while capability detail for the
+baseline lives in `DsonParser_Roadmap.md`.
 
 ## Per-change workflow
 

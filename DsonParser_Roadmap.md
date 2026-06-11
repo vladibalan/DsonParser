@@ -28,7 +28,7 @@ across 4 audit passes with zero remaining gaps.
 | `DsonInflate.h/.cpp` | Internal dependency-free gzip/DEFLATE inflater run before JSON parsing; verifies gzip CRC32 + ISIZE |
 | `DsonParserAPI.h/.cpp` | Flat C API (`extern "C"`) with opaque `DsonDocumentHandle`; per-vertex skin cache; morph index cache |
 
-### C API — ~180 exported functions covering:
+### C API — ~180 exported functions (v1 baseline; post-v1 additions below) covering:
 
 **Geometry (A)**
 - Vertex positions (X/Y/Z per vertex)
