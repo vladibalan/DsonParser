@@ -95,7 +95,8 @@ breaking-change rules are most often broken by "minor" tweaks.
 | `DsonParser/DsonInflate.{h,cpp}` | Internal dependency-free gzip/DEFLATE inflater used by the loader; verifies CRC32 and ISIZE before JSON parsing. |
 | `DsonParser/DsonParserAPI.{h,cpp}` | Flat `extern "C"` C ABI: opaque handles, parser-owned string returns, bounds-checked accessors, lazy query caches. (`.cpp` ~2025 lines) |
 | `DsonParser/DsonParserVersion.h` | Canonical single-source-of-truth library version macros (`DSONPARSER_VERSION_*`); published with and included by `DsonParserAPI.h`. Backs `DsonParser_GetVersion()`. |
-| `DsonTest2/DsonTest2.cpp` | Console test harness that exercises the C API. |
+| `DsonTest2/DsonTest2.cpp` | Console test harness that exercises the C API (load-time-links `DsonParser.lib`). |
+| `DsonLoadTest/DsonLoadTest.cpp` | Standalone dynamic-load regression test: loads `DsonParser.dll` at runtime via `LoadLibrary`/`GetProcAddress` (no `.lib` link), with worker threads started *before* the load, to verify the 1.6.0 per-thread last-error contract under the consumer's real (dynamic) load model. |
 
 The published surface is `DsonParserAPI.h` (the flat C ABI). The C++ model
 headers (`DsonDataTypes.h`, `DsonTypes.h`, `DsonHelpers.h`) are internal
@@ -107,8 +108,15 @@ Boilerplate (rarely relevant): `pch.{h,cpp}`, `framework.h`, `dllmain.cpp`.
 ## Build & test
 
 - This is a Visual Studio solution: `DsonTest2.sln` (`DsonParser` = DLL,
-  `DsonTest2` = console test exe linking `DsonParser.lib`).
+  `DsonTest2` = console test exe linking `DsonParser.lib`, `DsonLoadTest` = console
+  exe that dynamic-loads the DLL — no `.lib` link — to test the threading contract
+  under the consumer's real load model).
 - Typical build: `msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64`.
+- The test exes build to `x64\Release\` beside `DsonParser.dll`; run them from there
+  (so `DsonLoadTest` resolves the DLL). A still-running test exe holds
+  `DsonParser.dll` open and will break a later `/t:Rebuild` with `LNK1104` — close
+  test exes before rebuilding (`DsonTest2` waits for a keypress at exit, so it is
+  easy to leave running).
 - **The Implementer builds and verifies.** After source changes, compile (and run
   the `DsonTest2` harness where useful) and report the real result — errors,
   warnings, pass/fail — in the feedback-file. Never claim something compiled or

@@ -10,6 +10,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DsonTest2", "DsonTest2\Dson
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DsonParser", "DsonParser\DsonParser.vcxproj", "{A4E91D44-8960-46EE-92F6-4FDD21C3FC9C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DsonLoadTest", "DsonLoadTest\DsonLoadTest.vcxproj", "{CC953286-6FDB-4A55-9656-48516B513FD8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A4E91D44-8960-46EE-92F6-4FDD21C3FC9C} = {A4E91D44-8960-46EE-92F6-4FDD21C3FC9C}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -34,6 +39,14 @@ Global
 		{A4E91D44-8960-46EE-92F6-4FDD21C3FC9C}.Release|x64.Build.0 = Release|x64
 		{A4E91D44-8960-46EE-92F6-4FDD21C3FC9C}.Release|x86.ActiveCfg = Release|Win32
 		{A4E91D44-8960-46EE-92F6-4FDD21C3FC9C}.Release|x86.Build.0 = Release|Win32
+		{CC953286-6FDB-4A55-9656-48516B513FD8}.Debug|x64.ActiveCfg = Debug|x64
+		{CC953286-6FDB-4A55-9656-48516B513FD8}.Debug|x64.Build.0 = Debug|x64
+		{CC953286-6FDB-4A55-9656-48516B513FD8}.Debug|x86.ActiveCfg = Debug|Win32
+		{CC953286-6FDB-4A55-9656-48516B513FD8}.Debug|x86.Build.0 = Debug|Win32
+		{CC953286-6FDB-4A55-9656-48516B513FD8}.Release|x64.ActiveCfg = Release|x64
+		{CC953286-6FDB-4A55-9656-48516B513FD8}.Release|x64.Build.0 = Release|x64
+		{CC953286-6FDB-4A55-9656-48516B513FD8}.Release|x86.ActiveCfg = Release|Win32
+		{CC953286-6FDB-4A55-9656-48516B513FD8}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

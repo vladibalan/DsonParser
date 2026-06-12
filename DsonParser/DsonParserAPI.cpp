@@ -65,11 +65,21 @@ struct DsonContext {
     std::string lastMorphGeometryId;    // stable storage for GetMorphGeometryId return value
 };
 
-// Single static error slot — safe for single-threaded UE5 import use.
-// Was thread_local, but Windows TLS in a DLL is not initialized for threads
-// that predate the DLL load (e.g. UE5 main thread via GetDllHandle), causing
-// GetLastError to always return empty from the plugin.
-static std::string s_lastError;
+// Per-thread last-error slot. Each thread gets its own std::string, lazily
+// constructed on first use, so concurrent DsonDocument_Create/LoadFrom* calls on
+// distinct handles never race on it, and each thread's DsonParser_GetLastError()
+// reflects only its own most recent call.
+//
+// It must be a FUNCTION-LOCAL thread_local, not a file-scope one: a function-local
+// thread_local initializes on first access *per thread*, which sidesteps the
+// Windows DLL TLS pitfall where a file-scope thread_local image is not initialized
+// for threads that predate a dynamically loaded DLL (e.g. the UE5 main thread
+// loading via GetDllHandle). That pitfall is exactly why this slot had been a
+// process-global; first-use init avoids it without giving up thread isolation.
+static std::string& LastErrorSlot() {
+    thread_local std::string slot;
+    return slot;
+}
 
 DsonContext* GetContext(DsonDocumentHandle handle) {
     return static_cast<DsonContext*>(handle);
@@ -94,7 +104,7 @@ static auto At(const Coll& c, int i) -> const typename Coll::value_type* {
 }
 
 void StoreLastError(const std::string& error) {
-    s_lastError = error;
+    LastErrorSlot() = error;
 }
 
 static void ClearQueryCaches(DsonContext* ctx) {
@@ -2043,7 +2053,7 @@ const char* DsonDocument_GetMorphGeometryId(DsonDocumentHandle handle, int morph
 }
 
 const char* DsonParser_GetLastError() {
-    return s_lastError.c_str();
+    return LastErrorSlot().c_str();
 }
 
 const char* DsonParser_GetVersion(void) {

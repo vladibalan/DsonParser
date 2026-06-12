@@ -11,6 +11,18 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 1.6.0 — 2026-06-12 · MINOR (additive)
+
+Threading contract. DsonParser is now safe for concurrent use across threads on **distinct**
+document handles: all parsed data, lazy caches, and returned scratch strings live on the handle
+(DsonContext), so two threads reading two handles share no mutable state. The sole former
+exception — the process-global last-error slot behind DsonParser_GetLastError() — is now a
+per-thread (function-local thread_local) slot, so concurrent DsonDocument_Create/LoadFrom* calls
+no longer race on it and each thread's GetLastError() reflects its own last call. No symbol,
+signature, or single-threaded behavior changed; the header now states the contract. Same-handle
+concurrent use remains the caller's responsibility (lazy caches mutate on first read).
+! DsonParser_GetLastError -> per-thread (thread_local) storage; was process-global - fixes a data race under concurrent loads, no API/signature change
+
 ## 1.5.0 — 2026-06-12 · MINOR (additive)
 
 Declared asset-catalog metadata, for an Importer building a faithful catalog of installed

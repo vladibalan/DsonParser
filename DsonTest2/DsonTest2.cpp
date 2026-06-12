@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstring>
 #include <vector>
+#include <thread>
 #define NOMINMAX
 #include <Windows.h>
 #include "../DsonParser/DsonParserAPI.h"
@@ -560,6 +561,58 @@ void RunCatalogPresentationTests()
     std::cout << "\n";
 }
 
+// ---- Per-thread last-error verification ----
+// Proves that DsonParser_GetLastError() is per-thread (function-local thread_local):
+// Worker A loads invalid JSON -> expects non-empty error on thread A.
+// Worker B loads valid JSON on a separate handle -> expects empty error on thread B.
+// Prints PASS/FAIL for each invariant.
+//
+// NOTE: this harness load-time-links DsonParser.lib, so it proves per-thread
+// SEMANTICS but does NOT reproduce the original failure mode (file-scope thread_local
+// not initialized for a thread that predates a dynamically loaded DLL via
+// GetDllHandle). The function-local thread_local is the standard remedy for that
+// case, but final confirmation of the GetDllHandle / pre-existing-thread path can
+// only happen in the UE host.
+void RunPerThreadLastErrorTest() {
+    std::cout << "=================================\n";
+    std::cout << "PER-THREAD LAST-ERROR TEST (1.6.0)\n";
+    std::cout << "=================================\n\n";
+
+    std::string errorA;
+    std::string errorB;
+    int resultA = -1;
+    int resultB = -1;
+
+    DsonDocumentHandle handleA = DsonDocument_Create();
+    DsonDocumentHandle handleB = DsonDocument_Create();
+
+    std::thread workerA([&]() {
+        resultA = DsonDocument_LoadFromString(handleA, "{ this is invalid json");
+        errorA = DsonParser_GetLastError();
+    });
+
+    std::thread workerB([&]() {
+        resultB = DsonDocument_LoadFromString(handleB, "{}");
+        errorB = DsonParser_GetLastError();
+    });
+
+    workerA.join();
+    workerB.join();
+
+    DsonDocument_Destroy(handleA);
+    DsonDocument_Destroy(handleB);
+
+    bool passA = (resultA != 0) && !errorA.empty();
+    bool passB = (resultB == 0) && errorB.empty() && errorB != errorA;
+
+    std::cout << "  Worker A (invalid JSON): resultA=" << resultA
+              << " errorA=\"" << errorA << "\"\n";
+    std::cout << "  Worker B (valid JSON):   resultB=" << resultB
+              << " errorB=\"" << errorB << "\"\n\n";
+    std::cout << "  A sees its own error:         " << (passA ? "PASS" : "FAIL") << "\n";
+    std::cout << "  B sees empty (not A's error): " << (passB ? "PASS" : "FAIL") << "\n\n";
+}
+
 int main(int argc, char* argv[])
 {
     std::cout << "DSON Parser Test\n";
@@ -575,6 +628,7 @@ int main(int argc, char* argv[])
     RunChannelLayerCompositingTest();
     RunSceneAnimationsTest();
     RunCatalogPresentationTests();
+    RunPerThreadLastErrorTest();
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();

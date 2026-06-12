@@ -10,8 +10,11 @@
 #include "DsonParserVersion.h"
 
 // Public C ABI orientation:
-// v1.5.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
+// v1.6.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 1.6.0: documented threading contract - distinct handles are safe
+//   for concurrent cross-thread use; DsonParser_GetLastError() is now per-thread
+//   (thread_local), no longer a process-global slot.
 // What's new in 1.5.0: DsonDocument_Get{Node,Modifier}Presentation{Type,Label} +
 //   DsonDocument_GetGeometryIsGraft - declared asset-catalog metadata (content type,
 //   display label, geograft signal), exposed faithfully per library item.
@@ -27,6 +30,19 @@
 // "empty" value: count functions and numeric getters return 0 (count functions
 // never return -1), bool getters return false, string getters return "", and the
 // value/index accessors that have no element to report return -1.
+//
+// Threading / concurrency:
+// - Distinct handles are independent. Each DsonDocumentHandle owns all of its
+//   parsed data, its lazy query caches, and the scratch strings its accessors
+//   return, so two threads operating on two different handles share no mutable
+//   state and need no locking - including concurrent DsonDocument_Create /
+//   LoadFrom* and any mix of read accessors.
+// - DsonParser_GetLastError() is per-thread: it reports the error (or "") from the
+//   calling thread's own most recent DsonDocument_Create/LoadFrom*. Read it on the
+//   same thread that performed the load.
+// - A single handle is NOT safe for concurrent use: its lazy caches and scratch
+//   return strings are built/overwritten on read. Serialize calls on one handle,
+//   or give each thread its own handle.
 //
 // Index conventions:
 // - Node/geometry/material/modifier indexes address the corresponding library
