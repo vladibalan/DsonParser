@@ -88,12 +88,16 @@ current loader scope.
 `node_library`
 : Parsed into library `Node` definitions. Captures id, name, label, type,
   parent, URL, translation, rotation, scale, general scale, center/end points,
-  orientation, and rotation order.
+  orientation, rotation order, and the item's `presentation` content type +
+  label (`DsonDocument_GetNodePresentationType`/`…Label`; see Asset Catalog
+  Metadata below).
 
 `geometry_library`
 : Parsed into `Geometry`. Captures vertex positions, polygon/polylist data,
-  face offsets, polygon groups, material groups, vertex/polygon counts, and
-  default UV-set reference.
+  face offsets, polygon groups, material groups, vertex/polygon counts,
+  default UV-set reference, and a geograft signal — whether the geometry
+  declares a populated `graft` block (`DsonDocument_GetGeometryIsGraft`; see
+  Asset Catalog Metadata below).
 
 `material_library`
 : Parsed into `Material`. Captures source-order material channels, shader type
@@ -102,7 +106,10 @@ current loader scope.
 
 `modifier_library`
 : Parsed into `Modifier`. Captures morph deltas, normal deltas, stored channel
-  dial metadata/value bounds, skin binding payloads, and formulas. Formula `output`, `stage`, and
+  dial metadata/value bounds, skin binding payloads, formulas, and the item's
+  `presentation` content type + label
+  (`DsonDocument_GetModifierPresentationType`/`…Label`; see Asset Catalog
+  Metadata below). Formula `output`, `stage`, and
   the source-order RPN `operations` (`op` plus `val`/`url`) are stored and
   exposed; the parser does not evaluate them or follow their channel references.
 
@@ -120,6 +127,32 @@ current loader scope.
 `uv_set_library`
 : Parsed into `UVSet`. Captures UV coordinates, vertex count, and sparse
   polygon-vertex UV overrides.
+
+## Asset Catalog Metadata (presentation + geograft)
+
+For building a library catalog of installed assets, three declared facts are exposed as
+faithful single-file reads — the parser reports what the opened file declares and does no
+classification, folder inference, or document-level resolution (R6.4); the consumer maps
+and selects.
+
+- **Content type + display label** come from a library item's `presentation` block
+  (`presentation.type` is the DAZ "Content Type"; `presentation.label` the display name).
+  They are exposed **per item**, not as one document-level value, because `presentation`
+  legitimately appears on many items and which one represents "the asset" is the consumer's
+  call (it already knows `asset_info.type`):
+  - `DsonDocument_GetNodePresentationType` / `…Label` — for figures, clothing, hair, props
+    (e.g. `"Follower"`, `"Wardrobe/Clothing"`).
+  - `DsonDocument_GetModifierPresentationType` / `…Label` — for shapes/morphs
+    (e.g. `"Modifier/Shape"`).
+  - A preset (`.duf`) with no `presentation` returns `""` — the consumer treats `""` as
+    "unknown".
+- **Geograft signal** — `DsonDocument_GetGeometryIsGraft` returns `true` only when the
+  geometry declares a **populated** `graft` (a non-empty `vertex_pairs`). DAZ writes an
+  empty `"graft": {}` on non-graft meshes (base figures, and Genesis 9 Eyes — which uses
+  `rigidity` — and Eyelashes), so key-presence alone is not the signal; an empty graft
+  reports `false`.
+
+These read `Node`/`Modifier`/`Geometry` fields directly; there is no cross-section merge.
 
 ## Scene vs Library Data
 

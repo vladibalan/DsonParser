@@ -237,7 +237,7 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
     static const std::set<std::string> knownKeys = {
         "id", "name", "label", "type", "parent", "url", "translation", "rotation", "scale",
         "general_scale", "center_point", "end_point", "orientation", "rotation_order",
-        "geometries", "preview", "extra"
+        "geometries", "presentation", "preview", "extra"
     };
 
     ParseMember(json, "id", id);
@@ -298,6 +298,12 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
         }
     }
 
+    const rapidjson::Value* presObj = nullptr;
+    if (JsonHelper::GetObject(json, "presentation", presObj)) {
+        presentation_type  = JsonHelper::GetStringOrDefault(*presObj, "type");
+        presentation_label = JsonHelper::GetStringOrDefault(*presObj, "label");
+    }
+
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
 }
@@ -317,7 +323,7 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     static const std::set<std::string> knownKeys = {
         "id", "name", "type", "url", "vertices", "polygons", "polylist",
         "vertex_count", "polygon_count", "edge_interpolation_mode", "default_uv_set",
-        "polygon_groups", "polygon_material_groups"
+        "polygon_groups", "polygon_material_groups", "graft"
     };
     
     ParseMember(json, "id", id);
@@ -396,6 +402,15 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     ParseStringValuedArray(json, "polygon_material_groups", polygon_material_groups);
 
     JsonHelper::GetString(json, "default_uv_set", default_uv_set_id);
+
+    // Geograft signal: a populated graft (vertex_pairs) marks a geograft; an
+    // empty "graft": {} (base figures, G9 eyes/eyelashes) does not.
+    const rapidjson::Value* graftObj = nullptr;
+    if (JsonHelper::GetObject(json, "graft", graftObj)) {
+        if (const rapidjson::Value* vp = GetValuesArray(*graftObj, "vertex_pairs")) {
+            is_graft = vp->Size() > 0;
+        }
+    }
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
@@ -650,7 +665,8 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     
     static const std::set<std::string> knownKeys = {
         "id", "name", "type", "url", "parent", "skin_binding", "channel",
-        "deltas", "normal_deltas", "vertex_count", "formulas", "region", "group", "skin", "morph"
+        "deltas", "normal_deltas", "vertex_count", "formulas", "region", "group", "skin", "morph",
+        "presentation"
     };
     
     ParseMember(json, "id", id);
@@ -709,6 +725,12 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
 
     // Parse formulas (stored, not evaluated; key stays in knownKeys above).
     ParseObjectArray(json, "formulas", formulas, unknownKeys);
+
+    const rapidjson::Value* presObj = nullptr;
+    if (JsonHelper::GetObject(json, "presentation", presObj)) {
+        presentation_type  = JsonHelper::GetStringOrDefault(*presObj, "type");
+        presentation_label = JsonHelper::GetStringOrDefault(*presObj, "label");
+    }
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;

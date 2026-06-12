@@ -629,6 +629,18 @@ const char* DsonDocument_GetNodeType(DsonDocumentHandle handle, int index) {
     return node ? node->type.c_str() : "";
 }
 
+const char* DsonDocument_GetNodePresentationType(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, index) : nullptr;
+    return node ? node->presentation_type.c_str() : "";
+}
+
+const char* DsonDocument_GetNodePresentationLabel(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, index) : nullptr;
+    return node ? node->presentation_label.c_str() : "";
+}
+
 double DsonDocument_GetNodeCenterPointX(DsonDocumentHandle handle, int index) {
     return GetNodeVector3Component(handle, index, &Dson::Node::center_point, 0);
 }
@@ -944,6 +956,12 @@ const char* DsonDocument_GetGeometryDefaultUVSetId(DsonDocumentHandle handle, in
     return geom ? geom->default_uv_set_id.c_str() : "";
 }
 
+bool DsonDocument_GetGeometryIsGraft(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, index) : nullptr;
+    return geom ? geom->is_graft : false;
+}
+
 const char* DsonDocument_GetModifierId(DsonDocumentHandle handle, int index) {
     const Dson::Modifier* mod = GetLibraryModifier(handle, index);
     return mod ? mod->id.c_str() : "";
@@ -957,6 +975,16 @@ const char* DsonDocument_GetModifierName(DsonDocumentHandle handle, int index) {
 const char* DsonDocument_GetModifierType(DsonDocumentHandle handle, int index) {
     const Dson::Modifier* mod = GetLibraryModifier(handle, index);
     return mod ? mod->type.c_str() : "";
+}
+
+const char* DsonDocument_GetModifierPresentationType(DsonDocumentHandle handle, int index) {
+    const Dson::Modifier* mod = GetLibraryModifier(handle, index);
+    return mod ? mod->presentation_type.c_str() : "";
+}
+
+const char* DsonDocument_GetModifierPresentationLabel(DsonDocumentHandle handle, int index) {
+    const Dson::Modifier* mod = GetLibraryModifier(handle, index);
+    return mod ? mod->presentation_label.c_str() : "";
 }
 
 double DsonDocument_GetModifierChannelValue(DsonDocumentHandle handle, int modifierIndex) {

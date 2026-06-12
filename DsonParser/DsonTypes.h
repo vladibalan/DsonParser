@@ -64,6 +64,8 @@ struct Node {
     Vector3 orientation;                  // local axis alignment in rest pose (XYZ Euler degrees); default {0,0,0}
     std::string rotation_order = "YXZ";  // Euler rotation order; default matches DAZ Genesis 9
     std::vector<NodeGeometryRef> geometries; // only populated on scene figure nodes
+    std::string presentation_type;   // presentation.type  (DAZ "Content Type"; "" if absent)
+    std::string presentation_label;  // presentation.label (declared display name; "" if absent)
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
@@ -83,6 +85,8 @@ struct Geometry {
     std::vector<std::string> polygon_groups;          // face group names
     std::vector<std::string> polygon_material_groups; // material group names
     std::string default_uv_set_id;                    // primary UV channel URL (e.g. "/data/.../Base.dsf#Base Multi UDIM")
+    bool is_graft = false; // true iff a populated graft (vertex_pairs) is present;
+                           // an empty "graft": {} (base figures, G9 eyes/eyelashes) stays false.
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
@@ -204,6 +208,8 @@ struct Modifier {
 
     // Formula-driven modifiers: JCM/FHM correctives and character control morphs.
     std::vector<Formula> formulas;
+    std::string presentation_type;   // presentation.type  (DAZ "Content Type"; "" if absent)
+    std::string presentation_label;  // presentation.label (declared display name; "" if absent)
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

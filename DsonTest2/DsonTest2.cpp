@@ -510,6 +510,56 @@ void RunSceneAnimationsTest() {
     DsonDocument_Destroy(doc);
 }
 
+void RunCatalogPresentationTests()
+{
+    std::cout << "=================================\n";
+    std::cout << "CATALOG PRESENTATION TESTS (1.5.0)\n";
+    std::cout << "=================================\n\n";
+
+    // --- test.dsf: modifier_library[0].presentation.type == "Modifier/Shape" ---
+    const std::string dsfPath = ResolveTestFile("test.dsf");
+    if (dsfPath.empty()) {
+        std::cout << "test.dsf not found; skipping modifier presentation test.\n\n";
+    } else {
+        DsonDocumentHandle dsfDoc = DsonDocument_Create();
+        if (DsonDocument_LoadFromFile(dsfDoc, dsfPath.c_str()) == 0) {
+            const char* modPresType  = DsonDocument_GetModifierPresentationType(dsfDoc, 0);
+            const char* modPresLabel = DsonDocument_GetModifierPresentationLabel(dsfDoc, 0);
+            bool pass = std::string(modPresType) == "Modifier/Shape";
+            std::cout << "test.dsf modifier[0] presentation.type:  \"" << modPresType  << "\"  [expect Modifier/Shape] " << (pass ? "PASS" : "FAIL") << "\n";
+            std::cout << "test.dsf modifier[0] presentation.label: \"" << modPresLabel << "\"\n";
+        } else {
+            std::cout << "test.dsf load error: " << DsonParser_GetLastError() << "\n";
+        }
+        DsonDocument_Destroy(dsfDoc);
+    }
+
+    // --- Genesis9.json: geometry[0].is_graft == false (empty graft), node[0] presentation ---
+    const std::string g9Path = ResolveTestFile("Genesis9.json");
+    if (g9Path.empty()) {
+        std::cout << "Genesis9.json not found; skipping geometry/node presentation tests.\n\n";
+    } else {
+        DsonDocumentHandle g9Doc = DsonDocument_Create();
+        if (DsonDocument_LoadFromFile(g9Doc, g9Path.c_str()) == 0) {
+            bool isGraft = DsonDocument_GetGeometryIsGraft(g9Doc, 0);
+            bool pass = !isGraft;
+            std::cout << "Genesis9.json geom[0] is_graft: " << (isGraft ? "true" : "false") << "  [expect false] " << (pass ? "PASS" : "FAIL") << "\n";
+            const char* nodePresType  = DsonDocument_GetNodePresentationType(g9Doc, 0);
+            const char* nodePresLabel = DsonDocument_GetNodePresentationLabel(g9Doc, 0);
+            std::cout << "Genesis9.json node[0] presentation.type:  \"" << nodePresType  << "\"\n";
+            std::cout << "Genesis9.json node[0] presentation.label: \"" << nodePresLabel << "\"\n";
+            // Sentinel checks
+            std::cout << "geom[-1] is_graft (sentinel): " << (DsonDocument_GetGeometryIsGraft(g9Doc, -1) ? "true" : "false") << "  [expect false]\n";
+            std::cout << "node[-1] presType (sentinel): \"" << DsonDocument_GetNodePresentationType(g9Doc, -1) << "\"  [expect empty]\n";
+            std::cout << "mod[-1]  presType (sentinel): \"" << DsonDocument_GetModifierPresentationType(g9Doc, -1) << "\"  [expect empty]\n";
+        } else {
+            std::cout << "Genesis9.json load error: " << DsonParser_GetLastError() << "\n";
+        }
+        DsonDocument_Destroy(g9Doc);
+    }
+    std::cout << "\n";
+}
+
 int main(int argc, char* argv[])
 {
     std::cout << "DSON Parser Test\n";
@@ -524,6 +574,7 @@ int main(int argc, char* argv[])
     RunImageLayerCompositingTest();
     RunChannelLayerCompositingTest();
     RunSceneAnimationsTest();
+    RunCatalogPresentationTests();
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();

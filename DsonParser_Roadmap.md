@@ -37,6 +37,8 @@ across 4 audit passes with zero remaining gaps.
 - Vertex indices per face
 - `polygon_groups` and `polygon_material_groups` name arrays
 - `default_uv_set_id` per geometry
+- Geograft signal: `GetGeometryIsGraft` — `true` for a populated `graft` (non-empty
+  `vertex_pairs`); empty `"graft": {}` → `false` (1.5.0)
 
 **Skeleton / Nodes (B)**
 - Full `node_library`: id, name, type, parent
@@ -45,6 +47,8 @@ across 4 audit passes with zero remaining gaps.
 - `general_scale` uniform scalar (default `1.0`)
 - `unit_scale` from `asset_info` (default `1.0`)
 - `Node::geometries` (`NodeGeometryRef`: id + url) for scene nodes
+- Per-node `presentation` content type + label: `GetNodePresentation{Type,Label}`
+  (DAZ "Content Type" / display name; `""` if absent) (1.5.0)
 
 **Skin Binding (C)**
 - `node_weights` primary + `local_weights` fallback
@@ -346,6 +350,32 @@ G. Formulas
 ---
 
 ## Recently completed (post-v1)
+
+### Asset-catalog metadata — presentation + geograft — ✅ implemented (Jun 2026)
+For an Importer building a faithful library catalog of installed `.duf`/`.dsf` assets from
+declared data only, three declared facts are now exposed (library version **1.5.0**, 5
+**additive** accessors). `presentation.{type,label}` is parsed onto `Node` and `Modifier`
+(`presentation_type` / `presentation_label`) and a geograft flag onto `Geometry`
+(`is_graft`); the three keys joined their `knownKeys` sets (clearing prior unknown-key
+noise):
+
+- `DsonDocument_GetNodePresentationType` / `…Label` — node_library item `presentation.type`
+  (DAZ "Content Type", e.g. `"Follower"`, `"Wardrobe/Clothing"`) and display label.
+- `DsonDocument_GetModifierPresentationType` / `…Label` — modifier_library item
+  `presentation.type` (e.g. `"Modifier/Shape"`) and label.
+- `DsonDocument_GetGeometryIsGraft` — `true` only for a **populated** graft (non-empty
+  `vertex_pairs`); an empty `"graft": {}` (base figures, G9 Eyes/Eyelashes) is `false`.
+
+Faithful per-item exposure (**R6.4**): the parser does no classification, no document-level
+content-type resolution, and no cross-section merge — the consumer maps `presentation.type`
+to its catalog taxonomy and selects the asset's defining item. String sentinels `""`, bool
+sentinel `false` (R1). Verified by an independent Director build (Release|x64, clean) and a
+standalone consumer: TestFiles `test.dsf` (modifier `"Modifier/Shape"`), `Genesis9.json`
+(base geom `is_graft=false`, node[0] `"Actor"`), and an external geograft
+`Genesis9FemaleGenitalia.dsf` (`is_graft=true`, 84 `vertex_pairs`; node[0] `"Follower"`).
+
+**Consumer note (additive, non-breaking):** the five new functions are available to the UE
+plugin; existing calls are unaffected.
 
 ### Per-layer LIE compositing metadata (`Image::layers`) — ✅ implemented (Jun 2026)
 DAZ Layered Image (LIE) `map` elements carry per-layer compositing instructions — blend
