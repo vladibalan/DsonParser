@@ -1591,19 +1591,6 @@ double DsonDocument_GetUVV(DsonDocumentHandle handle, int uvSetIndex, int uvInde
     return uvs[idx + 1];
 }
 
-int DsonDocument_GetUVPolygonVertexIndexCount(DsonDocumentHandle handle, int uvSetIndex) {
-    Dson::DsonDocument* doc = Doc(handle);
-    const Dson::UVSet* uv = doc ? At(doc->uv_sets, uvSetIndex) : nullptr;
-    return uv ? static_cast<int>(uv->polygon_vertex_indices.values.size()) : 0;
-}
-
-int DsonDocument_GetUVPolygonVertexIndex(DsonDocumentHandle handle, int uvSetIndex, int index) {
-    Dson::DsonDocument* doc = Doc(handle);
-    const Dson::UVSet* uv = doc ? At(doc->uv_sets, uvSetIndex) : nullptr;
-    const int* pvi = uv ? At(uv->polygon_vertex_indices.values, index) : nullptr;
-    return pvi ? *pvi : -1;
-}
-
 int DsonDocument_GetUVSetVertexCount(DsonDocumentHandle handle, int uvSetIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::UVSet* uv = doc ? At(doc->uv_sets, uvSetIndex) : nullptr;

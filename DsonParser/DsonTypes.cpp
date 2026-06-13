@@ -812,8 +812,9 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
 // Reads UV coordinates plus DAZ's face-varying polygon_vertex_indices mapping.
 // The common DAZ shape is sparse triplets [face, corner, uv_index], meaning the
 // default mapping is identity (uv index == vertex index) and only exceptions are
-// listed. A legacy flat-int representation is still accepted into
-// polygon_vertex_indices but is not the normal DSF case.
+// listed; these are modeled as uv_overrides. A legacy flat-int
+// representation is not modeled (no real-DSF occurrence, no consumer)
+// and is ignored.
 bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -869,9 +870,6 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
                 ov.uv_index = elem[2].GetInt();
                 uv_overrides.push_back(ov);
             }
-        } else {
-            // Flat-int format (legacy, hypothetical — not observed in real DSFs).
-            polygon_vertex_indices.ParseFromJson(*polyVertIndices);
         }
     }
     
