@@ -894,6 +894,19 @@ const char* DsonDocument_GetSceneModifierFormulaOperationUrl(
     return op ? op->url.c_str() : "";
 }
 
+int DsonDocument_GetSceneModifierFormulaOperationValArrayCount(
+    DsonDocumentHandle handle, int sceneModifierIndex, int formulaIndex, int opIndex) {
+    const Dson::FormulaOperation* op = FormulaOpAt(GetSceneModifier(handle, sceneModifierIndex), formulaIndex, opIndex);
+    return op ? static_cast<int>(op->val_array.size()) : 0;
+}
+
+double DsonDocument_GetSceneModifierFormulaOperationValArrayElement(
+    DsonDocumentHandle handle, int sceneModifierIndex, int formulaIndex, int opIndex, int elementIndex) {
+    const Dson::FormulaOperation* op = FormulaOpAt(GetSceneModifier(handle, sceneModifierIndex), formulaIndex, opIndex);
+    const double* el = op ? At(op->val_array, elementIndex) : nullptr;
+    return el ? *el : 0.0;
+}
+
 // Scene material instances (scene.materials)
 int DsonDocument_GetSceneMaterialCount(DsonDocumentHandle handle) {
     Dson::DsonDocument* doc = Doc(handle);
@@ -1067,6 +1080,19 @@ const char* DsonDocument_GetModifierFormulaOperationUrl(
     int opIndex) {
     const Dson::FormulaOperation* op = FormulaOpAt(GetLibraryModifier(handle, modifierIndex), formulaIndex, opIndex);
     return op ? op->url.c_str() : "";
+}
+
+int DsonDocument_GetModifierFormulaOperationValArrayCount(
+    DsonDocumentHandle handle, int modifierIndex, int formulaIndex, int opIndex) {
+    const Dson::FormulaOperation* op = FormulaOpAt(GetLibraryModifier(handle, modifierIndex), formulaIndex, opIndex);
+    return op ? static_cast<int>(op->val_array.size()) : 0;
+}
+
+double DsonDocument_GetModifierFormulaOperationValArrayElement(
+    DsonDocumentHandle handle, int modifierIndex, int formulaIndex, int opIndex, int elementIndex) {
+    const Dson::FormulaOperation* op = FormulaOpAt(GetLibraryModifier(handle, modifierIndex), formulaIndex, opIndex);
+    const double* el = op ? At(op->val_array, elementIndex) : nullptr;
+    return el ? *el : 0.0;
 }
 
 int DsonDocument_GetModifierSkinVertexCount(DsonDocumentHandle handle, int index) {

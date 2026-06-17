@@ -630,6 +630,21 @@ bool FormulaOperation::ParseFromJson(const rapidjson::Value& json, std::set<std:
     url = JsonHelper::GetStringOrDefault(json, "url");
     val = JsonHelper::GetDoubleOrDefault(json, "val", 0.0);
 
+    // A push operand's "val" may be a JSON array instead of a scalar: spline_tcb
+    // stores each TCB knot as [input, output, tension, continuity, bias]. Retain it
+    // verbatim (raw, unevaluated) so a consumer can reconstruct the curve; the
+    // scalar val above stays 0.0 for this form. A non-numeric element keeps its
+    // slot as 0.0 to preserve the positional knot layout (real spline_tcb knots are
+    // all-numeric); nothing is dropped.
+    auto valIt = json.FindMember("val");
+    if (valIt != json.MemberEnd() && valIt->value.IsArray()) {
+        const rapidjson::Value& arr = valIt->value;
+        val_array.reserve(arr.Size());
+        for (rapidjson::SizeType i = 0; i < arr.Size(); i++) {
+            val_array.push_back(arr[i].IsNumber() ? arr[i].GetDouble() : 0.0);
+        }
+    }
+
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
 }

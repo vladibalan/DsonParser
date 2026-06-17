@@ -102,9 +102,11 @@ across 4 audit passes with zero remaining gaps.
 ### Known Limitations (v1)
 - **Formulas not evaluated** — as shipped in v1, formula keys were suppressed in
   `knownKeys` and neither stored nor exposed. **Resolved at the parser level in
-  v2** (formulas are now stored and exposed; see v2 Parser Side below). Evaluation
-  and baking remain importer-side, so pose-driven correctives still require the
-  importer integration before they fire automatically.
+  v2** (formulas are now stored and exposed, including array-valued `val` operands
+  such as `spline_tcb` TCB knots, surfaced raw via `...ValArray{Count,Element}` as
+  of 2.1.0; see v2 Parser Side below). Evaluation and baking remain importer-side,
+  so pose-driven correctives still require the importer integration before they fire
+  automatically.
 - **Windows only** — library validated and used on Win64. No Mac/Linux
   build configuration exists yet.
 - **No weight normalization at parse time** — raw weights are stored as-is;
@@ -235,8 +237,12 @@ struct Formula {
   `output` string, `stage` string, and `operations` array; for each operation
   read `op`, and conditionally `val` (double) or `url` (string). `Formula` and
   `FormulaOperation` each get a `ParseFromJson` so they reuse `ParseObjectArray`,
-  and each tracks unknown keys so unmodeled op fields (e.g. `spline_tcb` knots)
-  surface in diagnostics instead of being dropped.
+  and each tracks unknown keys so unmodeled op fields surface in diagnostics
+  instead of being dropped. Note: `spline_tcb` knots are NOT unknown keys — they
+  ride on the known `val` key as a JSON array; prior to 2.1.0 the parser silently
+  collapsed each knot array to `0.0`. As of 2.1.0, array-valued formula operands
+  are retained verbatim and exposed via `...FormulaOperationValArray{Count,Element}`
+  on both formula families (see CHANGELOG 2.1.0).
 
 **3. C API accessors (as built)**
 

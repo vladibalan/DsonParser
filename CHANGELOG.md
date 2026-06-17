@@ -11,6 +11,28 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.1.0 — 2026-06-17 · MINOR (additive)
+
+Array-valued formula operands (spline_tcb knots). A formula `push` operation may carry a
+JSON array as its `val` instead of a scalar - this is how `spline_tcb` curves store their
+TCB knots (`[input, output, tension, continuity, bias]` per knot). The scalar `val`
+accessors could not represent that array, so the parser silently collapsed each knot array
+to `0.0` at parse time (the `val` key is known, so the knots were never even in the
+unknown-key trail) - losing the entire spline curve while the surrounding `push(input)`,
+scalar `push(count)`, and `spline_tcb` token survived. The knot arrays are now retained
+verbatim on each operation and exposed raw (numeric elements, in source order) on both
+formula families; the parser still does not evaluate the spline. Disambiguation: when
+...ValArrayCount > 0 the operand is array-valued - read its elements; the scalar
+...OperationVal is not meaningful (stays 0.0). When ...ValArrayCount == 0 the operand is
+scalar/url as before, so existing consumers that never call the new accessors get
+byte-identical behavior. 0.0 is also a legitimate element value (tension/continuity/bias
+are observed 0), so bound-check the Count first - the Count, not a 0.0 element, is the
+array-vs-scalar discriminator.
++ DsonDocument_GetModifierFormulaOperationValArrayCount -> element count of an array-valued operand; 0 if the operand is scalar/url/absent (modifier_library)
++ DsonDocument_GetModifierFormulaOperationValArrayElement -> one raw array element by index, in source order; 0.0 if out of range (modifier_library)
++ DsonDocument_GetSceneModifierFormulaOperationValArrayCount -> as above, scene.modifiers family
++ DsonDocument_GetSceneModifierFormulaOperationValArrayElement -> as above, scene.modifiers family
+
 ## 2.0.0 — 2026-06-13 · MAJOR (breaking)
 
 Removed two dead UV accessors that surfaced the legacy flat-int "polygon vertex index"

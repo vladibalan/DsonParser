@@ -10,8 +10,11 @@
 #include "DsonParserVersion.h"
 
 // Public C ABI orientation:
-// v2.0.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
+// v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.1.0: DsonDocument_Get{Modifier,SceneModifier}FormulaOperationValArray{Count,Element}
+//   - raw array-valued formula operands (spline_tcb TCB knots) that the scalar val
+//   accessors collapsed to 0.0; the parser still does not evaluate the spline.
 // What's new in 2.0.0 (BREAKING): removed DsonDocument_GetUVPolygonVertexIndexCount
 //   and DsonDocument_GetUVPolygonVertexIndex - the dead legacy flat-int UV path,
 //   empty for every real DAZ DSF since the sparse migration. UV index data comes
@@ -140,6 +143,10 @@ DSONPARSER_API int         DsonDocument_GetSceneModifierFormulaOperationCount(Ds
 DSONPARSER_API const char* DsonDocument_GetSceneModifierFormulaOperationOp(DsonDocumentHandle handle, int sceneModifierIndex, int formulaIndex, int opIndex);
 DSONPARSER_API double      DsonDocument_GetSceneModifierFormulaOperationVal(DsonDocumentHandle handle, int sceneModifierIndex, int formulaIndex, int opIndex);
 DSONPARSER_API const char* DsonDocument_GetSceneModifierFormulaOperationUrl(DsonDocumentHandle handle, int sceneModifierIndex, int formulaIndex, int opIndex);
+// @since 2.1.0
+DSONPARSER_API int    DsonDocument_GetSceneModifierFormulaOperationValArrayCount(DsonDocumentHandle handle, int sceneModifierIndex, int formulaIndex, int opIndex);
+// @since 2.1.0
+DSONPARSER_API double DsonDocument_GetSceneModifierFormulaOperationValArrayElement(DsonDocumentHandle handle, int sceneModifierIndex, int formulaIndex, int opIndex, int elementIndex);
 
 DSONPARSER_API int DsonDocument_GetSceneMaterialCount(DsonDocumentHandle handle);
 DSONPARSER_API const char* DsonDocument_GetSceneMaterialId(DsonDocumentHandle handle, int index);
@@ -212,6 +219,10 @@ DSONPARSER_API int         DsonDocument_GetModifierFormulaOperationCount(DsonDoc
 DSONPARSER_API const char* DsonDocument_GetModifierFormulaOperationOp(DsonDocumentHandle handle, int modifierIndex, int formulaIndex, int opIndex);
 DSONPARSER_API double      DsonDocument_GetModifierFormulaOperationVal(DsonDocumentHandle handle, int modifierIndex, int formulaIndex, int opIndex);
 DSONPARSER_API const char* DsonDocument_GetModifierFormulaOperationUrl(DsonDocumentHandle handle, int modifierIndex, int formulaIndex, int opIndex);
+// @since 2.1.0
+DSONPARSER_API int    DsonDocument_GetModifierFormulaOperationValArrayCount(DsonDocumentHandle handle, int modifierIndex, int formulaIndex, int opIndex);
+// @since 2.1.0
+DSONPARSER_API double DsonDocument_GetModifierFormulaOperationValArrayElement(DsonDocumentHandle handle, int modifierIndex, int formulaIndex, int opIndex, int elementIndex);
 // Skin binding info for a modifier (0 if the modifier has no skin payload)
 DSONPARSER_API int DsonDocument_GetModifierSkinVertexCount(DsonDocumentHandle handle, int index);
 DSONPARSER_API int DsonDocument_GetModifierSkinJointCount(DsonDocumentHandle handle, int index);

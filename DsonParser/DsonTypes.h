@@ -166,8 +166,13 @@ struct SkinBinding {
 // One operation in a formula's RPN expression.
 struct FormulaOperation {
     std::string op;    // "push","mult","div","add","sub","pow","spline_tcb"
-    double val = 0.0;  // for op=="push" with a constant operand
+    double val = 0.0;  // for op=="push" with a constant SCALAR operand
     std::string url;   // for op=="push" with a channel-reference operand
+    std::vector<double> val_array;  // for a push whose "val" is a JSON ARRAY:
+                                    // spline_tcb knot [input,output,tension,
+                                    // continuity,bias]. Empty unless "val" was
+                                    // an array. Raw, unevaluated; scalar `val`
+                                    // stays 0.0 in that case.
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

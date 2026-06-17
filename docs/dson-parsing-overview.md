@@ -110,8 +110,9 @@ current loader scope.
   `presentation` content type + label
   (`DsonDocument_GetModifierPresentationType`/`…Label`; see Asset Catalog
   Metadata below). Formula `output`, `stage`, and
-  the source-order RPN `operations` (`op` plus `val`/`url`) are stored and
-  exposed; the parser does not evaluate them or follow their channel references.
+  the source-order RPN `operations` (`op` plus scalar `val`/`url`, or array
+  `val_array` for spline_tcb knots) are stored and exposed; the parser does not
+  evaluate them or follow their channel references.
 
 `image_library`
 : Parsed into `Image`. Captures id, name, URL, map file/path, and the `map_size` pixel dimensions
@@ -357,9 +358,16 @@ the morph modifier's parent URL.
 DAZ formulas drive corrective and control morphs. The parser stores each
 modifier's `formulas` array without evaluating it: per `Formula` it keeps the
 `output` channel URL, the optional `stage` (`"sum"`/`"mult"`), and a vector of
-`FormulaOperation` (`op`, plus `val` for a constant `push` or `url` for a
-channel-reference `push`). Operation fields beyond `op`/`val`/`url` are not
-modeled yet but are recorded in the unknown-key diagnostics rather than dropped.
+`FormulaOperation` (`op`, plus `val` for a constant scalar `push`, `url` for a
+channel-reference `push`, or `val_array` for an array-valued `push`). A `push`
+operand's `val` may be a JSON array instead of a scalar: `spline_tcb` curves store
+each TCB knot as `[input, output, tension, continuity, bias]`. These arrays are
+now retained verbatim and exposed raw via `...FormulaOperationValArrayCount` /
+`...FormulaOperationValArrayElement` on both families (since 2.1.0). When
+`...ValArrayCount > 0` the operand is array-valued; the scalar `...OperationVal`
+is `0.0` for that form and is not meaningful — the Count is the discriminator.
+Operation fields beyond `op`/`val`/`url` are not modeled yet but are recorded in
+the unknown-key diagnostics rather than dropped.
 
 Formulas attach to ordinary modifiers, not to the filtered morph list, because
 the formula-bearing modifier is often a control with no `morph`/`deltas` block

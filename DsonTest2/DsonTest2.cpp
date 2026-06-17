@@ -613,6 +613,182 @@ void RunPerThreadLastErrorTest() {
     std::cout << "  B sees empty (not A's error): " << (passB ? "PASS" : "FAIL") << "\n\n";
 }
 
+static const char* kSplineFixture = R"JSON(
+{
+  "asset_info": { "id": "/data/test/spline_fixture.dsf", "type": "modifier" },
+  "modifier_library": [
+    { "id": "body_cbs_forearm_y135n_l",
+      "formulas": [
+        { "output": "Genesis9:#body_cbs_forearm_y135n_l?value",
+          "operations": [
+            { "op": "push", "url": "Genesis9:l_forearm?rotation/y" },
+            { "op": "push", "val": [-135, 1, 0, 0, 0] },
+            { "op": "push", "val": [-75, 0, 0, 0, 0] },
+            { "op": "push", "val": [0.5, 0, 0, 0, 0] },
+            { "op": "push", "val": 3 },
+            { "op": "spline_tcb" }
+          ] } ] }
+  ],
+  "scene": {
+    "modifiers": [
+      { "id": "scene_forearm_drv",
+        "formulas": [
+          { "output": "Genesis9:#body_cbs_forearm_y135n_l?value",
+            "operations": [
+              { "op": "push", "url": "Genesis9:l_forearm?rotation/y" },
+              { "op": "push", "val": [-75, 1, 0, 0, 0] },
+              { "op": "push", "val": [0, 0, 0, 0, 0] },
+              { "op": "push", "val": 2 },
+              { "op": "spline_tcb" }
+            ] } ] }
+    ]
+  }
+}
+)JSON";
+
+static void TestFormulaValArray()
+{
+    std::cout << "=================================\n";
+    std::cout << "FORMULA VAL_ARRAY TESTS (2.1.0)\n";
+    std::cout << "=================================\n\n";
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    int loadResult = DsonDocument_LoadFromString(doc, kSplineFixture);
+    if (loadResult != 0) {
+        std::cout << "FAIL: LoadFromString returned " << loadResult << "\n\n";
+        DsonDocument_Destroy(doc);
+        return;
+    }
+
+    bool allPass = true;
+
+    // --- modifier_library family ---
+    // modifier 0, formula 0 should have 6 operations
+    int opCount = DsonDocument_GetModifierFormulaOperationCount(doc, 0, 0);
+    bool pass = (opCount == 6);
+    allPass &= pass;
+    std::cout << "mod[0] formula[0] OperationCount==" << opCount << "  [expect 6]  " << (pass ? "PASS" : "FAIL") << "\n";
+
+    // op0: url push, no array
+    {
+        const char* opStr = DsonDocument_GetModifierFormulaOperationOp(doc, 0, 0, 0);
+        const char* url   = DsonDocument_GetModifierFormulaOperationUrl(doc, 0, 0, 0);
+        int arrCount      = DsonDocument_GetModifierFormulaOperationValArrayCount(doc, 0, 0, 0);
+        bool p = (std::string(opStr) == "push") && (std::string(url) == "Genesis9:l_forearm?rotation/y") && (arrCount == 0);
+        allPass &= p;
+        std::cout << "  op0: Op=" << opStr << " Url=" << url << " ValArrayCount=" << arrCount << "  [expect push / Genesis9:l_forearm?rotation/y / 0]  " << (p ? "PASS" : "FAIL") << "\n";
+    }
+
+    // op1: [-135, 1, 0, 0, 0]
+    {
+        int arrCount = DsonDocument_GetModifierFormulaOperationValArrayCount(doc, 0, 0, 1);
+        double e0 = DsonDocument_GetModifierFormulaOperationValArrayElement(doc, 0, 0, 1, 0);
+        double e1 = DsonDocument_GetModifierFormulaOperationValArrayElement(doc, 0, 0, 1, 1);
+        double e2 = DsonDocument_GetModifierFormulaOperationValArrayElement(doc, 0, 0, 1, 2);
+        double e3 = DsonDocument_GetModifierFormulaOperationValArrayElement(doc, 0, 0, 1, 3);
+        double e4 = DsonDocument_GetModifierFormulaOperationValArrayElement(doc, 0, 0, 1, 4);
+        bool p = (arrCount == 5) && (e0 == -135) && (e1 == 1) && (e2 == 0) && (e3 == 0) && (e4 == 0);
+        allPass &= p;
+        std::cout << "  op1: ValArrayCount=" << arrCount << " elements={" << e0 << "," << e1 << "," << e2 << "," << e3 << "," << e4 << "}  [expect 5 / {-135,1,0,0,0}]  " << (p ? "PASS" : "FAIL") << "\n";
+    }
+
+    // op2: [-75, 0, 0, 0, 0]
+    {
+        int arrCount = DsonDocument_GetModifierFormulaOperationValArrayCount(doc, 0, 0, 2);
+        double e0 = DsonDocument_GetModifierFormulaOperationValArrayElement(doc, 0, 0, 2, 0);
+        double e1 = DsonDocument_GetModifierFormulaOperationValArrayElement(doc, 0, 0, 2, 1);
+        bool p = (arrCount == 5) && (e0 == -75) && (e1 == 0);
+        allPass &= p;
+        std::cout << "  op2: ValArrayCount=" << arrCount << " e[0]=" << e0 << " e[1]=" << e1 << "  [expect 5 / -75 / 0]  " << (p ? "PASS" : "FAIL") << "\n";
+    }
+
+    // op3: [0.5, 0, 0, 0, 0]
+    {
+        int arrCount = DsonDocument_GetModifierFormulaOperationValArrayCount(doc, 0, 0, 3);
+        double e0 = DsonDocument_GetModifierFormulaOperationValArrayElement(doc, 0, 0, 3, 0);
+        bool p = (arrCount == 5) && (e0 == 0.5);
+        allPass &= p;
+        std::cout << "  op3: ValArrayCount=" << arrCount << " e[0]=" << e0 << "  [expect 5 / 0.5]  " << (p ? "PASS" : "FAIL") << "\n";
+    }
+
+    // op4: scalar val==3, no array
+    {
+        int arrCount = DsonDocument_GetModifierFormulaOperationValArrayCount(doc, 0, 0, 4);
+        double scalarVal = DsonDocument_GetModifierFormulaOperationVal(doc, 0, 0, 4);
+        const char* opStr = DsonDocument_GetModifierFormulaOperationOp(doc, 0, 0, 4);
+        bool p = (arrCount == 0) && (scalarVal == 3.0) && (std::string(opStr) == "push");
+        allPass &= p;
+        std::cout << "  op4: Op=" << opStr << " ValArrayCount=" << arrCount << " Val=" << scalarVal << "  [expect push / 0 / 3]  " << (p ? "PASS" : "FAIL") << "\n";
+    }
+
+    // op5: spline_tcb token, no array
+    {
+        const char* opStr = DsonDocument_GetModifierFormulaOperationOp(doc, 0, 0, 5);
+        int arrCount = DsonDocument_GetModifierFormulaOperationValArrayCount(doc, 0, 0, 5);
+        bool p = (std::string(opStr) == "spline_tcb") && (arrCount == 0);
+        allPass &= p;
+        std::cout << "  op5: Op=" << opStr << " ValArrayCount=" << arrCount << "  [expect spline_tcb / 0]  " << (p ? "PASS" : "FAIL") << "\n";
+    }
+
+    // out-of-range element on an array op -> 0.0
+    {
+        double oob = DsonDocument_GetModifierFormulaOperationValArrayElement(doc, 0, 0, 1, 99);
+        bool p = (oob == 0.0);
+        allPass &= p;
+        std::cout << "  op1 element[99] (out of range)=" << oob << "  [expect 0.0]  " << (p ? "PASS" : "FAIL") << "\n";
+    }
+
+    std::cout << "\n";
+
+    // --- scene.modifiers family ---
+    // scene modifier 0, formula 0 should have 5 operations
+    int sceneOpCount = DsonDocument_GetSceneModifierFormulaOperationCount(doc, 0, 0);
+    bool spass = (sceneOpCount == 5);
+    allPass &= spass;
+    std::cout << "scene.mod[0] formula[0] OperationCount==" << sceneOpCount << "  [expect 5]  " << (spass ? "PASS" : "FAIL") << "\n";
+
+    // scene op1: [-75, 1, 0, 0, 0]
+    {
+        int arrCount = DsonDocument_GetSceneModifierFormulaOperationValArrayCount(doc, 0, 0, 1);
+        double e0 = DsonDocument_GetSceneModifierFormulaOperationValArrayElement(doc, 0, 0, 1, 0);
+        double e1 = DsonDocument_GetSceneModifierFormulaOperationValArrayElement(doc, 0, 0, 1, 1);
+        bool p = (arrCount == 5) && (e0 == -75) && (e1 == 1);
+        allPass &= p;
+        std::cout << "  scene op1: ValArrayCount=" << arrCount << " {" << e0 << "," << e1 << ",...}  [expect 5 / {-75,1,...}]  " << (p ? "PASS" : "FAIL") << "\n";
+    }
+
+    // scene op2: [0, 0, 0, 0, 0]
+    {
+        int arrCount = DsonDocument_GetSceneModifierFormulaOperationValArrayCount(doc, 0, 0, 2);
+        double e0 = DsonDocument_GetSceneModifierFormulaOperationValArrayElement(doc, 0, 0, 2, 0);
+        bool p = (arrCount == 5) && (e0 == 0.0);
+        allPass &= p;
+        std::cout << "  scene op2: ValArrayCount=" << arrCount << " e[0]=" << e0 << "  [expect 5 / 0.0]  " << (p ? "PASS" : "FAIL") << "\n";
+    }
+
+    // scene op3: scalar val==2, no array
+    {
+        int arrCount = DsonDocument_GetSceneModifierFormulaOperationValArrayCount(doc, 0, 0, 3);
+        double scalarVal = DsonDocument_GetSceneModifierFormulaOperationVal(doc, 0, 0, 3);
+        bool p = (arrCount == 0) && (scalarVal == 2.0);
+        allPass &= p;
+        std::cout << "  scene op3: ValArrayCount=" << arrCount << " Val=" << scalarVal << "  [expect 0 / 2.0]  " << (p ? "PASS" : "FAIL") << "\n";
+    }
+
+    // scene op4: spline_tcb, no array
+    {
+        const char* opStr = DsonDocument_GetSceneModifierFormulaOperationOp(doc, 0, 0, 4);
+        int arrCount = DsonDocument_GetSceneModifierFormulaOperationValArrayCount(doc, 0, 0, 4);
+        bool p = (std::string(opStr) == "spline_tcb") && (arrCount == 0);
+        allPass &= p;
+        std::cout << "  scene op4: Op=" << opStr << " ValArrayCount=" << arrCount << "  [expect spline_tcb / 0]  " << (p ? "PASS" : "FAIL") << "\n";
+    }
+
+    std::cout << "\nFormula val_array: " << (allPass ? "PASS" : "FAIL") << "\n\n";
+
+    DsonDocument_Destroy(doc);
+}
+
 int main(int argc, char* argv[])
 {
     std::cout << "DSON Parser Test\n";
@@ -840,6 +1016,8 @@ int main(int argc, char* argv[])
 
     // Clean up
     DsonDocument_Destroy(doc);
+
+    TestFormulaValArray();
 
     std::cout << "Press Enter to exit...";
     std::cin.get();
