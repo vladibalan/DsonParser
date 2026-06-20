@@ -357,6 +357,32 @@ G. Formulas
 
 ## Recently completed (post-v1)
 
+### Modifier control-inventory metadata — group / region / icon — ✅ implemented (Jun 2026)
+The additive sibling of the 1.5.0 catalog work, for an Importer/Artisan building a UI over a
+figure's sliderable controls (library version **2.2.0**, 3 **additive** accessors). A
+modifier's DAZ Parameter-Settings "Path" (`group`) and "Region" (`region`) — both
+**modifier-level** keys — and its per-control thumbnail (`presentation.icon_large`) were
+parsed-as-known but dropped; they are now stored on `Modifier`
+(`group` / `region` / `presentation_icon`) and exposed verbatim:
+
+- `DsonDocument_GetModifierGroup` — modifier-level `group` (Parameter-Settings "Path", e.g.
+  `/Pose Controls/Head/Expressions`).
+- `DsonDocument_GetModifierRegion` — modifier-level `region` (e.g. `Head`).
+- `DsonDocument_GetModifierPresentationIcon` — `presentation.icon_large` thumbnail path,
+  returned **verbatim** (percent-encoded as stored; the consumer resolves/loads it).
+
+Faithful raw passthrough (**R6.4**): no decode, normalization, or hierarchy inference. String
+sentinel `""` when the field is absent or the index is invalid, matching
+`GetModifierPresentation{Type,Label}` (R1). `group`/`region` were already in the modifier
+`knownKeys` set, so the unknown-key audit is unchanged. Verified by an independent Director
+build (Release|x64, clean) and the `DsonTest2` harness: `body_bs_NipplesFeminine_HD3.dsf`
+modifier[0] (`group="/Feminine"`, `region="Chest"`, icon = the verbatim
+`…/body_bs_NipplesFeminine_HD3.png`) and `BaseJointCorrectives.dsf` modifier[0] `"JCMs On"`
+(`group="/General/Misc"`, `region` absent → `""`, `icon_large` present-but-empty → `""`).
+
+**Consumer note (additive, non-breaking):** the three new functions are available to the UE
+plugin; existing calls are unaffected.
+
 ### Asset-catalog metadata — presentation + geograft — ✅ implemented (Jun 2026)
 For an Importer building a faithful library catalog of installed `.duf`/`.dsf` assets from
 declared data only, three declared facts are now exposed (library version **1.5.0**, 5
