@@ -1010,6 +1010,21 @@ const char* DsonDocument_GetModifierPresentationLabel(DsonDocumentHandle handle,
     return mod ? mod->presentation_label.c_str() : "";
 }
 
+const char* DsonDocument_GetModifierGroup(DsonDocumentHandle handle, int index) {
+    const Dson::Modifier* mod = GetLibraryModifier(handle, index);
+    return mod ? mod->group.c_str() : "";
+}
+
+const char* DsonDocument_GetModifierRegion(DsonDocumentHandle handle, int index) {
+    const Dson::Modifier* mod = GetLibraryModifier(handle, index);
+    return mod ? mod->region.c_str() : "";
+}
+
+const char* DsonDocument_GetModifierPresentationIcon(DsonDocumentHandle handle, int index) {
+    const Dson::Modifier* mod = GetLibraryModifier(handle, index);
+    return mod ? mod->presentation_icon.c_str() : "";
+}
+
 double DsonDocument_GetModifierChannelValue(DsonDocumentHandle handle, int modifierIndex) {
     return GetModifierChannelDouble(GetLibraryModifier(handle, modifierIndex), ModifierChannelValue);
 }

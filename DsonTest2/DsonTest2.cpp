@@ -514,7 +514,7 @@ void RunSceneAnimationsTest() {
 void RunCatalogPresentationTests()
 {
     std::cout << "=================================\n";
-    std::cout << "CATALOG PRESENTATION TESTS (1.5.0)\n";
+    std::cout << "CATALOG PRESENTATION TESTS (1.5.0 / 2.2.0)\n";
     std::cout << "=================================\n\n";
 
     // --- test.dsf: modifier_library[0].presentation.type == "Modifier/Shape" ---
@@ -558,6 +558,55 @@ void RunCatalogPresentationTests()
         }
         DsonDocument_Destroy(g9Doc);
     }
+
+    // --- 2.2.0: modifier group/region/icon faithful passthrough ---
+    // body_bs_NipplesFeminine_HD3.dsf modifier[0]: all three populated (icon is a real, percent-encoded path).
+    const std::string nipPath = ResolveTestFile("body_bs_NipplesFeminine_HD3.dsf");
+    if (nipPath.empty()) {
+        std::cout << "body_bs_NipplesFeminine_HD3.dsf not found; skipping modifier group/region/icon test.\n";
+    } else {
+        DsonDocumentHandle nipDoc = DsonDocument_Create();
+        if (DsonDocument_LoadFromFile(nipDoc, nipPath.c_str()) == 0) {
+            const char* g  = DsonDocument_GetModifierGroup(nipDoc, 0);
+            const char* r  = DsonDocument_GetModifierRegion(nipDoc, 0);
+            const char* ic = DsonDocument_GetModifierPresentationIcon(nipDoc, 0);
+            bool gp = std::string(g)  == "/Feminine";
+            bool rp = std::string(r)  == "Chest";
+            bool ip = std::string(ic) == "/data/Daz%203D/Genesis%209/Base/Morphs/Daz%203D/Base/body_bs_NipplesFeminine_HD3.png";
+            std::cout << "Nipples modifier[0] group:  \"" << g  << "\"  [expect /Feminine] " << (gp ? "PASS" : "FAIL") << "\n";
+            std::cout << "Nipples modifier[0] region: \"" << r  << "\"  [expect Chest] "     << (rp ? "PASS" : "FAIL") << "\n";
+            std::cout << "Nipples modifier[0] icon:   \"" << ic << "\"  [expect .png path] " << (ip ? "PASS" : "FAIL") << "\n";
+            std::cout << "Nipples modifier[-1] group (sentinel):  \"" << DsonDocument_GetModifierGroup(nipDoc, -1)            << "\"  [expect empty]\n";
+            std::cout << "Nipples modifier[-1] region (sentinel): \"" << DsonDocument_GetModifierRegion(nipDoc, -1)           << "\"  [expect empty]\n";
+            std::cout << "Nipples modifier[-1] icon (sentinel):   \"" << DsonDocument_GetModifierPresentationIcon(nipDoc, -1) << "\"  [expect empty]\n";
+        } else {
+            std::cout << "body_bs_NipplesFeminine_HD3.dsf load error: " << DsonParser_GetLastError() << "\n";
+        }
+        DsonDocument_Destroy(nipDoc);
+    }
+
+    // BaseJointCorrectives.dsf modifier[0] ("JCMs On"): group populated, region ABSENT -> "", icon present-but-empty -> "".
+    const std::string bjcPath = ResolveTestFile("BaseJointCorrectives.dsf");
+    if (bjcPath.empty()) {
+        std::cout << "BaseJointCorrectives.dsf not found; skipping region-absent sentinel test.\n";
+    } else {
+        DsonDocumentHandle bjcDoc = DsonDocument_Create();
+        if (DsonDocument_LoadFromFile(bjcDoc, bjcPath.c_str()) == 0) {
+            const char* g  = DsonDocument_GetModifierGroup(bjcDoc, 0);
+            const char* r  = DsonDocument_GetModifierRegion(bjcDoc, 0);
+            const char* ic = DsonDocument_GetModifierPresentationIcon(bjcDoc, 0);
+            bool gp = std::string(g)  == "/General/Misc";
+            bool rp = std::string(r).empty();   // region key absent -> ""
+            bool ip = std::string(ic).empty();  // icon_large present but "" -> ""
+            std::cout << "BaseJC modifier[0] group:  \"" << g  << "\"  [expect /General/Misc] " << (gp ? "PASS" : "FAIL") << "\n";
+            std::cout << "BaseJC modifier[0] region: \"" << r  << "\"  [expect empty/absent] "   << (rp ? "PASS" : "FAIL") << "\n";
+            std::cout << "BaseJC modifier[0] icon:   \"" << ic << "\"  [expect empty] "          << (ip ? "PASS" : "FAIL") << "\n";
+        } else {
+            std::cout << "BaseJointCorrectives.dsf load error: " << DsonParser_GetLastError() << "\n";
+        }
+        DsonDocument_Destroy(bjcDoc);
+    }
+
     std::cout << "\n";
 }
 

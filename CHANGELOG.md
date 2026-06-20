@@ -11,6 +11,26 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.2.0 — 2026-06-20 · MINOR (additive)
+
+Three more faithful modifier_library catalog fields, the additive sibling of the 1.5.0
+presentation.type/label work, for an Importer building a control/expression inventory
+over a figure's sliderable channels. DAZ stores a control's Parameter-Settings "Path" as a
+modifier-level `group` and "Region" as a modifier-level `region` (siblings of
+`channel`/`presentation`), and the per-control thumbnail as `presentation.icon_large`; all
+three were parsed-as-known but dropped. They are now stored and exposed verbatim — no
+interpretation/normalization; the icon path stays percent-encoded as stored, the consumer
+resolves/loads it. "" when the field is absent or the index is invalid, the same sentinel as
+GetModifierPresentation{Type,Label}. group/region were already in the modifier knownKeys set,
+so the unknown-key audit is unchanged. Verified against TestFiles
+(body_bs_NipplesFeminine_HD3.dsf modifier[0]: group="/Feminine", region="Chest",
+icon="/data/Daz%203D/Genesis%209/Base/Morphs/Daz%203D/Base/body_bs_NipplesFeminine_HD3.png";
+BaseJointCorrectives.dsf modifier[0] "JCMs On": group="/General/Misc", region absent -> "",
+icon present-but-empty -> "").
++ DsonDocument_GetModifierGroup -> modifier_library item modifier-level "group" (DAZ Parameter Settings "Path"; "" = none/invalid)
++ DsonDocument_GetModifierRegion -> modifier_library item modifier-level "region" (DAZ Parameter Settings "Region"; "" = none/invalid)
++ DsonDocument_GetModifierPresentationIcon -> modifier_library item presentation.icon_large thumbnail path, raw/verbatim ("" = none/invalid)
+
 ## 2.1.0 — 2026-06-17 · MINOR (additive)
 
 Array-valued formula operands (spline_tcb knots). A formula `push` operation may carry a

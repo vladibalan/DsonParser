@@ -745,7 +745,14 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     if (JsonHelper::GetObject(json, "presentation", presObj)) {
         presentation_type  = JsonHelper::GetStringOrDefault(*presObj, "type");
         presentation_label = JsonHelper::GetStringOrDefault(*presObj, "label");
+        presentation_icon  = JsonHelper::GetStringOrDefault(*presObj, "icon_large");
     }
+
+    // Modifier-level catalog metadata (DAZ Parameter Settings): "group" = Path,
+    // "region" = Region. Siblings of "channel"/"presentation"; already in
+    // knownKeys; stored verbatim, no interpretation (R6.4).
+    group  = JsonHelper::GetStringOrDefault(json, "group");
+    region = JsonHelper::GetStringOrDefault(json, "region");
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;

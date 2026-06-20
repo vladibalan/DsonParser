@@ -208,6 +208,14 @@ DSONPARSER_API const char* DsonDocument_GetModifierType(DsonDocumentHandle handl
 DSONPARSER_API const char* DsonDocument_GetModifierPresentationType(DsonDocumentHandle handle, int index);
 // @since 1.5.0
 DSONPARSER_API const char* DsonDocument_GetModifierPresentationLabel(DsonDocumentHandle handle, int index);
+// modifier-level "group" (DAZ Parameter Settings "Path", e.g. "/Pose Controls/Head/Expressions") / "region" (e.g. "Head") for this modifier_library item; raw verbatim, "" when absent or index invalid.
+// @since 2.2.0
+DSONPARSER_API const char* DsonDocument_GetModifierGroup(DsonDocumentHandle handle, int index);
+// @since 2.2.0
+DSONPARSER_API const char* DsonDocument_GetModifierRegion(DsonDocumentHandle handle, int index);
+// presentation.icon_large thumbnail path for this modifier_library item, raw/verbatim (percent-encoded as stored; the consumer resolves/loads it); "" when absent or index invalid.
+// @since 2.2.0
+DSONPARSER_API const char* DsonDocument_GetModifierPresentationIcon(DsonDocumentHandle handle, int index);
 DSONPARSER_API double      DsonDocument_GetModifierChannelValue(DsonDocumentHandle handle, int modifierIndex);
 DSONPARSER_API double      DsonDocument_GetModifierChannelMin(DsonDocumentHandle handle, int modifierIndex);
 DSONPARSER_API double      DsonDocument_GetModifierChannelMax(DsonDocumentHandle handle, int modifierIndex);

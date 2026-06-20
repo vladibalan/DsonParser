@@ -215,6 +215,9 @@ struct Modifier {
     std::vector<Formula> formulas;
     std::string presentation_type;   // presentation.type  (DAZ "Content Type"; "" if absent)
     std::string presentation_label;  // presentation.label (declared display name; "" if absent)
+    std::string region;              // modifier-level "region" (DAZ Parameter Settings "Region", e.g. "Chest"; "" if absent)
+    std::string group;               // modifier-level "group"  (DAZ Parameter Settings "Path",   e.g. "/Feminine"; "" if absent)
+    std::string presentation_icon;   // presentation.icon_large (control thumbnail path, raw/verbatim; "" if absent)
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

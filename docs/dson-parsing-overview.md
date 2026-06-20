@@ -106,10 +106,11 @@ current loader scope.
 
 `modifier_library`
 : Parsed into `Modifier`. Captures morph deltas, normal deltas, stored channel
-  dial metadata/value bounds, skin binding payloads, formulas, and the item's
-  `presentation` content type + label
-  (`DsonDocument_GetModifierPresentationType`/`…Label`; see Asset Catalog
-  Metadata below). Formula `output`, `stage`, and
+  dial metadata/value bounds, skin binding payloads, formulas, the item's
+  `presentation` content type + label + icon
+  (`DsonDocument_GetModifierPresentationType`/`…Label`/`…Icon`), and the
+  modifier-level `group`/`region` control tags (`DsonDocument_GetModifierGroup`/
+  `…Region`; see Asset Catalog Metadata below). Formula `output`, `stage`, and
   the source-order RPN `operations` (`op` plus scalar `val`/`url`, or array
   `val_array` for spline_tcb knots) are stored and exposed; the parser does not
   evaluate them or follow their channel references.
@@ -131,10 +132,10 @@ current loader scope.
 
 ## Asset Catalog Metadata (presentation + geograft)
 
-For building a library catalog of installed assets, three declared facts are exposed as
-faithful single-file reads — the parser reports what the opened file declares and does no
-classification, folder inference, or document-level resolution (R6.4); the consumer maps
-and selects.
+For building a library catalog of installed assets — and a UI over a figure's controls —
+several declared facts are exposed as faithful single-file reads: the parser reports what the
+opened file declares and does no classification, folder inference, or document-level
+resolution (R6.4); the consumer maps and selects.
 
 - **Content type + display label** come from a library item's `presentation` block
   (`presentation.type` is the DAZ "Content Type"; `presentation.label` the display name).
@@ -152,6 +153,16 @@ and selects.
   empty `"graft": {}` on non-graft meshes (base figures, and Genesis 9 Eyes — which uses
   `rigidity` — and Eyelashes), so key-presence alone is not the signal; an empty graft
   reports `false`.
+- **Control inventory (modifier `group`/`region`/icon)** — for a UI over a figure's
+  sliderable controls. A modifier carries its DAZ Parameter-Settings "Path" as a
+  modifier-level `group` (`DsonDocument_GetModifierGroup`, e.g.
+  `/Pose Controls/Head/Expressions`) and "Region" as a modifier-level `region`
+  (`DsonDocument_GetModifierRegion`, e.g. `Head`); the per-control thumbnail is
+  `presentation.icon_large` (`DsonDocument_GetModifierPresentationIcon`, returned
+  **verbatim** — percent-encoded as stored, the consumer resolves/loads it). All three are
+  raw passthrough, `""` when the field is absent or the index is invalid. Nesting note:
+  `group`/`region` are siblings of `channel`/`presentation`; the icon sits inside
+  `presentation` next to `type`/`label`.
 
 These read `Node`/`Modifier`/`Geometry` fields directly; there is no cross-section merge.
 
