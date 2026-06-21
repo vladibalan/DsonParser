@@ -552,6 +552,20 @@ bool TryGunzip(const char* data, size_t size, std::string& out, std::string& err
 
     unsigned int expectedCrc = ReadLe32(bytes + size - 8);
     unsigned int expectedSize = ReadLe32(bytes + size - 4);
+
+    // Blank (all-zero) gzip trailer: some real DAZ products ship gzip members
+    // whose 8-byte CRC32+ISIZE trailer is all-zero, and DAZ Studio loads them
+    // because it does not validate the trailer. InflateDeflate above returns
+    // true only on a final-block termination, so a clean inflate already
+    // proves the payload is whole; accept it and skip the (absent) trailer
+    // comparison. Genuine truncation/corruption fails inside InflateDeflate
+    // before reaching here, and any present (non-zero) trailer is still fully
+    // enforced below.
+    if (expectedCrc == 0 && expectedSize == 0) {
+        errorMsg.clear();
+        return true;
+    }
+
     unsigned int actualCrc = UpdateCrc32(reinterpret_cast<const unsigned char*>(out.data()), out.size());
     unsigned int actualSize = static_cast<unsigned int>(out.size() & 0xFFFFFFFFu);
 

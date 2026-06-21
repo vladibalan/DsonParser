@@ -13,7 +13,7 @@ to start by reading the full implementation files.
 | `DsonParser/DsonTypes.h` | Typed DSON model: asset metadata, nodes, geometry, materials, skin bindings, modifiers, images, UV sets, scene instances, and root document. |
 | `DsonParser/DsonTypes.cpp` | Main parser implementation. Converts RapidJSON objects into the `Dson::*` model and performs limited post-parse image reference linkage. |
 | `DsonParser/DsonHelpers.h/.cpp` | Safe RapidJSON helper API (`JsonHelper`) used by the parser. Declarations in `.h`, implementations in `.cpp`. |
-| `DsonParser/DsonInflate.h/.cpp` | Internal, dependency-free gzip/DEFLATE support used by the loader before JSON parsing. Verifies gzip CRC32 and ISIZE. |
+| `DsonParser/DsonInflate.h/.cpp` | Internal, dependency-free gzip/DEFLATE support used by the loader before JSON parsing. Verifies gzip CRC32 and ISIZE (a blank all-zero trailer is accepted on a clean inflate — DAZ-compat). |
 | `DsonParser/DsonParserAPI.h/.cpp` | Flat `extern "C"` API for DLL consumers. Owns opaque handles, parser-owned string returns, bounds-checked accessors, and lazy query caches. |
 | `DsonParser/DsonParserVersion.h` | Canonical library version macros (`DSONPARSER_VERSION_*`); published with and included by `DsonParserAPI.h`. Single source of truth for `DsonParser_GetVersion()` and the `CHANGELOG.md` baseline. |
 | `DsonParser_Roadmap.md` | Current capability summary, audit history, known v1 limitations, and planned v2 formula parsing work. |
@@ -55,9 +55,16 @@ DAZ files may keep `.duf`/`.dsf` extensions while storing a single gzip stream
 around the JSON document. The loader detects gzip by magic bytes (`1F 8B`) in
 `DsonDocument::LoadFromBuffer`; gzip inputs are inflated by the internal
 `DsonInflate` module before RapidJSON parsing, while plain JSON buffers parse
-unchanged. The gzip trailer CRC32 and ISIZE are mandatory checks, so corrupt or
-mis-decoded data fails with a gzip-specific error rather than surfacing later as
-a misleading JSON parse error.
+unchanged. The gzip trailer CRC32 and ISIZE are enforced when present, so corrupt
+or mis-decoded data fails with a gzip-specific error rather than surfacing later
+as a misleading JSON parse error. One DAZ-compatibility exception: a **blank
+(all-zero) trailer** is accepted when the DEFLATE stream itself inflated cleanly
+— a real shipped DAZ product writes its `.dsf` members with a zeroed trailer and
+DAZ Studio loads them (it does not validate the trailer), so the loader trusts the
+clean inflate (the inflater only succeeds on a final-block DEFLATE termination)
+rather than dropping the asset. Genuine truncation or corruption still fails inside
+inflate, and any present, non-zero, mismatched trailer is still rejected. Both
+trailer fields must be zero to take the blank-trailer path.
 
 `DsonDocument_LoadFromBuffer` is the public C ABI entry point for callers that
 already hold bytes in memory, including gzip bytes that may contain NULs.

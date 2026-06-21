@@ -11,7 +11,9 @@
 // Responsibilities:
 // - Parse RFC 1952 gzip framing for a single member.
 // - Inflate RFC 1951 stored, fixed-Huffman, and dynamic-Huffman blocks.
-// - Verify mandatory gzip CRC32 and ISIZE trailer fields.
+// - Verify the gzip CRC32 and ISIZE trailer when present; accept a blank
+//   (all-zero) trailer on a cleanly-terminated DEFLATE stream (some DAZ
+//   products ship members with a zeroed trailer).
 // - Fail safely with an error string on malformed, truncated, or unsupported
 //   input; never read beyond the supplied buffer.
 

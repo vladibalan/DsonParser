@@ -11,6 +11,23 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.2.3 — 2026-06-21 · PATCH (fix)
+
+A gzip-wrapped DSON member whose 8-byte trailer (CRC32 + ISIZE) is all-zero now loads
+instead of being rejected with "gzip CRC32 mismatch", as long as the DEFLATE stream itself
+inflated cleanly. A real shipped DAZ product (3D Universe "Pose Architect P1", G8F) writes
+52/53 of its .dsf members with a zeroed trailer; DAZ Studio loads them because it does not
+validate the trailer, so our strict check was stricter than DAZ and silently dropped
+legitimately-shipped, DAZ-loadable assets from a catalog. The internal inflater only
+returns success on a final-block DEFLATE termination, so a clean inflate already proves the
+payload is whole -- a blank trailer is therefore accepted and the comparison skipped.
+Genuine truncation/corruption still fails inside inflate (before the trailer is read), and
+any present, non-zero, mismatched trailer is still fully enforced; both trailer fields must
+be zero to skip, so a coincidentally-zero CRC with a non-zero ISIZE still takes the strict
+path. `DsonParserAPI.h` is byte-identical (no signature change); this changes only the
+internal gzip loader behavior, observable through the existing loaders:
+! DsonDocument_LoadFromBuffer / DsonDocument_LoadFromFile -- a gzip DSON with an all-zero trailer + clean DEFLATE now loads (was: rejected "gzip CRC32 mismatch")
+
 ## 2.2.2 — 2026-06-21 · PATCH (changed)
 
 The unknown-key audit trail now also surfaces a channel value that is present but of a

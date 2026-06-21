@@ -132,6 +132,39 @@ void RunGzipFixtureTests() {
     PrintGzipTestResult("body corruption rejection", corruptResult != 0);
     if (corruptDoc) DsonDocument_Destroy(corruptDoc);
 
+    // Blank (all-zero) trailer on a clean DEFLATE stream must now be ACCEPTED.
+    std::vector<unsigned char> blankFooter(kGzipFixture, kGzipFixture + sizeof(kGzipFixture));
+    for (size_t i = blankFooter.size() - 8; i < blankFooter.size(); ++i) {
+        blankFooter[i] = 0x00;
+    }
+    DsonDocumentHandle blankDoc = DsonDocument_Create();
+    bool blankPass = false;
+    if (blankDoc) {
+        int blankResult = DsonDocument_LoadFromBuffer(
+            blankDoc, reinterpret_cast<const char*>(blankFooter.data()),
+            static_cast<int>(blankFooter.size()));
+        const char* blankId = DsonDocument_GetAssetId(blankDoc);
+        blankPass = blankResult == 0
+            && std::strcmp(blankId, "/data/test/gzip_fixture.dsf") == 0;
+    }
+    PrintGzipTestResult("blank footer acceptance", blankPass);
+    if (blankDoc) DsonDocument_Destroy(blankDoc);
+
+    // A blank trailer must NOT rescue a genuinely truncated DEFLATE stream:
+    // header + only the first half of the payload + a zero trailer. Inflate
+    // can't terminate, so it fails before the trailer check.
+    size_t payloadLen = sizeof(kGzipFixture) - 10 - 8;
+    std::vector<unsigned char> truncated(kGzipFixture, kGzipFixture + 10 + payloadLen / 2);
+    truncated.insert(truncated.end(), 8, 0x00);
+    DsonDocumentHandle truncDoc = DsonDocument_Create();
+    int truncResult = truncDoc
+        ? DsonDocument_LoadFromBuffer(
+            truncDoc, reinterpret_cast<const char*>(truncated.data()),
+            static_cast<int>(truncated.size()))
+        : 1;
+    PrintGzipTestResult("blank footer + truncated DEFLATE rejection", truncResult != 0);
+    if (truncDoc) DsonDocument_Destroy(truncDoc);
+
     std::cout << "\n";
 }
 

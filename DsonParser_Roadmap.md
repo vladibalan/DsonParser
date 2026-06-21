@@ -25,7 +25,7 @@ across 4 audit passes with zero remaining gaps.
 | `DsonDataTypes.h/.cpp` | Primitive type wrappers: Bool, Int, Float, String, Vector2/3, Color, IntArray, FloatArray, IndexedArray\<T\>, IndexedVector3Array |
 | `DsonTypes.h/.cpp` | Domain structs + parse logic: AssetInfo, Node, NodeGeometryRef, Geometry, MaterialChannel, ImageLayer, Material, SkinJoint, SkinBinding, FormulaOperation, Formula, Modifier, Image, UVOverride, UVSet, Scene, DsonDocument |
 | `DsonHelpers.h/.cpp` | `JsonHelper` safe-accessor utilities (`GetString`/`GetDouble`/`GetInt`/`GetBool`/`GetArray`/`GetObject` + `*OrDefault`, `HasMember`) |
-| `DsonInflate.h/.cpp` | Internal dependency-free gzip/DEFLATE inflater run before JSON parsing; verifies gzip CRC32 + ISIZE |
+| `DsonInflate.h/.cpp` | Internal dependency-free gzip/DEFLATE inflater run before JSON parsing; verifies gzip CRC32 + ISIZE (accepts a blank all-zero trailer on a clean inflate — DAZ-compat) |
 | `DsonParserAPI.h/.cpp` | Flat C API (`extern "C"`) with opaque `DsonDocumentHandle`; per-vertex skin cache; morph index cache |
 
 ### C API — ~180 exported functions (v1 baseline; post-v1 additions below) covering:
@@ -356,6 +356,30 @@ G. Formulas
 ---
 
 ## Recently completed (post-v1)
+
+### Gzip blank (all-zero) trailer acceptance — DAZ-compat loader — ✅ implemented (Jun 2026)
+A gzip-wrapped DSON member whose 8-byte trailer (CRC32 + ISIZE) is all-zero now loads instead of
+being rejected with `gzip CRC32 mismatch`, provided the DEFLATE stream itself inflated cleanly
+(library version **2.2.3**, **PATCH**, `DsonParserAPI.h` byte-identical — no new/changed symbol). A
+real shipped DAZ product (3D Universe "Pose Architect P1", G8F) writes **52/53** of its `.dsf`
+members with a zeroed trailer; DAZ Studio loads them because it does not validate the trailer, so the
+strict check was stricter than DAZ and silently dropped legitimately-shipped, DAZ-loadable assets
+from a catalog.
+
+- **Design (clean-inflate gate).** The internal inflater (`DsonInflate.cpp` `InflateDeflate`) only
+  returns success on a final-block DEFLATE termination, so a clean inflate already proves the payload
+  is whole independent of the trailer. `TryGunzip` therefore accepts a blank trailer and skips the
+  CRC32/ISIZE comparison; **both** trailer fields must be zero to skip (a coincidentally-zero CRC with
+  a non-zero ISIZE still takes the strict path). Genuine truncation/corruption still fails **inside**
+  inflate, before the trailer is read, and any present, non-zero, mismatched trailer is still fully
+  enforced.
+- **Faithful to DAZ, not lax.** This RELAXES a rejection in the permissive-by-design direction (R6.1),
+  matching DAZ Studio's own load behavior rather than inventing acceptance.
+
+Verified by an independent Director build (Release|x64, clean, zero warnings) and the `DsonTest2` gzip
+harness — all five `GZIP LOAD TESTS` PASS: the new `blank footer acceptance` and `blank footer +
+truncated DEFLATE rejection`, alongside the unchanged `happy path`, `CRC rejection` (a present, wrong
+trailer is still rejected), and `body corruption rejection`.
 
 ### Channel value faithfulness — bool coercion (2.2.1) + type-mismatch audit (2.2.2) — ✅ implemented (Jun 2026)
 **2.2.1 (bool coercion).** A DSON channel value of `type:"bool"` now reads numerically as `1.0`/`0.0`
