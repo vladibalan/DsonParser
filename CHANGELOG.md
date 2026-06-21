@@ -11,6 +11,21 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.2.2 — 2026-06-21 · PATCH (changed)
+
+The unknown-key audit trail now also surfaces a channel value that is present but of a
+type the numeric channel-value read cannot represent (after 2.2.1: anything other than a
+number or a bool — a string, object, or non-color array). Previously such a value was
+silently dropped to the 0.0 default and recorded nowhere — the same blind spot that hid the
+bool "JCMs On" gate before 2.2.1. The numeric still falls back to its default (no new
+coercion — there is no faithful numeric for those types); the drop is now VISIBLE as a
+decorated entry in the existing per-context trail, distinguishable from a genuine unknown
+key. `DsonParserAPI.h` is byte-identical (no new/changed symbol); this enriches what the
+existing accessors report:
+~ DsonDocument_GetUnknownKey / DsonDocument_GetUnknownKeyCount — now also list a decorated
+  "<key> [channel ...: type=..., used default]" entry for a present-but-unrepresentable
+  modifier or material channel value (deduped per context, as the trail already is).
+
 ## 2.2.1 — 2026-06-21 · PATCH (fix)
 
 Boolean-typed channel values now coerce to numeric (true->1.0, false->0.0) in the

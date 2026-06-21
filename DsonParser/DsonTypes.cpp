@@ -71,13 +71,27 @@ static void TrackUnknownKeys(const rapidjson::Value& obj, const std::set<std::st
     if (!unknownKeys || !obj.IsObject()) {
         return;
     }
-    
+
     for (auto it = obj.MemberBegin(); it != obj.MemberEnd(); ++it) {
         std::string key = it->name.GetString();
         if (knownKeys.find(key) == knownKeys.end()) {
             unknownKeys->insert(key);
         }
     }
+}
+
+// Record a channel value that is present but of a type GetNumberOrBool cannot
+// represent (not a number, not a bool). Inserts a decorated, self-describing
+// entry into the existing per-context audit trail so the drop is visible.
+// The entry is clearly distinguishable from a genuine unknown key by its form:
+//   "<valueKey> [channel "<id>": type=<type>, used default]"
+static void TrackChannelTypeMismatch(std::set<std::string>* unknownKeys,
+                                     const std::string& channelId,
+                                     const char* valueKey,
+                                     const rapidjson::Value& v) {
+    if (!unknownKeys) return;
+    unknownKeys->insert(std::string(valueKey) + " [channel \"" + channelId +
+        "\": type=" + JsonHelper::JsonTypeName(v) + ", used default]");
 }
 
 static int HexValue(char c) {
@@ -418,7 +432,7 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
 
 // Parse one material channel container object (has "channel" sub-object with value + image).
 // Works for both the top-level "diffuse" key and entries inside extra.studio_material_channels.channels[].
-static MaterialChannel ParseMaterialChannel(const rapidjson::Value& container) {
+static MaterialChannel ParseMaterialChannel(const rapidjson::Value& container, std::set<std::string>* unknownKeys) {
     MaterialChannel result;
     if (!container.IsObject()) return result;
 
@@ -428,11 +442,14 @@ static MaterialChannel ParseMaterialChannel(const rapidjson::Value& container) {
     result.type = JsonHelper::GetStringOrDefault(*ch, "type");
 
     // Prefer current_value (scene override); fall back to value (library default).
-    // Value: [r,g,b] array → color channel; single number → scalar channel.
+    // Value: [r,g,b] array → color channel; single number/bool → scalar channel.
+    const char* valueKeyName = nullptr;
     const rapidjson::Value* valSrc = nullptr;
     if (ch->HasMember("current_value")) {
+        valueKeyName = "current_value";
         valSrc = &(*ch)["current_value"];
     } else if (ch->HasMember("value")) {
+        valueKeyName = "value";
         valSrc = &(*ch)["value"];
     }
 
@@ -443,8 +460,9 @@ static MaterialChannel ParseMaterialChannel(const rapidjson::Value& container) {
             result.color.y = (*valSrc)[1].GetDouble();
             result.color.z = (*valSrc)[2].GetDouble();
             result.has_color = true;
-        } else {
-            JsonHelper::GetNumberOrBool(*valSrc, result.value); // number or bool; leaves default otherwise
+        } else if (!JsonHelper::GetNumberOrBool(*valSrc, result.value)) {
+            TrackChannelTypeMismatch(unknownKeys, JsonHelper::GetStringOrDefault(*ch, "id"),
+                                     valueKeyName, *valSrc);
         }
     }
 
@@ -486,7 +504,7 @@ bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     // Top-level "diffuse" channel
     const rapidjson::Value* diffuseObj = nullptr;
     if (JsonHelper::GetObject(json, "diffuse", diffuseObj)) {
-        channels.push_back({"diffuse", ParseMaterialChannel(*diffuseObj)});
+        channels.push_back({"diffuse", ParseMaterialChannel(*diffuseObj, unknownKeys)});
     }
 
     // extra[] carries the shader-type entry ("studio/material/<name>") and the PBR channel data
@@ -518,7 +536,7 @@ bool Material::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
                 if (!JsonHelper::GetObject(entry, "channel", chObj)) continue;
                 const std::string chId = JsonHelper::GetStringOrDefault(*chObj, "id");
 
-                channels.push_back({chId, ParseMaterialChannel(entry)});
+                channels.push_back({chId, ParseMaterialChannel(entry, unknownKeys)});
             }
             break; // Only one studio_material_channels block per material
         }
@@ -696,9 +714,18 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     if (JsonHelper::GetObject(json, "channel", channelObj)) {
         channel.value = JsonHelper::GetStringOrDefault(*channelObj, "id");
         channel_label = JsonHelper::GetStringOrDefault(*channelObj, "label");
-        channel_value = channelObj->HasMember("current_value")
-            ? JsonHelper::GetNumberOrBoolOrDefault(*channelObj, "current_value", 0.0)
-            : JsonHelper::GetNumberOrBoolOrDefault(*channelObj, "value", 0.0);
+        {
+            const char* valKey = channelObj->HasMember("current_value") ? "current_value" : "value";
+            if (channelObj->HasMember(valKey)) {
+                double tmp = 0.0;
+                if (JsonHelper::GetNumberOrBool((*channelObj)[valKey], tmp)) {
+                    channel_value = tmp;
+                } else {
+                    TrackChannelTypeMismatch(unknownKeys, channel.value, valKey, (*channelObj)[valKey]);
+                    // channel_value stays its default (0.0)
+                }
+            }
+        }
         channel_min = JsonHelper::GetDoubleOrDefault(*channelObj, "min", 0.0);
         channel_max = JsonHelper::GetDoubleOrDefault(*channelObj, "max", 1.0);
         channel_clamped = JsonHelper::GetBoolOrDefault(*channelObj, "clamped", false);

@@ -665,6 +665,151 @@ void RunPerThreadLastErrorTest() {
     std::cout << "  B sees empty (not A's error): " << (passB ? "PASS" : "FAIL") << "\n\n";
 }
 
+// Helper: search a specific context for any trail entry containing "used default".
+static bool TrailHasTypeMismatch(DsonDocumentHandle doc, const char* context) {
+    int count = DsonDocument_GetUnknownKeyCount(doc, context);
+    for (int i = 0; i < count; i++) {
+        const char* key = DsonDocument_GetUnknownKey(doc, context, i);
+        if (key && std::strstr(key, "used default") != nullptr) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Helper: return true iff NO context in the document has a "used default" entry.
+static bool TrailHasNoTypeMismatch(DsonDocumentHandle doc) {
+    int ctxCount = DsonDocument_GetContextCount(doc);
+    for (int i = 0; i < ctxCount; i++) {
+        const char* ctx = DsonDocument_GetContextName(doc, i);
+        if (TrailHasTypeMismatch(doc, ctx)) return false;
+    }
+    return true;
+}
+
+// Print all decorated trail entries across all contexts (for diagnostics).
+static void PrintTypeMismatchEntries(DsonDocumentHandle doc) {
+    int ctxCount = DsonDocument_GetContextCount(doc);
+    bool found = false;
+    for (int i = 0; i < ctxCount; i++) {
+        const char* ctx = DsonDocument_GetContextName(doc, i);
+        int count = DsonDocument_GetUnknownKeyCount(doc, ctx);
+        for (int j = 0; j < count; j++) {
+            const char* key = DsonDocument_GetUnknownKey(doc, ctx, j);
+            if (key && std::strstr(key, "used default") != nullptr) {
+                std::cout << "  trail [" << ctx << "]: \"" << key << "\"\n";
+                found = true;
+            }
+        }
+    }
+    if (!found) std::cout << "  trail: (no decorated entries)\n";
+}
+
+// Verifies the channel type-mismatch audit trail (2.2.2):
+//  (a) Modifier channel value is a STRING  -> GetModifierChannelValue == 0.0, trail has decorated entry.
+//  (b) Material channel value is a STRING  -> GetMaterialChannelValue == 0.0, trail has decorated entry.
+//  (c) NEGATIVE: numeric and bool channel values produce NO decorated entry (no false positives),
+//      and the 2.2.1 bool-coercion values (1.0/0.0) remain correct.
+void RunChannelTypeMismatchTests() {
+    std::cout << "=================================\n";
+    std::cout << "CHANNEL TYPE-MISMATCH AUDIT (2.2.2)\n";
+    std::cout << "=================================\n\n";
+
+    bool allPass = true;
+
+    // --- (a) Modifier with string channel value ---
+    {
+        static const char kModStrJson[] =
+            "{\"modifier_library\":[{\"id\":\"str_chan\","
+            "\"channel\":{\"id\":\"dial_str\",\"type\":\"string\",\"value\":\"abc\"}}]}";
+
+        DsonDocumentHandle doc = DsonDocument_Create();
+        DsonDocument_LoadFromString(doc, kModStrJson);
+
+        double val = DsonDocument_GetModifierChannelValue(doc, 0);
+        bool valOk = (val == 0.0);
+        bool trailOk = TrailHasTypeMismatch(doc, "modifier_library");
+
+        std::cout << "(a) Modifier string channel:\n";
+        std::cout << "  GetModifierChannelValue==" << val << "  [expect 0.0] " << (valOk ? "PASS" : "FAIL") << "\n";
+        PrintTypeMismatchEntries(doc);
+        std::cout << "  Trail has decorated entry: " << (trailOk ? "PASS" : "FAIL") << "\n\n";
+
+        allPass = allPass && valOk && trailOk;
+        DsonDocument_Destroy(doc);
+    }
+
+    // --- (b) Material channel with string current_value ---
+    {
+        static const char kMatStrJson[] =
+            "{\"material_library\":[{\"id\":\"TestMat\",\"extra\":[{"
+            "\"type\":\"studio_material_channels\",\"channels\":[{"
+            "\"channel\":{\"id\":\"Metallic Weight\",\"type\":\"string\","
+            "\"current_value\":\"notanumber\"}}]}]}]}";
+
+        DsonDocumentHandle doc = DsonDocument_Create();
+        DsonDocument_LoadFromString(doc, kMatStrJson);
+
+        double val = DsonDocument_GetMaterialChannelValue(doc, 0, 0);
+        bool valOk = (val == 0.0);
+        bool trailOk = TrailHasTypeMismatch(doc, "material_library");
+
+        std::cout << "(b) Material string channel:\n";
+        std::cout << "  GetMaterialChannelValue==" << val << "  [expect 0.0] " << (valOk ? "PASS" : "FAIL") << "\n";
+        PrintTypeMismatchEntries(doc);
+        std::cout << "  Trail has decorated entry: " << (trailOk ? "PASS" : "FAIL") << "\n\n";
+
+        allPass = allPass && valOk && trailOk;
+        DsonDocument_Destroy(doc);
+    }
+
+    // --- (c) NEGATIVE: numeric channel -> value correct, no decorated entry ---
+    {
+        static const char kNumJson[] =
+            "{\"modifier_library\":[{\"id\":\"num_chan\","
+            "\"channel\":{\"id\":\"dial_num\",\"type\":\"float\",\"value\":0.75}}]}";
+
+        DsonDocumentHandle doc = DsonDocument_Create();
+        DsonDocument_LoadFromString(doc, kNumJson);
+
+        double val = DsonDocument_GetModifierChannelValue(doc, 0);
+        bool valOk  = (std::fabs(val - 0.75) < 1e-9);
+        bool noMismatch = TrailHasNoTypeMismatch(doc);
+
+        std::cout << "(c) NEGATIVE - numeric channel:\n";
+        std::cout << "  GetModifierChannelValue==" << val << "  [expect 0.75] " << (valOk ? "PASS" : "FAIL") << "\n";
+        PrintTypeMismatchEntries(doc);
+        std::cout << "  No decorated entry (no false positive): " << (noMismatch ? "PASS" : "FAIL") << "\n\n";
+
+        allPass = allPass && valOk && noMismatch;
+        DsonDocument_Destroy(doc);
+    }
+
+    // --- (c) NEGATIVE: bool channel (2.2.1 coercion) -> value 1.0, no decorated entry ---
+    {
+        static const char kBoolJson[] =
+            "{\"modifier_library\":[{\"id\":\"bool_chan\","
+            "\"channel\":{\"id\":\"dial_bool\",\"type\":\"bool\",\"value\":true}}]}";
+
+        DsonDocumentHandle doc = DsonDocument_Create();
+        DsonDocument_LoadFromString(doc, kBoolJson);
+
+        double val = DsonDocument_GetModifierChannelValue(doc, 0);
+        bool valOk  = (val == 1.0);
+        bool noMismatch = TrailHasNoTypeMismatch(doc);
+
+        std::cout << "(c) NEGATIVE - bool channel (2.2.1 regression):\n";
+        std::cout << "  GetModifierChannelValue==" << val << "  [expect 1.0] " << (valOk ? "PASS" : "FAIL") << "\n";
+        PrintTypeMismatchEntries(doc);
+        std::cout << "  No decorated entry (no false positive): " << (noMismatch ? "PASS" : "FAIL") << "\n\n";
+
+        allPass = allPass && valOk && noMismatch;
+        DsonDocument_Destroy(doc);
+    }
+
+    std::cout << "Channel type-mismatch audit overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
+}
+
 static const char* kSplineFixture = R"JSON(
 {
   "asset_info": { "id": "/data/test/spline_fixture.dsf", "type": "modifier" },
@@ -856,6 +1001,7 @@ int main(int argc, char* argv[])
     RunChannelLayerCompositingTest();
     RunSceneAnimationsTest();
     RunCatalogPresentationTests();
+    RunChannelTypeMismatchTests();
     RunPerThreadLastErrorTest();
 
     // Create a DSON document

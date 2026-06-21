@@ -355,42 +355,37 @@ G. Formulas
 
 ---
 
-## Planned — diagnostics & faithfulness (post-v1)
-
-### Surface type-mismatch fallbacks on recognized channel values — 📋 planned
-The faithfulness follow-up exposed by the **2.2.1 bool→numeric channel-value coercion**. That fix
-corrected the *bool instance* (a `type:"bool"` channel `value:true` now reads `1.0`, not the
-dropped `0.0`); it did **not** close the *class*. The parser is permissive by contract — missing
-optional → default, malformed → skip, **unrecognized key → recorded** in the audit trail
-(`DsonDocument_GetUnknownKeyCount` / `DsonDocument_GetUnknownKey`). But a **recognized** key
-carrying an **unrepresentable type** falls through the one blind spot in that trail: it is silently
-replaced with the default and recorded **nowhere**. A channel `value` that arrives as a string, an
-object, or a non-color array still drops to `0.0` exactly as the bool did — invisibly. That blind
-spot is why the "JCMs On" gate read `0.0` for as long as it did.
-
-**Proposed (parser-appropriate "no silent fails"):** stay permissive — never throw, keep the
-default value — but **stop being silent**. When a recognized scalar channel value is present yet
-unrepresentable as its target scalar (neither number nor bool, after 2.2.1), **record the event in
-the audit trail** with enough to diagnose it: the context, the channel/key id, and the actual JSON
-type encountered. Start with the two known hot spots — modifier channel value
-(`Modifier::ParseFromJson`) and material channel value (`ParseMaterialChannel`) — since any
-odd-typed channel hits them.
-
-**Scope / boundaries:**
-- Additive **diagnostics only** — no change to the value-accessor signatures or their R1 empty/0
-  sentinels; the returned numeric stays the default for an unrepresentable type.
-- Likely a new or extended audit surface (reuse the unknown-key trail, or a sibling
-  "type-mismatch" trail keyed by context). Classify when scoped — expected **MINOR (additive)**.
-- Keep it **targeted to channel values**, not a blanket instrumenting of every `GetXOrDefault`
-  read — transform/coordinate/count reads must not flood the trail; widen only on a real need.
-- Decide whether a present-but-unrepresentable channel value should also *coerce* where a faithful
-  DAZ mapping exists (as bool→1.0 did) or only be *reported* — default to **report, don't invent**,
-  and ground any new coercion in an actual DAZ type the way the bool gate was.
-
-Director-classified when picked up; routed as a normal task-file. This is the systemic sibling of
-the narrow 2.2.1 value fix — do it **after** 2.2.1 lands, against the audit surface.
-
 ## Recently completed (post-v1)
+
+### Channel value type-mismatch audit surfacing — ✅ implemented (Jun 2026)
+The systemic sibling of the 2.2.1 bool-coercion fix (library version **2.2.2**, **no new accessor**
+— the existing unknown-key trail is reused). 2.2.1 made a *bool* channel value faithful but left the
+broader CLASS open: a **recognized** channel value present but of a type the numeric read cannot
+represent (after 2.2.1: a string, object, or non-color array) was still dropped to the `0.0` default
+and recorded **nowhere** — the same blind spot that hid the "JCMs On" gate. The parser now **records**
+that event (it stays permissive — never throws; the numeric still falls back to its default) as a
+decorated, self-describing entry in the existing per-context audit trail, distinguishable from a
+genuine unknown key: `value [channel "<id>": type=<jsontype>, used default]`.
+
+- Recorded at the two channel-value parse sites — `Modifier::ParseFromJson` (feeds
+  `GetModifierChannelValue` / `GetSceneModifierChannelValue`) and `ParseMaterialChannel` (feeds
+  `GetMaterialChannelValue` / `GetSceneMaterialChannelValue`).
+- Surfaced through the **existing** C ABI — `DsonDocument_GetUnknownKey` / `…GetUnknownKeyCount` — so
+  `DsonParserAPI.h` stays byte-identical (**PATCH**, no `@since`). **Report-only:** no coercion is
+  invented beyond the number/bool rule (there is no faithful numeric for those types).
+
+Trade-off (accepted when choosing trail-reuse over a structured accessor, per the accessor-fan-out
+tripwire): the trail is a deduped `std::set` per context, so identical mismatches across sibling
+channels in one context collapse to one entry. Verified by an independent Director build (Release|x64,
+clean) and the `DsonTest2` harness: a string-valued modifier channel and a string-valued material
+channel each emit the decorated entry while their numeric reads stay `0.0`; a numeric channel
+(`0.75`) and a bool channel (`true` → `1.0`) emit **no** entry (no false positives); a real
+`Genesis_9_Mouth_MAT.duf` load surfaces its DAZ `"Tags"` string channel as designed; and the 2.2.1
+assertions stay green.
+
+**Consumer note (behavioral, non-breaking):** no signature change; consumers already reading the
+unknown-key trail will now also see decorated channel type-mismatch entries — filter on the
+`used default` marker if a pure unknown-key list is wanted.
 
 ### Modifier control-inventory metadata — group / region / icon — ✅ implemented (Jun 2026)
 The additive sibling of the 1.5.0 catalog work, for an Importer/Artisan building a UI over a

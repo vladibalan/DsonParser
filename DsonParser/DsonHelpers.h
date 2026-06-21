@@ -44,6 +44,11 @@ public:
     
     // Existence check
     static bool HasMember(const rapidjson::Value& obj, const char* key);
+
+    // Returns a human-readable JSON type name for the value: "number", "bool",
+    // "string", "array", "object", or "null". Used by the channel type-mismatch
+    // audit trail to name the unrepresentable type in the decorated entry.
+    static const char* JsonTypeName(const rapidjson::Value& v);
 };
 
 } // namespace Dson

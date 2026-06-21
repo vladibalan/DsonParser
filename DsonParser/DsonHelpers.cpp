@@ -96,4 +96,13 @@ bool JsonHelper::HasMember(const rapidjson::Value& obj, const char* key) {
     return obj.HasMember(key);
 }
 
+const char* JsonHelper::JsonTypeName(const rapidjson::Value& v) {
+    if (v.IsNumber()) return "number";
+    if (v.IsBool())   return "bool";
+    if (v.IsString()) return "string";
+    if (v.IsArray())  return "array";
+    if (v.IsObject()) return "object";
+    return "null";
+}
+
 } // namespace Dson
