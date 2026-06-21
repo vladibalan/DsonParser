@@ -412,6 +412,17 @@ This is intended to make future DSON coverage audits easier: a clean unknown-key
 report means the current parser recognized every key in the tested files, not
 that every recognized key is necessarily stored or semantically implemented.
 
+**Channel value coercion & type-mismatch (2.2.1–2.2.2).** A modifier or material
+`channel` value is read numerically. A JSON **bool** coerces to `1.0`/`0.0` (since
+2.2.1 — e.g. the on-by-default `JCMs On` base-joint-corrective gate now reads `1.0`,
+not the dropped `0.0`); a number reads as-is. Any **other** present type the numeric
+read cannot represent — a string, object, or non-color array — keeps the `0.0`
+default but, since 2.2.2, is no longer dropped silently: the parser records a
+decorated, self-describing entry of the form
+`value [channel "<id>": type=<jsontype>, used default]` into that context's trail
+(deduped, like the rest of the trail). Such an entry is *not* an unrecognized key —
+filter on the `used default` marker to separate the two.
+
 ## API Ownership And Return Conventions
 
 The C API returns parser-owned `const char*` pointers. Callers should copy any

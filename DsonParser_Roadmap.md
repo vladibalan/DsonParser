@@ -357,8 +357,14 @@ G. Formulas
 
 ## Recently completed (post-v1)
 
-### Channel value type-mismatch audit surfacing — ✅ implemented (Jun 2026)
-The systemic sibling of the 2.2.1 bool-coercion fix (library version **2.2.2**, **no new accessor**
+### Channel value faithfulness — bool coercion (2.2.1) + type-mismatch audit (2.2.2) — ✅ implemented (Jun 2026)
+**2.2.1 (bool coercion).** A DSON channel value of `type:"bool"` now reads numerically as `1.0`/`0.0`
+in the modifier and material channel-value accessors (it was silently dropped to the `0.0` default by
+the `IsNumber()`-gated read) — `DsonParserAPI.h` byte-identical, no signature change. This is the
+parser-side fix for the G8/G8.1 `JCMs On` base-joint-corrective master gate reading `0.0`: that bool
+gate mult-gates ~80 base correctives, so at `0.0` it zeroed every one (committed `6beebbc`).
+
+**2.2.2 (type-mismatch audit).** The systemic sibling (library version **2.2.2**, **no new accessor**
 — the existing unknown-key trail is reused). 2.2.1 made a *bool* channel value faithful but left the
 broader CLASS open: a **recognized** channel value present but of a type the numeric read cannot
 represent (after 2.2.1: a string, object, or non-color array) was still dropped to the `0.0` default
