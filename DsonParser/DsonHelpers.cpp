@@ -57,6 +57,18 @@ bool JsonHelper::GetInt(const rapidjson::Value& obj, const char* key, int& out) 
     return false;
 }
 
+bool JsonHelper::GetNumberOrBool(const rapidjson::Value& v, double& out) {
+    if (v.IsNumber()) { out = v.GetDouble(); return true; }
+    if (v.IsBool())   { out = v.GetBool() ? 1.0 : 0.0;  return true; }
+    return false;
+}
+
+double JsonHelper::GetNumberOrBoolOrDefault(const rapidjson::Value& obj, const char* key, double defaultValue) {
+    double out = defaultValue;
+    if (obj.HasMember(key)) { GetNumberOrBool(obj[key], out); }
+    return out;
+}
+
 bool JsonHelper::GetBoolOrDefault(const rapidjson::Value& obj, const char* key, bool defaultValue) {
     if (obj.HasMember(key) && obj[key].IsBool()) {
         return obj[key].GetBool();

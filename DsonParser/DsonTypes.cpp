@@ -443,8 +443,8 @@ static MaterialChannel ParseMaterialChannel(const rapidjson::Value& container) {
             result.color.y = (*valSrc)[1].GetDouble();
             result.color.z = (*valSrc)[2].GetDouble();
             result.has_color = true;
-        } else if (valSrc->IsNumber()) {
-            result.value = valSrc->GetDouble();
+        } else {
+            JsonHelper::GetNumberOrBool(*valSrc, result.value); // number or bool; leaves default otherwise
         }
     }
 
@@ -697,8 +697,8 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
         channel.value = JsonHelper::GetStringOrDefault(*channelObj, "id");
         channel_label = JsonHelper::GetStringOrDefault(*channelObj, "label");
         channel_value = channelObj->HasMember("current_value")
-            ? JsonHelper::GetDoubleOrDefault(*channelObj, "current_value", 0.0)
-            : JsonHelper::GetDoubleOrDefault(*channelObj, "value", 0.0);
+            ? JsonHelper::GetNumberOrBoolOrDefault(*channelObj, "current_value", 0.0)
+            : JsonHelper::GetNumberOrBoolOrDefault(*channelObj, "value", 0.0);
         channel_min = JsonHelper::GetDoubleOrDefault(*channelObj, "min", 0.0);
         channel_max = JsonHelper::GetDoubleOrDefault(*channelObj, "max", 1.0);
         channel_clamped = JsonHelper::GetBoolOrDefault(*channelObj, "clamped", false);

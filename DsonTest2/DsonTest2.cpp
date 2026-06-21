@@ -601,6 +601,9 @@ void RunCatalogPresentationTests()
             std::cout << "BaseJC modifier[0] group:  \"" << g  << "\"  [expect /General/Misc] " << (gp ? "PASS" : "FAIL") << "\n";
             std::cout << "BaseJC modifier[0] region: \"" << r  << "\"  [expect empty/absent] "   << (rp ? "PASS" : "FAIL") << "\n";
             std::cout << "BaseJC modifier[0] icon:   \"" << ic << "\"  [expect empty] "          << (ip ? "PASS" : "FAIL") << "\n";
+            // Bool channel coercion (2.2.1): "JCMs On" channel has type:"bool", value:true -> must read as 1.0
+            double bjcVal = DsonDocument_GetModifierChannelValue(bjcDoc, 0);
+            std::cout << "BaseJC modifier[0] channel_value: " << bjcVal << "  [expect 1.0] " << (bjcVal == 1.0 ? "PASS" : "FAIL") << "\n";
         } else {
             std::cout << "BaseJointCorrectives.dsf load error: " << DsonParser_GetLastError() << "\n";
         }
@@ -1054,6 +1057,22 @@ int main(int argc, char* argv[])
         DsonDocument_LoadFromString(noExtraDoc, noExtraJson);
         std::cout << "no-extra test:  \"" << DsonDocument_GetMaterialShaderType(noExtraDoc, 0) << "\"  [expect empty]\n\n";
         DsonDocument_Destroy(noExtraDoc);
+    }
+
+    // Bool channel coercion (2.2.1): material channel with type:"bool" value:true -> 1.0, value:false -> 0.0
+    {
+        const char* boolTrueJson  = "{\"material_library\":[{\"id\":\"m\",\"extra\":[{\"type\":\"studio_material_channels\",\"channels\":[{\"channel\":{\"id\":\"gate\",\"type\":\"bool\",\"value\":true}}]}]}]}";
+        const char* boolFalseJson = "{\"material_library\":[{\"id\":\"m\",\"extra\":[{\"type\":\"studio_material_channels\",\"channels\":[{\"channel\":{\"id\":\"gate\",\"type\":\"bool\",\"value\":false}}]}]}]}";
+        DsonDocumentHandle trueDoc  = DsonDocument_Create();
+        DsonDocumentHandle falseDoc = DsonDocument_Create();
+        DsonDocument_LoadFromString(trueDoc,  boolTrueJson);
+        DsonDocument_LoadFromString(falseDoc, boolFalseJson);
+        double tv = DsonDocument_GetMaterialChannelValue(trueDoc,  0, 0);
+        double fv = DsonDocument_GetMaterialChannelValue(falseDoc, 0, 0);
+        std::cout << "Mat bool-true  channel_value: " << tv << "  [expect 1.0] " << (tv == 1.0 ? "PASS" : "FAIL") << "\n";
+        std::cout << "Mat bool-false channel_value: " << fv << "  [expect 0.0] " << (fv == 0.0 ? "PASS" : "FAIL") << "\n";
+        DsonDocument_Destroy(trueDoc);
+        DsonDocument_Destroy(falseDoc);
     }
 
     std::cout << "\nScene materials (" << DsonDocument_GetSceneMaterialCount(doc) << "):\n";

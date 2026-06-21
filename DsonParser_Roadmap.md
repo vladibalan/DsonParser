@@ -355,6 +355,41 @@ G. Formulas
 
 ---
 
+## Planned — diagnostics & faithfulness (post-v1)
+
+### Surface type-mismatch fallbacks on recognized channel values — 📋 planned
+The faithfulness follow-up exposed by the **2.2.1 bool→numeric channel-value coercion**. That fix
+corrected the *bool instance* (a `type:"bool"` channel `value:true` now reads `1.0`, not the
+dropped `0.0`); it did **not** close the *class*. The parser is permissive by contract — missing
+optional → default, malformed → skip, **unrecognized key → recorded** in the audit trail
+(`DsonDocument_GetUnknownKeyCount` / `DsonDocument_GetUnknownKey`). But a **recognized** key
+carrying an **unrepresentable type** falls through the one blind spot in that trail: it is silently
+replaced with the default and recorded **nowhere**. A channel `value` that arrives as a string, an
+object, or a non-color array still drops to `0.0` exactly as the bool did — invisibly. That blind
+spot is why the "JCMs On" gate read `0.0` for as long as it did.
+
+**Proposed (parser-appropriate "no silent fails"):** stay permissive — never throw, keep the
+default value — but **stop being silent**. When a recognized scalar channel value is present yet
+unrepresentable as its target scalar (neither number nor bool, after 2.2.1), **record the event in
+the audit trail** with enough to diagnose it: the context, the channel/key id, and the actual JSON
+type encountered. Start with the two known hot spots — modifier channel value
+(`Modifier::ParseFromJson`) and material channel value (`ParseMaterialChannel`) — since any
+odd-typed channel hits them.
+
+**Scope / boundaries:**
+- Additive **diagnostics only** — no change to the value-accessor signatures or their R1 empty/0
+  sentinels; the returned numeric stays the default for an unrepresentable type.
+- Likely a new or extended audit surface (reuse the unknown-key trail, or a sibling
+  "type-mismatch" trail keyed by context). Classify when scoped — expected **MINOR (additive)**.
+- Keep it **targeted to channel values**, not a blanket instrumenting of every `GetXOrDefault`
+  read — transform/coordinate/count reads must not flood the trail; widen only on a real need.
+- Decide whether a present-but-unrepresentable channel value should also *coerce* where a faithful
+  DAZ mapping exists (as bool→1.0 did) or only be *reported* — default to **report, don't invent**,
+  and ground any new coercion in an actual DAZ type the way the bool gate was.
+
+Director-classified when picked up; routed as a normal task-file. This is the systemic sibling of
+the narrow 2.2.1 value fix — do it **after** 2.2.1 lands, against the audit surface.
+
 ## Recently completed (post-v1)
 
 ### Modifier control-inventory metadata — group / region / icon — ✅ implemented (Jun 2026)

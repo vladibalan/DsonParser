@@ -11,6 +11,18 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.2.1 — 2026-06-21 · PATCH (fix)
+
+Boolean-typed channel values now coerce to numeric (true->1.0, false->0.0) in the
+numeric channel-value reads, instead of silently dropping to the 0.0 default. A DSON
+channel can be `type:"bool"` with a JSON-boolean `value` (e.g. the G8/G8.1 "JCMs On"
+base-joint-corrective master gate, on-by-default); the number-only read could not
+represent it, so a present `value:true` collapsed to 0.0 -- zeroing every corrective
+that gate multiplies. The value is read faithfully now. `DsonParserAPI.h` is
+byte-identical (no signature change); this corrects the behavior of existing accessors:
+! DsonDocument_GetModifierChannelValue / DsonDocument_GetSceneModifierChannelValue -- bool channel value now 1.0/0.0 (was 0.0)
+! DsonDocument_GetMaterialChannelValue / DsonDocument_GetSceneMaterialChannelValue -- bool channel value now 1.0/0.0 (was 0.0)
+
 ## 2.2.0 — 2026-06-20 · MINOR (additive)
 
 Three more faithful modifier_library catalog fields, the additive sibling of the 1.5.0
