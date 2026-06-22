@@ -975,9 +975,10 @@ bool SceneAnimation::ParseFromJson(const rapidjson::Value& json, std::set<std::s
 // fields and may carry instance-level labels, surface groups, or channel values.
 // scene.animations is now parsed faithfully onto Scene::animations — per R6.4 it
 // is NOT applied onto scene.materials; the consumer resolves the pointers and
-// decides. extra is read only for its PostLoadAddons "Character Addon Loader"
-// manifest (post_load_addons); presentation and current_camera remain
-// recognized-but-unparsed so the unknown-key diagnostics stay focused on new structure.
+// decides. extra is read for its PostLoadAddons "Character Addon Loader" manifest
+// (post_load_addons) and for scene_post_load_script references (post_load_scripts);
+// presentation and current_camera remain recognized-but-unparsed so the
+// unknown-key diagnostics stay focused on new structure.
 bool Scene::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -1007,6 +1008,21 @@ bool Scene::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
         for (rapidjson::SizeType i = 0; i < extra->Size(); ++i) {
             const rapidjson::Value& entry = (*extra)[i];
             if (!entry.IsObject()) continue;
+            // scene_post_load_script (and any scene.extra entry that references a DAZ
+            // Script): capture the script reference so a consumer can warn it is not
+            // executed. Faithful passthrough — the parser neither loads nor runs the
+            // .dse/.dsa (R6.4; cf. the no-recursive-load boundary). Gated on a present
+            // "script" string so an entry that references no script is skipped; "type"
+            // is surfaced verbatim so the consumer can narrow to "scene_post_load_script".
+            // Independent of the PostLoadAddons walk below — one entry may carry both.
+            std::string scriptRef;
+            if (JsonHelper::GetString(entry, "script", scriptRef)) {
+                ScenePostLoadScript scr;
+                scr.script = scriptRef;
+                JsonHelper::GetString(entry, "type", scr.type);
+                JsonHelper::GetString(entry, "name", scr.name);
+                post_load_scripts.push_back(scr);
+            }
             const rapidjson::Value* settings = nullptr;
             const rapidjson::Value* addons = nullptr;
             const rapidjson::Value* slots = nullptr;
@@ -1041,7 +1057,7 @@ bool Scene::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     }
 
     // presentation and current_camera are recognized but not parsed yet;
-    // extra is parsed only for its PostLoadAddons manifest above (rest is unmodeled).
+    // extra is parsed for its PostLoadAddons manifest and script references above (rest is unmodeled).
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
 }

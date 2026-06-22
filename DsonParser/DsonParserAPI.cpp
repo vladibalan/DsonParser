@@ -752,6 +752,31 @@ const char* DsonDocument_GetScenePostLoadAddonMatPreset(DsonDocumentHandle handl
     return addon ? addon->mat_preset.c_str() : "";
 }
 
+// Scene post-load scripts (scene.extra "scene_post_load_script" — DAZ Scripts
+// the static import does NOT execute; surfaced so the consumer can warn).
+int DsonDocument_GetScenePostLoadScriptCount(DsonDocumentHandle handle) {
+    Dson::DsonDocument* doc = Doc(handle);
+    return doc ? static_cast<int>(doc->scene.post_load_scripts.size()) : 0;
+}
+
+const char* DsonDocument_GetScenePostLoadScriptName(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::ScenePostLoadScript* scr = doc ? At(doc->scene.post_load_scripts, index) : nullptr;
+    return scr ? scr->name.c_str() : "";
+}
+
+const char* DsonDocument_GetScenePostLoadScriptType(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::ScenePostLoadScript* scr = doc ? At(doc->scene.post_load_scripts, index) : nullptr;
+    return scr ? scr->type.c_str() : "";
+}
+
+const char* DsonDocument_GetScenePostLoadScriptFile(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::ScenePostLoadScript* scr = doc ? At(doc->scene.post_load_scripts, index) : nullptr;
+    return scr ? scr->script.c_str() : "";
+}
+
 // Scene animations (scene.animations)
 int DsonDocument_GetSceneAnimationCount(DsonDocumentHandle handle) {
     Dson::DsonDocument* doc = Doc(handle);

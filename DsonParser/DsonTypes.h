@@ -283,6 +283,19 @@ struct ScenePostLoadAddon {
     std::string mat_preset;  // <slot>.value.Presets.value.Mat.value.PresetFile (MAT preset .duf; may be empty)
 };
 
+// A DAZ post-load script reference from scene.extra (a
+// "scene_post_load_script" entry, or any extra entry that names a script).
+// The static parser does NOT execute it; this surfaces the reference so a
+// consumer can warn that the script's runtime effects (e.g. texture
+// assignment, node dedup) are not captured by a static import. The same
+// scene.extra entry may ALSO carry a PostLoadAddons manifest (see
+// ScenePostLoadAddon); the two are modeled separately.
+struct ScenePostLoadScript {
+    std::string type;    // entry "type" (e.g. "scene_post_load_script"); may be ""
+    std::string name;    // entry "name" (e.g. "DuplicateNodeRemover"); may be ""
+    std::string script;  // entry "script": content-relative .dse/.dsa path; may be ""
+};
+
 // Scene - the DSON "scene" object: a collection of instances hooked into the scene.
 // Distinct from the *_library definitions on DsonDocument below.
 struct Scene {
@@ -291,10 +304,12 @@ struct Scene {
     std::vector<Material> materials;
     std::vector<UVSet> uvs;
     std::vector<ScenePostLoadAddon> post_load_addons; // from scene.extra "Character Addon Loader" manifests
+    std::vector<ScenePostLoadScript> post_load_scripts; // from scene.extra scene_post_load_script entries (DAZ Scripts; not executed)
     std::vector<SceneAnimation> animations;           // scene.animations: parsed faithfully, never applied onto scene.materials (R6.4)
     // Recognized by the parser but not (fully) read into typed fields:
     //   presentation, current_camera, extra
-    //   (extra: only its PostLoadAddons "Character Addon Loader" manifest is modeled)
+    //   (extra: its PostLoadAddons "Character Addon Loader" manifest and its
+    //    scene_post_load_script references are modeled; the rest is not)
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

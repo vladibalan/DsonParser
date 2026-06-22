@@ -548,6 +548,41 @@ the samples, it is a UI hint, not a load gate. Manifest data verified against
 `TestFiles/{G9,HID_Nancy_9,Laura9}.duf` (5 / 4 / 5 addon slots); accessor behavior
 pending a build + harness run.
 
+### Scene post-load scripts (`scene.extra` DAZ Script references) — ✅ implemented (Jun 2026)
+A `scene.extra` entry of type `scene_post_load_script` names a DAZ Script
+(`.dse`/`.dsa`) that DAZ Studio runs at load — runtime work (e.g. the Genesis 9
+base "Character Addon Loader" that assigns the card-eyebrow textures, or a "Remove
+Duplicate Eyebrows" cleanup) that a static import cannot replicate and, before this,
+could not even detect. It is now parsed in `Scene::ParseFromJson` onto
+`Scene::post_load_scripts` (`ScenePostLoadScript`: `type` / `name` / `script`) and
+exposed by four **additive** accessors (library version **2.3.0**):
+
+- `DsonDocument_GetScenePostLoadScriptCount` — `0` on invalid handle / none.
+- `DsonDocument_GetScenePostLoadScriptName` — the entry `name`.
+- `DsonDocument_GetScenePostLoadScriptType` — the entry `type`, e.g.
+  `scene_post_load_script`.
+- `DsonDocument_GetScenePostLoadScriptFile` — the content-relative `.dse`/`.dsa`
+  path; `""` when the entry names no script.
+
+The index is a flat, document-ordered walk across every `scene.extra` entry that
+carries a `script` string; the gate is the presence of the `script` reference (not
+the `type` literal), and `type` is surfaced verbatim so a consumer can narrow to
+`scene_post_load_script` itself. Faithful passthrough — the parser neither resolves,
+loads, nor **executes** the script (R6.4; consistent with the no-recursive-load
+boundary), so a consumer warns (no-silent-fails) that the script's runtime effects
+are not captured. The capture runs independently of the `PostLoadAddons` walk, so an
+entry carrying both (the Genesis 9 base does) appears in both families. Evidence:
+`People/Genesis 9/Genesis 9.duf` (Character Addon Loader `.dse`) and
+`data/Daz 3D/Genesis 9/Base/Tools/Script Loads/Eyebrows/Card Eyebrows.duf`
+(Remove Duplicate Eyebrows `.dse`), per the originating importer FR (2026-06-22).
+
+**Status (2026-06-22):** built clean Release|x64 and Director-verified (compile +
+link of the four exports; `code-review-rules` pass clean). No in-repo DSON fixture
+carries a `scene_post_load_script` entry, so the runtime accessor path is exercised
+only against the consumer's real DAZ content — the same coverage gap as the sibling
+addon family above. Originating importer FR (`scene.extra` DAZ-script visibility);
+the importer-side warning consumes this after vendoring 2.3.0.
+
 ### Image `map_size` (pixel dimensions) — ✅ implemented (Jun 2026)
 `map_size` (a `[width, height]` int array, e.g. `[ 4096, 4096 ]`, verified against
 `TestFiles/HID_Nancy_9.duf`) is now parsed in `Image::ParseFromJson` into

@@ -11,6 +11,28 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.3.0 — 2026-06-22 · MINOR (added)
+
+Exposes the DAZ post-load **script** references carried in `scene.extra` (DSON
+`scene_post_load_script` entries) — the `name`, `type`, and `script` path (a
+`.dse`/`.dsa`). DAZ Studio runs these scripts at load to do work a static import
+cannot replicate (e.g. the Genesis 9 base "Character Addon Loader" `.dse` that
+assigns the card-eyebrow textures nothing in the static content references, or a
+"Remove Duplicate Eyebrows" cleanup), so the static import silently drops that work
+and until now could not even see a script was present. Surfacing the references lets
+a consumer warn (no-silent-fails) that the import may be incomplete and which script
+is responsible. Faithful passthrough — the parser neither loads, resolves, nor runs
+the script, and does not merge it onto any other section (R6.4). Captured for every
+`scene.extra` entry that names a `script`, in document order; `type` is surfaced
+verbatim so a consumer can narrow to `scene_post_load_script` itself. The same entry
+may also appear in the existing `GetScenePostLoadAddon*` family when it carries both
+(the Genesis 9 base does). `DsonParserAPI.h` gains four exports; binary-compatible,
+all existing symbols intact:
++ DsonDocument_GetScenePostLoadScriptCount — number of scene.extra script references (0 on invalid handle / none)
++ DsonDocument_GetScenePostLoadScriptName — the entry "name" ("" if absent / invalid index)
++ DsonDocument_GetScenePostLoadScriptType — the entry "type", e.g. "scene_post_load_script" ("" if absent / invalid index)
++ DsonDocument_GetScenePostLoadScriptFile — the content-relative .dse/.dsa script path ("" if absent / invalid index)
+
 ## 2.2.3 — 2026-06-21 · PATCH (fix)
 
 A gzip-wrapped DSON member whose 8-byte trailer (CRC32 + ISIZE) is all-zero now loads

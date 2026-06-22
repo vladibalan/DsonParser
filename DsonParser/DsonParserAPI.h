@@ -12,6 +12,12 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.3.0: DsonDocument_GetScenePostLoadScript* — scene.extra DAZ
+//   "scene_post_load_script" references (name/type/.dse path) exposed faithfully
+//   so the consumer can warn that the static import does not execute them.
+// What's new in 2.2.0: DsonDocument_GetModifier{Group,Region} + DsonDocument_GetModifierPresentationIcon — 
+//    modifier control-inventory metadata (DAZ Parameter-Settings path / region + per-control icon) 
+//    for a controls UI; faithful passthrough.
 // What's new in 2.1.0: DsonDocument_Get{Modifier,SceneModifier}FormulaOperationValArray{Count,Element}
 //   - raw array-valued formula operands (spline_tcb TCB knots) that the scalar val
 //   accessors collapsed to 0.0; the parser still does not evaluate the spline.
@@ -456,6 +462,21 @@ DSONPARSER_API const char* DsonDocument_GetScenePostLoadAddonSlot(DsonDocumentHa
 DSONPARSER_API const char* DsonDocument_GetScenePostLoadAddonAssetName(DsonDocumentHandle handle, int index);
 DSONPARSER_API const char* DsonDocument_GetScenePostLoadAddonAssetFile(DsonDocumentHandle handle, int index);
 DSONPARSER_API const char* DsonDocument_GetScenePostLoadAddonMatPreset(DsonDocumentHandle handle, int index);
+
+// Scene post-load scripts (scene.extra "scene_post_load_script"): DAZ Scripts a
+// preset runs at load that the static import does NOT execute (e.g. the Genesis 9
+// "Character Addon Loader" .dse, or a "Remove Duplicate Eyebrows" cleanup script).
+// Surfaced verbatim — Name, Type, and the content-relative .dse/.dsa path (File may
+// be "" when the entry names no script) — so a consumer can warn (no-silent-fails)
+// that the script's runtime effects are not captured. The parser neither loads nor
+// runs the script (cf. the no-recursive-load boundary). index is a flat,
+// document-order walk across the scene.extra entries that carry a script; an entry
+// may also appear in the PostLoadAddon family above when it carries both.
+// @since 2.3.0
+DSONPARSER_API int         DsonDocument_GetScenePostLoadScriptCount(DsonDocumentHandle handle);
+DSONPARSER_API const char* DsonDocument_GetScenePostLoadScriptName(DsonDocumentHandle handle, int index);
+DSONPARSER_API const char* DsonDocument_GetScenePostLoadScriptType(DsonDocumentHandle handle, int index);
+DSONPARSER_API const char* DsonDocument_GetScenePostLoadScriptFile(DsonDocumentHandle handle, int index);
 
 // Scene animations (scene.animations): one entry per keyframe channel.
 // Each entry carries the verbatim DSON property pointer (url) and the first key's

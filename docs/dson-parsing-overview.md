@@ -87,7 +87,9 @@ current loader scope.
   references to library entries. The parser currently reads scene nodes,
   modifiers, materials, and UV sets, plus the post-load addon manifest in
   `scene.extra` (the DAZ "Character Addon Loader" `PostLoadAddons`; see the Scene
-  Post-Load Addons section below), and the `scene.animations` keyframe channels
+  Post-Load Addons section below), the `scene.extra` `scene_post_load_script`
+  references (DAZ Scripts the static import does not execute; see the Scene
+  Post-Load Scripts section below), and the `scene.animations` keyframe channels
   (see the Scene Animations section below — stored faithfully, never applied onto
   `scene.materials`). Presentation and current camera are recognized but not stored
   as typed fields.
@@ -214,6 +216,35 @@ loading the referenced `.duf` files remains an importer responsibility (consiste
 with the no-recursive-load boundary below). The per-addon `SelectAddon` flag is
 intentionally not exposed: observed uniformly `false` across sample characters, it
 is a UI hint, not a load gate.
+
+### Scene Post-Load Scripts
+
+A `scene.extra` entry of DAZ type `scene_post_load_script` names a DAZ Script
+(`.dse`/`.dsa`) that DAZ Studio runs when the asset loads — runtime work a static
+import **cannot** replicate. For example, the Genesis 9 base figure's `scene.extra`
+carries a "Character Addon Loader" `.dse` (which assigns the card-eyebrow textures
+that nothing in the static content references), and a `Card Eyebrows.duf` preset
+carries a "Remove Duplicate Eyebrows" cleanup `.dse`. The parser stores each such
+reference on `Scene::post_load_scripts` (`ScenePostLoadScript`: `type` / `name` /
+`script`) and exposes it as a flat, document-ordered list:
+
+- `DsonDocument_GetScenePostLoadScriptCount` — `0` on invalid handle / none.
+- `DsonDocument_GetScenePostLoadScriptName` — the entry `name`.
+- `DsonDocument_GetScenePostLoadScriptType` — the entry `type` (e.g.
+  `scene_post_load_script`).
+- `DsonDocument_GetScenePostLoadScriptFile` — the content-relative `.dse`/`.dsa`
+  path; `""` when the entry names no script.
+
+The index covers **every** `scene.extra` entry that carries a `script` string, in
+document order — the gate is the presence of the `script` reference, not the `type`
+literal, and `type` is surfaced verbatim so a consumer can narrow to
+`scene_post_load_script` itself. This is faithful passthrough only: the parser
+neither resolves, loads, nor **executes** the script (consistent with the
+no-recursive-load boundary and R6.4), so the consumer reads the reference and
+decides — typically warning that the script's runtime effects are not captured by
+the static import. An entry that carries both a `script` and a `PostLoadAddons`
+manifest (the Genesis 9 base does) appears in **both** this list and the Post-Load
+Addons list above; the two are modeled independently.
 
 ### Scene Animations
 
