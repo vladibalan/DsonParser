@@ -1019,6 +1019,142 @@ static void TestFormulaValArray()
     DsonDocument_Destroy(doc);
 }
 
+static bool NearlyEqual(double actual, double expected, double tolerance = 1e-6)
+{
+    return std::fabs(actual - expected) <= tolerance;
+}
+
+static void RunSceneNodePlacementTest()
+{
+    const std::string filepath = ResolveTestFile("JB Jewel Bikini Bottom And Wrap.duf");
+    if (filepath.empty()) {
+        std::cout << "JB Jewel Bikini Bottom And Wrap.duf not found; skipping scene-node placement test.\n\n";
+        return;
+    }
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc) {
+        std::cout << "Failed to create document; skipping scene-node placement test.\n\n";
+        return;
+    }
+    if (DsonDocument_LoadFromFile(doc, filepath.c_str()) != 0) {
+        std::cout << "Scene-node placement fixture failed to load: FAIL\n\n";
+        DsonDocument_Destroy(doc);
+        return;
+    }
+
+    struct ExpectedPlacement {
+        const char* id;
+        const char* parent;
+        double translation[3];
+        double rotation[3];
+    };
+    const ExpectedPlacement expected[] = {
+        { "Genesis9_JewelBikini._Bottom_66554", "name://@selection:",
+          { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 } },
+        { "Genesis9_JewelBikini_GemDrop", "#Gem%20Drop%2013-1",
+          { 0.01051213, -121.412, -15.98289 },
+          { -0.002171162, 0.001429191, -0.000699376 } },
+        { "Genesis9_JewelBikini_GemDrop-2", "#Gem%20Drop%2014-1",
+          { -0.004216239, -121.4067, -15.98666 }, { 0.0, 0.0, 0.0 } },
+        { "Genesis9_JewelBikini_GemDrop-28", "#Gem%20Drop%2026-3",
+          { -0.01594961, -121.3986, -15.94817 },
+          { 2.966018e-10, -178.6344, 1.69906e-10 } }
+    };
+
+    bool allPass = true;
+    const int nodeCount = DsonDocument_GetSceneNodeCount(doc);
+    for (const ExpectedPlacement& item : expected) {
+        int nodeIndex = -1;
+        for (int i = 0; i < nodeCount; ++i) {
+            if (std::strcmp(DsonDocument_GetSceneNodeId(doc, i), item.id) == 0) {
+                nodeIndex = i;
+                break;
+            }
+        }
+
+        bool pass = nodeIndex >= 0;
+        if (pass) {
+            pass = std::strcmp(DsonDocument_GetSceneNodeParent(doc, nodeIndex), item.parent) == 0
+                && NearlyEqual(DsonDocument_GetSceneNodeTranslationX(doc, nodeIndex), item.translation[0])
+                && NearlyEqual(DsonDocument_GetSceneNodeTranslationY(doc, nodeIndex), item.translation[1])
+                && NearlyEqual(DsonDocument_GetSceneNodeTranslationZ(doc, nodeIndex), item.translation[2])
+                && NearlyEqual(DsonDocument_GetSceneNodeRotationX(doc, nodeIndex), item.rotation[0])
+                && NearlyEqual(DsonDocument_GetSceneNodeRotationY(doc, nodeIndex), item.rotation[1])
+                && NearlyEqual(DsonDocument_GetSceneNodeRotationZ(doc, nodeIndex), item.rotation[2])
+                && NearlyEqual(DsonDocument_GetSceneNodeScaleX(doc, nodeIndex), 1.0)
+                && NearlyEqual(DsonDocument_GetSceneNodeScaleY(doc, nodeIndex), 1.0)
+                && NearlyEqual(DsonDocument_GetSceneNodeScaleZ(doc, nodeIndex), 1.0)
+                && NearlyEqual(DsonDocument_GetSceneNodeGeneralScale(doc, nodeIndex), 1.0)
+                && std::strcmp(DsonDocument_GetSceneNodeRotationOrder(doc, nodeIndex), "YXZ") == 0;
+        }
+        allPass = allPass && pass;
+        std::cout << "Scene node \"" << item.id << "\" placement: "
+                  << (pass ? "PASS" : "FAIL") << "\n";
+    }
+
+    const bool invalidPass = std::strcmp(DsonDocument_GetSceneNodeParent(doc, -1), "") == 0
+        && DsonDocument_GetSceneNodeTranslationX(doc, -1) == 0.0
+        && DsonDocument_GetSceneNodeRotationX(doc, -1) == 0.0
+        && DsonDocument_GetSceneNodeScaleX(doc, -1) == 0.0
+        && DsonDocument_GetSceneNodeGeneralScale(doc, -1) == 1.0
+        && std::strcmp(DsonDocument_GetSceneNodeRotationOrder(doc, -1), "") == 0;
+    allPass = allPass && invalidPass;
+    std::cout << "Scene-node invalid-input sentinels: " << (invalidPass ? "PASS" : "FAIL") << "\n";
+
+    int gemDrop13Index = -1;
+    const int libraryNodeCount = DsonDocument_GetNodeCount(doc);
+    for (int i = 0; i < libraryNodeCount; ++i) {
+        if (std::strcmp(DsonDocument_GetNodeId(doc, i), "Gem Drop 13") == 0) {
+            gemDrop13Index = i;
+            break;
+        }
+    }
+    const bool libraryTransformPass = gemDrop13Index >= 0
+        && NearlyEqual(DsonDocument_GetNodeTranslationX(doc, gemDrop13Index), -2.057522)
+        && NearlyEqual(DsonDocument_GetNodeTranslationY(doc, gemDrop13Index), 81.97084)
+        && NearlyEqual(DsonDocument_GetNodeTranslationZ(doc, gemDrop13Index), 7.88664);
+    allPass = allPass && libraryTransformPass;
+    std::cout << "Library Gem Drop 13 current-value translation: "
+              << (libraryTransformPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Scene-node placement test overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
+
+    DsonDocument_Destroy(doc);
+
+    const std::string genesisPath = ResolveTestFile("Genesis9.json");
+    if (genesisPath.empty()) {
+        std::cout << "Genesis9.json not found; skipping base-figure transform regression test.\n\n";
+        return;
+    }
+
+    DsonDocumentHandle genesisDoc = DsonDocument_Create();
+    if (!genesisDoc) {
+        std::cout << "Failed to create document; skipping base-figure transform regression test.\n\n";
+        return;
+    }
+    if (DsonDocument_LoadFromFile(genesisDoc, genesisPath.c_str()) != 0) {
+        std::cout << "Genesis9.json failed to load for base-figure transform regression: FAIL\n\n";
+        DsonDocument_Destroy(genesisDoc);
+        return;
+    }
+
+    int hipIndex = -1;
+    const int genesisNodeCount = DsonDocument_GetNodeCount(genesisDoc);
+    for (int i = 0; i < genesisNodeCount; ++i) {
+        if (std::strcmp(DsonDocument_GetNodeId(genesisDoc, i), "hip") == 0) {
+            hipIndex = i;
+            break;
+        }
+    }
+    const bool baseFigurePass = hipIndex >= 0
+        && NearlyEqual(DsonDocument_GetNodeCenterPointX(genesisDoc, hipIndex), 0.0)
+        && NearlyEqual(DsonDocument_GetNodeCenterPointY(genesisDoc, hipIndex), 97.13693)
+        && NearlyEqual(DsonDocument_GetNodeCenterPointZ(genesisDoc, hipIndex), 0.4865389);
+    std::cout << "Genesis9 hip value-only center_point regression: "
+              << (baseFigurePass ? "PASS" : "FAIL") << "\n\n";
+    DsonDocument_Destroy(genesisDoc);
+}
+
 int main(int argc, char* argv[])
 {
     std::cout << "DSON Parser Test\n";
@@ -1036,6 +1172,7 @@ int main(int argc, char* argv[])
     RunCatalogPresentationTests();
     RunChannelTypeMismatchTests();
     RunPerThreadLastErrorTest();
+    RunSceneNodePlacementTest();
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();

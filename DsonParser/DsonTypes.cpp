@@ -157,7 +157,8 @@ static void ParseTransformVector3(const rapidjson::Value& arr, Vector3& out) {
         const rapidjson::Value& el = arr[i];
         double val = 0.0;
         if (el.IsObject()) {
-            val = JsonHelper::GetDoubleOrDefault(el, "value", 0.0);
+            const char* valKey = el.HasMember("current_value") ? "current_value" : "value";
+            val = JsonHelper::GetDoubleOrDefault(el, valKey, 0.0);
             std::string id = JsonHelper::GetStringOrDefault(el, "id");
             if (id == "x") { out.x = val; continue; }
             if (id == "y") { out.y = val; continue; }

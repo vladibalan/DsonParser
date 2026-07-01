@@ -339,6 +339,11 @@ static const Dson::Node* GetLibraryNode(DsonDocumentHandle handle, int nodeIndex
     return doc ? At(doc->nodes, nodeIndex) : nullptr;
 }
 
+static const Dson::Node* GetSceneNode(DsonDocumentHandle handle, int sceneNodeIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    return doc ? At(doc->scene.nodes, sceneNodeIndex) : nullptr;
+}
+
 static const Dson::Modifier* GetLibraryModifier(DsonDocumentHandle handle, int modifierIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     return doc ? At(doc->modifiers, modifierIndex) : nullptr;
@@ -391,6 +396,16 @@ static double GetNodeVector3Component(
     const Dson::Vector3 Dson::Node::* member,
     int component) {
     const Dson::Node* node = GetLibraryNode(handle, nodeIndex);
+    if (!node) return 0.0;
+    return GetVector3Component(node->*member, component);
+}
+
+static double GetSceneNodeVector3Component(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    const Dson::Vector3 Dson::Node::* member,
+    int component) {
+    const Dson::Node* node = GetSceneNode(handle, sceneNodeIndex);
     if (!node) return 0.0;
     return GetVector3Component(node->*member, component);
 }
@@ -700,6 +715,57 @@ const char* DsonDocument_GetSceneNodeUrl(DsonDocumentHandle handle, int index) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Node* node = doc ? At(doc->scene.nodes, index) : nullptr;
     return node ? node->url.c_str() : "";
+}
+
+const char* DsonDocument_GetSceneNodeParent(DsonDocumentHandle handle, int index) {
+    const Dson::Node* node = GetSceneNode(handle, index);
+    return node ? node->parent.c_str() : "";
+}
+
+double DsonDocument_GetSceneNodeTranslationX(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::translation, 0);
+}
+
+double DsonDocument_GetSceneNodeTranslationY(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::translation, 1);
+}
+
+double DsonDocument_GetSceneNodeTranslationZ(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::translation, 2);
+}
+
+double DsonDocument_GetSceneNodeRotationX(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::rotation, 0);
+}
+
+double DsonDocument_GetSceneNodeRotationY(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::rotation, 1);
+}
+
+double DsonDocument_GetSceneNodeRotationZ(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::rotation, 2);
+}
+
+double DsonDocument_GetSceneNodeScaleX(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::scale, 0);
+}
+
+double DsonDocument_GetSceneNodeScaleY(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::scale, 1);
+}
+
+double DsonDocument_GetSceneNodeScaleZ(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::scale, 2);
+}
+
+double DsonDocument_GetSceneNodeGeneralScale(DsonDocumentHandle handle, int index) {
+    const Dson::Node* node = GetSceneNode(handle, index);
+    return node ? node->general_scale : 1.0;
+}
+
+const char* DsonDocument_GetSceneNodeRotationOrder(DsonDocumentHandle handle, int index) {
+    const Dson::Node* node = GetSceneNode(handle, index);
+    return node ? node->rotation_order.c_str() : "";
 }
 
 int DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneNodeIndex) {

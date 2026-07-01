@@ -11,6 +11,27 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.4.0 — 2026-07-01 · MINOR (added)
+
+Scene-node instances now expose their verbatim parent pointer and complete local
+transform so importers can place repeated rigid parts whose per-copy offsets exist
+only in `scene.nodes`. Transform channel objects now prefer `current_value` and fall
+back to `value`, matching other scene-channel reads. The new exports are additive
+and binary-compatible; existing symbols remain intact.
++ DsonDocument_GetSceneNodeParent — verbatim instance parent pointer ("" on invalid handle/index)
++ DsonDocument_GetSceneNodeTranslationX — local translation X (0.0 on invalid handle/index)
++ DsonDocument_GetSceneNodeTranslationY — local translation Y (0.0 on invalid handle/index)
++ DsonDocument_GetSceneNodeTranslationZ — local translation Z (0.0 on invalid handle/index)
++ DsonDocument_GetSceneNodeRotationX — local rotation X (0.0 on invalid handle/index)
++ DsonDocument_GetSceneNodeRotationY — local rotation Y (0.0 on invalid handle/index)
++ DsonDocument_GetSceneNodeRotationZ — local rotation Z (0.0 on invalid handle/index)
++ DsonDocument_GetSceneNodeScaleX — local scale X (0.0 on invalid handle/index; valid unauthored scale defaults to 1.0)
++ DsonDocument_GetSceneNodeScaleY — local scale Y (0.0 on invalid handle/index; valid unauthored scale defaults to 1.0)
++ DsonDocument_GetSceneNodeScaleZ — local scale Z (0.0 on invalid handle/index; valid unauthored scale defaults to 1.0)
++ DsonDocument_GetSceneNodeGeneralScale — local general scale (1.0 on invalid handle/index)
++ DsonDocument_GetSceneNodeRotationOrder — stored rotation order ("" on invalid handle/index; valid unauthored order defaults to "YXZ")
+! ParseTransformVector3 — transform channels now prefer current_value before value for both scene-node and library-node reads, restoring placement authored only as current_value (including the Jewel Bikini scene instances and their Gem Drop library local-transform nodes, which previously read as zero); base-figure rigs remain unchanged because they author value-only transforms (verified on Genesis 9: 139 nodes, 2502 transform channels, 0 carrying current_value)
+
 ## 2.3.0 — 2026-06-22 · MINOR (added)
 
 Exposes the DAZ post-load **script** references carried in `scene.extra` (DSON

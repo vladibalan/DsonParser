@@ -12,6 +12,8 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.4.0: DsonDocument_GetSceneNode{Parent,Translation*,Rotation*,Scale*,GeneralScale,RotationOrder}
+//   exposes scene-instance local placement, including current-value-authored transforms.
 // What's new in 2.3.0: DsonDocument_GetScenePostLoadScript* — scene.extra DAZ
 //   "scene_post_load_script" references (name/type/.dse path) exposed faithfully
 //   so the consumer can warn that the static import does not execute them.
@@ -130,6 +132,30 @@ DSONPARSER_API const char* DsonDocument_GetSceneNodeName(DsonDocumentHandle hand
 DSONPARSER_API const char* DsonDocument_GetSceneNodeLabel(DsonDocumentHandle handle, int index);
 DSONPARSER_API const char* DsonDocument_GetSceneNodeType(DsonDocumentHandle handle, int index);
 DSONPARSER_API const char* DsonDocument_GetSceneNodeUrl(DsonDocumentHandle handle, int index);
+// @since 2.4.0
+DSONPARSER_API const char* DsonDocument_GetSceneNodeParent(DsonDocumentHandle handle, int index);
+// @since 2.4.0
+DSONPARSER_API double DsonDocument_GetSceneNodeTranslationX(DsonDocumentHandle handle, int index);
+// @since 2.4.0
+DSONPARSER_API double DsonDocument_GetSceneNodeTranslationY(DsonDocumentHandle handle, int index);
+// @since 2.4.0
+DSONPARSER_API double DsonDocument_GetSceneNodeTranslationZ(DsonDocumentHandle handle, int index);
+// @since 2.4.0
+DSONPARSER_API double DsonDocument_GetSceneNodeRotationX(DsonDocumentHandle handle, int index);
+// @since 2.4.0
+DSONPARSER_API double DsonDocument_GetSceneNodeRotationY(DsonDocumentHandle handle, int index);
+// @since 2.4.0
+DSONPARSER_API double DsonDocument_GetSceneNodeRotationZ(DsonDocumentHandle handle, int index);
+// @since 2.4.0
+DSONPARSER_API double DsonDocument_GetSceneNodeScaleX(DsonDocumentHandle handle, int index);
+// @since 2.4.0
+DSONPARSER_API double DsonDocument_GetSceneNodeScaleY(DsonDocumentHandle handle, int index);
+// @since 2.4.0
+DSONPARSER_API double DsonDocument_GetSceneNodeScaleZ(DsonDocumentHandle handle, int index);
+// @since 2.4.0
+DSONPARSER_API double DsonDocument_GetSceneNodeGeneralScale(DsonDocumentHandle handle, int index);
+// @since 2.4.0
+DSONPARSER_API const char* DsonDocument_GetSceneNodeRotationOrder(DsonDocumentHandle handle, int index);
 DSONPARSER_API int         DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneNodeIndex);
 DSONPARSER_API const char* DsonDocument_GetSceneNodeGeometryId(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex);
 DSONPARSER_API const char* DsonDocument_GetSceneNodeGeometryUrl(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex);

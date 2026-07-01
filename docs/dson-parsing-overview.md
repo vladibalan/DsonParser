@@ -185,12 +185,17 @@ labels or geometry references.
 The C API keeps these separate:
 
 - `DsonDocument_GetNode*` reads `node_library`.
-- `DsonDocument_GetSceneNode*` reads `scene.nodes`.
+- `DsonDocument_GetSceneNode*` reads `scene.nodes`, including each instance's
+  verbatim parent pointer and local translation/rotation/scale, general scale,
+  and rotation order.
 - `DsonDocument_GetMaterial*` reads `material_library`.
 - `DsonDocument_GetSceneMaterial*` reads `scene.materials`.
 
 This distinction matters when an importer needs the base asset definition versus
 the configured scene instance.
+
+Scene-instance transform channels prefer their authored `current_value`, falling
+back to `value`; this preserves per-copy local placement stored only on the instance.
 
 ### Scene Post-Load Addons
 
