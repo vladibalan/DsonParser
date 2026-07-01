@@ -285,23 +285,25 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
 
     const rapidjson::Value* transArray = nullptr;
     if (JsonHelper::GetArray(json, "translation", transArray)) {
-        ParseTransformVector3(*transArray, translation);
+        ParseTransformVector3(*transArray, translation, &translation_presence);
     }
 
     const rapidjson::Value* rotArray = nullptr;
     if (JsonHelper::GetArray(json, "rotation", rotArray)) {
-        ParseTransformVector3(*rotArray, rotation);
+        ParseTransformVector3(*rotArray, rotation, &rotation_presence);
     }
 
     scale.x = scale.y = scale.z = 1.0; // default to identity scale
     const rapidjson::Value* scaleArray = nullptr;
     if (JsonHelper::GetArray(json, "scale", scaleArray)) {
-        ParseTransformVector3(*scaleArray, scale);
+        ParseTransformVector3(*scaleArray, scale, &scale_presence);
     }
 
     const rapidjson::Value* gsObj = nullptr;
     if (JsonHelper::GetObject(json, "general_scale", gsObj)) {
         general_scale = JsonHelper::GetDoubleOrDefault(*gsObj, "value", 1.0);
+        auto valueIt = gsObj->FindMember("value");
+        has_general_scale = valueIt != gsObj->MemberEnd() && valueIt->value.IsNumber();
     }
 
     const rapidjson::Value* centerArray = nullptr;
@@ -325,7 +327,7 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
         has_inherits_scale = true;
     }
 
-    JsonHelper::GetString(json, "rotation_order", rotation_order);
+    has_rotation_order = JsonHelper::GetString(json, "rotation_order", rotation_order);
 
     const rapidjson::Value* geomsArray = nullptr;
     if (JsonHelper::GetArray(json, "geometries", geomsArray)) {

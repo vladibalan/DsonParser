@@ -410,6 +410,14 @@ static double GetSceneNodeVector3Component(
     return GetVector3Component(node->*member, component);
 }
 
+static int GetSceneNodePresenceMask(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    const unsigned int Dson::Node::* member) {
+    const Dson::Node* node = GetSceneNode(handle, sceneNodeIndex);
+    return node ? static_cast<int>(node->*member) : 0;
+}
+
 static const Dson::Geometry* GetGeometry(DsonDocumentHandle handle, int geomIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     return doc ? At(doc->geometries, geomIndex) : nullptr;
@@ -734,6 +742,10 @@ double DsonDocument_GetSceneNodeTranslationZ(DsonDocumentHandle handle, int inde
     return GetSceneNodeVector3Component(handle, index, &Dson::Node::translation, 2);
 }
 
+int DsonDocument_GetSceneNodeTranslationPresenceMask(DsonDocumentHandle handle, int index) {
+    return GetSceneNodePresenceMask(handle, index, &Dson::Node::translation_presence);
+}
+
 double DsonDocument_GetSceneNodeRotationX(DsonDocumentHandle handle, int index) {
     return GetSceneNodeVector3Component(handle, index, &Dson::Node::rotation, 0);
 }
@@ -744,6 +756,10 @@ double DsonDocument_GetSceneNodeRotationY(DsonDocumentHandle handle, int index) 
 
 double DsonDocument_GetSceneNodeRotationZ(DsonDocumentHandle handle, int index) {
     return GetSceneNodeVector3Component(handle, index, &Dson::Node::rotation, 2);
+}
+
+int DsonDocument_GetSceneNodeRotationPresenceMask(DsonDocumentHandle handle, int index) {
+    return GetSceneNodePresenceMask(handle, index, &Dson::Node::rotation_presence);
 }
 
 double DsonDocument_GetSceneNodeScaleX(DsonDocumentHandle handle, int index) {
@@ -758,14 +774,28 @@ double DsonDocument_GetSceneNodeScaleZ(DsonDocumentHandle handle, int index) {
     return GetSceneNodeVector3Component(handle, index, &Dson::Node::scale, 2);
 }
 
+int DsonDocument_GetSceneNodeScalePresenceMask(DsonDocumentHandle handle, int index) {
+    return GetSceneNodePresenceMask(handle, index, &Dson::Node::scale_presence);
+}
+
 double DsonDocument_GetSceneNodeGeneralScale(DsonDocumentHandle handle, int index) {
     const Dson::Node* node = GetSceneNode(handle, index);
     return node ? node->general_scale : 1.0;
 }
 
+bool DsonDocument_GetSceneNodeHasGeneralScale(DsonDocumentHandle handle, int index) {
+    const Dson::Node* node = GetSceneNode(handle, index);
+    return node ? node->has_general_scale : false;
+}
+
 const char* DsonDocument_GetSceneNodeRotationOrder(DsonDocumentHandle handle, int index) {
     const Dson::Node* node = GetSceneNode(handle, index);
     return node ? node->rotation_order.c_str() : "";
+}
+
+bool DsonDocument_GetSceneNodeHasRotationOrder(DsonDocumentHandle handle, int index) {
+    const Dson::Node* node = GetSceneNode(handle, index);
+    return node ? node->has_rotation_order : false;
 }
 
 double DsonDocument_GetSceneNodeCenterPointX(DsonDocumentHandle handle, int index) {
@@ -781,8 +811,7 @@ double DsonDocument_GetSceneNodeCenterPointZ(DsonDocumentHandle handle, int inde
 }
 
 int DsonDocument_GetSceneNodeCenterPointPresenceMask(DsonDocumentHandle handle, int index) {
-    const Dson::Node* node = GetSceneNode(handle, index);
-    return node ? static_cast<int>(node->center_point_presence) : 0;
+    return GetSceneNodePresenceMask(handle, index, &Dson::Node::center_point_presence);
 }
 
 double DsonDocument_GetSceneNodeOrientationX(DsonDocumentHandle handle, int index) {
@@ -798,8 +827,7 @@ double DsonDocument_GetSceneNodeOrientationZ(DsonDocumentHandle handle, int inde
 }
 
 int DsonDocument_GetSceneNodeOrientationPresenceMask(DsonDocumentHandle handle, int index) {
-    const Dson::Node* node = GetSceneNode(handle, index);
-    return node ? static_cast<int>(node->orientation_presence) : 0;
+    return GetSceneNodePresenceMask(handle, index, &Dson::Node::orientation_presence);
 }
 
 bool DsonDocument_GetSceneNodeInheritsScale(DsonDocumentHandle handle, int index) {

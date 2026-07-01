@@ -11,6 +11,22 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.6.0 — 2026-07-01 · MINOR (added)
+
+Completes the scene-node authored-presence surface begun in 2.5.0. Translation,
+rotation, and scale now expose per-component presence masks, while
+`general_scale` and `rotation_order` expose explicit presence queries. This lets
+an importer distinguish deliberately authored identity values (translation or
+rotation `0`, scale or general scale `1`, and the default rotation order) from an
+absent sparse override. Values remain raw reads from the opened file's
+`scene.nodes`; the parser does not merge referenced `node_library` definitions.
+Existing symbols and semantics are unchanged.
++ DsonDocument_GetSceneNodeTranslationPresenceMask — authored numeric translation components, ORed from the public X/Y/Z bits (`0` when none or invalid)
++ DsonDocument_GetSceneNodeRotationPresenceMask — authored numeric rotation components, ORed from the public X/Y/Z bits (`0` when none or invalid)
++ DsonDocument_GetSceneNodeScalePresenceMask — authored numeric scale components, ORed from the public X/Y/Z bits (`0` when none or invalid)
++ DsonDocument_GetSceneNodeHasGeneralScale — distinguishes an authored numeric `general_scale` (including `1`) from absence or a non-numeric selected value
++ DsonDocument_GetSceneNodeHasRotationOrder — distinguishes an authored string `rotation_order` (including `"YXZ"`) from absence or a non-string value
+
 ## 2.5.0 — 2026-07-01 · MINOR (added)
 
 Scene-node instances now expose their raw, as-authored `center_point`,

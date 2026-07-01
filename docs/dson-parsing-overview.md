@@ -198,8 +198,16 @@ the configured scene instance.
 Scene-instance transform channels prefer their authored `current_value`, falling
 back to `value`; this preserves per-copy local placement stored only on the instance.
 
-For the optional joint fields, the C API exposes both raw values and authored
-presence:
+For sparse scene-node transform and joint fields, the C API exposes both raw
+values and authored presence:
+
+- `DsonDocument_GetSceneNodeTranslationPresenceMask`,
+  `DsonDocument_GetSceneNodeRotationPresenceMask`, and
+  `DsonDocument_GetSceneNodeScalePresenceMask` accompany their existing XYZ
+  value accessors.
+- `DsonDocument_GetSceneNodeHasGeneralScale` and
+  `DsonDocument_GetSceneNodeHasRotationOrder` accompany their existing scalar
+  and string value accessors.
 
 - `DsonDocument_GetSceneNodeCenterPoint{X,Y,Z}` and
   `DsonDocument_GetSceneNodeCenterPointPresenceMask`.
@@ -210,13 +218,15 @@ presence:
 
 The vector masks OR `DSONPARSER_VECTOR_COMPONENT_X` (`0x1`), `_Y` (`0x2`), and
 `_Z` (`0x4`). A bit is set only when that component's selected `current_value`
-or `value` (or positional array element) is numeric, so an explicit zero remains
-distinguishable from absence. `HasInheritsScale` makes the same distinction for
-an explicitly authored `false`. A zero mask / false presence is also the invalid
-handle/index sentinel, so consumers query presence before interpreting a value.
-These are faithful reads from the opened file's `scene.nodes` entry only: the
-parser does not resolve its URL or fill absent fields from a `node_library`
-definition. The importer performs that cross-file merge.
+or `value` (or positional array element) is numeric, so explicit identity values
+remain distinguishable from absence. The scalar/string has-flags likewise make
+authored `general_scale: 1`, default-valued rotation order, and
+`inherits_scale: false` distinguishable from absence. A zero mask / false
+presence is also the invalid handle/index sentinel, so consumers query presence
+before interpreting a value. These are faithful reads from the opened file's
+`scene.nodes` entry only: the parser does not resolve its URL or fill absent
+fields from a `node_library` definition. The importer performs that cross-file
+merge.
 
 ### Scene Post-Load Addons
 

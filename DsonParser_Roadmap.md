@@ -55,6 +55,9 @@ across 4 audit passes with zero remaining gaps.
   X/Y/Z presence masks, plus `inherits_scale` value/presence (2.5.0). These are
   faithful `scene.nodes` reads; resolving and merging a referenced library
   definition remains importer-side.
+- Authored scene-instance translation/rotation/scale XYZ presence masks plus
+  `general_scale` and `rotation_order` presence (2.6.0), completing exact sparse
+  transform override merging without default-value heuristics.
 
 **Skin Binding (C)**
 - `node_weights` primary + `local_weights` fallback

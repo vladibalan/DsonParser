@@ -12,6 +12,8 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.6.0: scene-node translation/rotation/scale presence masks plus
+//   general_scale and rotation_order authored-presence queries.
 // What's new in 2.5.0: DsonDocument_GetSceneNode{CenterPoint*,Orientation*,InheritsScale*}
 //   exposes raw authored scene-instance joint fields with explicit presence.
 // What's new in 2.4.0: DsonDocument_GetSceneNode{Parent,Translation*,Rotation*,Scale*,GeneralScale,RotationOrder}
@@ -150,22 +152,32 @@ DSONPARSER_API double DsonDocument_GetSceneNodeTranslationX(DsonDocumentHandle h
 DSONPARSER_API double DsonDocument_GetSceneNodeTranslationY(DsonDocumentHandle handle, int index);
 // @since 2.4.0
 DSONPARSER_API double DsonDocument_GetSceneNodeTranslationZ(DsonDocumentHandle handle, int index);
+// @since 2.6.0
+DSONPARSER_API int DsonDocument_GetSceneNodeTranslationPresenceMask(DsonDocumentHandle handle, int index);
 // @since 2.4.0
 DSONPARSER_API double DsonDocument_GetSceneNodeRotationX(DsonDocumentHandle handle, int index);
 // @since 2.4.0
 DSONPARSER_API double DsonDocument_GetSceneNodeRotationY(DsonDocumentHandle handle, int index);
 // @since 2.4.0
 DSONPARSER_API double DsonDocument_GetSceneNodeRotationZ(DsonDocumentHandle handle, int index);
+// @since 2.6.0
+DSONPARSER_API int DsonDocument_GetSceneNodeRotationPresenceMask(DsonDocumentHandle handle, int index);
 // @since 2.4.0
 DSONPARSER_API double DsonDocument_GetSceneNodeScaleX(DsonDocumentHandle handle, int index);
 // @since 2.4.0
 DSONPARSER_API double DsonDocument_GetSceneNodeScaleY(DsonDocumentHandle handle, int index);
 // @since 2.4.0
 DSONPARSER_API double DsonDocument_GetSceneNodeScaleZ(DsonDocumentHandle handle, int index);
+// @since 2.6.0
+DSONPARSER_API int DsonDocument_GetSceneNodeScalePresenceMask(DsonDocumentHandle handle, int index);
 // @since 2.4.0
 DSONPARSER_API double DsonDocument_GetSceneNodeGeneralScale(DsonDocumentHandle handle, int index);
+// @since 2.6.0
+DSONPARSER_API bool DsonDocument_GetSceneNodeHasGeneralScale(DsonDocumentHandle handle, int index);
 // @since 2.4.0
 DSONPARSER_API const char* DsonDocument_GetSceneNodeRotationOrder(DsonDocumentHandle handle, int index);
+// @since 2.6.0
+DSONPARSER_API bool DsonDocument_GetSceneNodeHasRotationOrder(DsonDocumentHandle handle, int index);
 // Raw scene.nodes center_point. PresenceMask distinguishes explicit zero from absence.
 // @since 2.5.0
 DSONPARSER_API double DsonDocument_GetSceneNodeCenterPointX(DsonDocumentHandle handle, int index);
