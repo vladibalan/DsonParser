@@ -149,29 +149,50 @@ static bool GetImageMapPath(const rapidjson::Value& mapVal, std::string& path) {
 
 // Read a transform array that is either plain [x,y,z] numbers or an array of
 // channel objects [{id:"x",value:..}, ...] (the DSF node format) into a Vector3.
-static void ParseTransformVector3(const rapidjson::Value& arr, Vector3& out) {
+// When requested, retain which final components were authored numerically;
+// explicit zero is present, while a missing or non-numeric value is absent.
+static void ParseTransformVector3(const rapidjson::Value& arr, Vector3& out,
+                                  unsigned int* presenceMask = nullptr) {
     if (!arr.IsArray()) {
         return;
+    }
+    if (presenceMask) {
+        *presenceMask = 0;
     }
     for (rapidjson::SizeType i = 0; i < arr.Size(); i++) {
         const rapidjson::Value& el = arr[i];
         double val = 0.0;
+        bool hasNumericValue = false;
+        int component = -1;
         if (el.IsObject()) {
             const char* valKey = el.HasMember("current_value") ? "current_value" : "value";
             val = JsonHelper::GetDoubleOrDefault(el, valKey, 0.0);
+            auto valIt = el.FindMember(valKey);
+            hasNumericValue = valIt != el.MemberEnd() && valIt->value.IsNumber();
             std::string id = JsonHelper::GetStringOrDefault(el, "id");
-            if (id == "x") { out.x = val; continue; }
-            if (id == "y") { out.y = val; continue; }
-            if (id == "z") { out.z = val; continue; }
+            if (id == "x") component = 0;
+            else if (id == "y") component = 1;
+            else if (id == "z") component = 2;
         } else if (el.IsNumber()) {
             val = el.GetDouble();
+            hasNumericValue = true;
         } else {
             continue;
         }
         // Positional fallback (plain [x,y,z] or unlabeled channels)
-        if (i == 0) out.x = val;
-        else if (i == 1) out.y = val;
-        else if (i == 2) out.z = val;
+        if (component < 0 && i < 3) component = static_cast<int>(i);
+        if (component == 0) out.x = val;
+        else if (component == 1) out.y = val;
+        else if (component == 2) out.z = val;
+        else continue;
+
+        if (presenceMask) {
+            const unsigned int bit = 1u << component;
+            *presenceMask &= ~bit;
+            if (hasNumericValue) {
+                *presenceMask |= bit;
+            }
+        }
     }
 }
 
@@ -252,7 +273,7 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
     static const std::set<std::string> knownKeys = {
         "id", "name", "label", "type", "parent", "url", "translation", "rotation", "scale",
         "general_scale", "center_point", "end_point", "orientation", "rotation_order",
-        "geometries", "presentation", "preview", "extra"
+        "inherits_scale", "geometries", "presentation", "preview", "extra"
     };
 
     ParseMember(json, "id", id);
@@ -285,7 +306,7 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
 
     const rapidjson::Value* centerArray = nullptr;
     if (JsonHelper::GetArray(json, "center_point", centerArray)) {
-        ParseTransformVector3(*centerArray, center_point);
+        ParseTransformVector3(*centerArray, center_point, &center_point_presence);
     }
 
     const rapidjson::Value* endArray = nullptr;
@@ -295,7 +316,13 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
 
     const rapidjson::Value* orientArray = nullptr;
     if (JsonHelper::GetArray(json, "orientation", orientArray)) {
-        ParseTransformVector3(*orientArray, orientation);
+        ParseTransformVector3(*orientArray, orientation, &orientation_presence);
+    }
+
+    auto inheritsScaleIt = json.FindMember("inherits_scale");
+    if (inheritsScaleIt != json.MemberEnd() && inheritsScaleIt->value.IsBool()) {
+        inherits_scale = inheritsScaleIt->value.GetBool();
+        has_inherits_scale = true;
     }
 
     JsonHelper::GetString(json, "rotation_order", rotation_order);

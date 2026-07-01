@@ -12,6 +12,8 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.5.0: DsonDocument_GetSceneNode{CenterPoint*,Orientation*,InheritsScale*}
+//   exposes raw authored scene-instance joint fields with explicit presence.
 // What's new in 2.4.0: DsonDocument_GetSceneNode{Parent,Translation*,Rotation*,Scale*,GeneralScale,RotationOrder}
 //   exposes scene-instance local placement, including current-value-authored transforms.
 // What's new in 2.3.0: DsonDocument_GetScenePostLoadScript* — scene.extra DAZ
@@ -76,6 +78,14 @@ extern "C" {
 
 // Opaque handle to DsonDocument
 typedef void* DsonDocumentHandle;
+
+// Bits returned by scene-node vector presence masks. OR the bits to test more
+// than one component. A zero mask means no numeric component was authored or
+// the handle/index is invalid.
+// @since 2.5.0
+#define DSONPARSER_VECTOR_COMPONENT_X 0x1u
+#define DSONPARSER_VECTOR_COMPONENT_Y 0x2u
+#define DSONPARSER_VECTOR_COMPONENT_Z 0x4u
 
 // Create a new DSON document
 DSONPARSER_API DsonDocumentHandle DsonDocument_Create();
@@ -156,6 +166,29 @@ DSONPARSER_API double DsonDocument_GetSceneNodeScaleZ(DsonDocumentHandle handle,
 DSONPARSER_API double DsonDocument_GetSceneNodeGeneralScale(DsonDocumentHandle handle, int index);
 // @since 2.4.0
 DSONPARSER_API const char* DsonDocument_GetSceneNodeRotationOrder(DsonDocumentHandle handle, int index);
+// Raw scene.nodes center_point. PresenceMask distinguishes explicit zero from absence.
+// @since 2.5.0
+DSONPARSER_API double DsonDocument_GetSceneNodeCenterPointX(DsonDocumentHandle handle, int index);
+// @since 2.5.0
+DSONPARSER_API double DsonDocument_GetSceneNodeCenterPointY(DsonDocumentHandle handle, int index);
+// @since 2.5.0
+DSONPARSER_API double DsonDocument_GetSceneNodeCenterPointZ(DsonDocumentHandle handle, int index);
+// @since 2.5.0
+DSONPARSER_API int DsonDocument_GetSceneNodeCenterPointPresenceMask(DsonDocumentHandle handle, int index);
+// Raw scene.nodes orientation. PresenceMask distinguishes explicit zero from absence.
+// @since 2.5.0
+DSONPARSER_API double DsonDocument_GetSceneNodeOrientationX(DsonDocumentHandle handle, int index);
+// @since 2.5.0
+DSONPARSER_API double DsonDocument_GetSceneNodeOrientationY(DsonDocumentHandle handle, int index);
+// @since 2.5.0
+DSONPARSER_API double DsonDocument_GetSceneNodeOrientationZ(DsonDocumentHandle handle, int index);
+// @since 2.5.0
+DSONPARSER_API int DsonDocument_GetSceneNodeOrientationPresenceMask(DsonDocumentHandle handle, int index);
+// Raw scene.nodes inherits_scale value and authored-presence discriminator.
+// @since 2.5.0
+DSONPARSER_API bool DsonDocument_GetSceneNodeInheritsScale(DsonDocumentHandle handle, int index);
+// @since 2.5.0
+DSONPARSER_API bool DsonDocument_GetSceneNodeHasInheritsScale(DsonDocumentHandle handle, int index);
 DSONPARSER_API int         DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneNodeIndex);
 DSONPARSER_API const char* DsonDocument_GetSceneNodeGeometryId(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex);
 DSONPARSER_API const char* DsonDocument_GetSceneNodeGeometryUrl(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex);

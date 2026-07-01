@@ -60,8 +60,12 @@ struct Node {
     Vector3 scale;
     double general_scale = 1.0;
     Vector3 center_point; // joint origin (DSF rigs store the real position here)
+    unsigned int center_point_presence = 0; // authored numeric components: X=1, Y=2, Z=4
     Vector3 end_point;
     Vector3 orientation;                  // local axis alignment in rest pose (XYZ Euler degrees); default {0,0,0}
+    unsigned int orientation_presence = 0; // authored numeric components: X=1, Y=2, Z=4
+    bool inherits_scale = false;          // raw authored value; meaningful when has_inherits_scale
+    bool has_inherits_scale = false;
     std::string rotation_order = "YXZ";  // Euler rotation order; default matches DAZ Genesis 9
     std::vector<NodeGeometryRef> geometries; // only populated on scene figure nodes
     std::string presentation_type;   // presentation.type  (DAZ "Content Type"; "" if absent)

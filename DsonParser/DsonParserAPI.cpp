@@ -768,6 +768,50 @@ const char* DsonDocument_GetSceneNodeRotationOrder(DsonDocumentHandle handle, in
     return node ? node->rotation_order.c_str() : "";
 }
 
+double DsonDocument_GetSceneNodeCenterPointX(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::center_point, 0);
+}
+
+double DsonDocument_GetSceneNodeCenterPointY(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::center_point, 1);
+}
+
+double DsonDocument_GetSceneNodeCenterPointZ(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::center_point, 2);
+}
+
+int DsonDocument_GetSceneNodeCenterPointPresenceMask(DsonDocumentHandle handle, int index) {
+    const Dson::Node* node = GetSceneNode(handle, index);
+    return node ? static_cast<int>(node->center_point_presence) : 0;
+}
+
+double DsonDocument_GetSceneNodeOrientationX(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::orientation, 0);
+}
+
+double DsonDocument_GetSceneNodeOrientationY(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::orientation, 1);
+}
+
+double DsonDocument_GetSceneNodeOrientationZ(DsonDocumentHandle handle, int index) {
+    return GetSceneNodeVector3Component(handle, index, &Dson::Node::orientation, 2);
+}
+
+int DsonDocument_GetSceneNodeOrientationPresenceMask(DsonDocumentHandle handle, int index) {
+    const Dson::Node* node = GetSceneNode(handle, index);
+    return node ? static_cast<int>(node->orientation_presence) : 0;
+}
+
+bool DsonDocument_GetSceneNodeInheritsScale(DsonDocumentHandle handle, int index) {
+    const Dson::Node* node = GetSceneNode(handle, index);
+    return node ? node->inherits_scale : false;
+}
+
+bool DsonDocument_GetSceneNodeHasInheritsScale(DsonDocumentHandle handle, int index) {
+    const Dson::Node* node = GetSceneNode(handle, index);
+    return node ? node->has_inherits_scale : false;
+}
+
 int DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneNodeIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Node* node = doc ? At(doc->scene.nodes, sceneNodeIndex) : nullptr;

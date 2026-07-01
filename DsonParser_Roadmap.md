@@ -49,6 +49,12 @@ across 4 audit passes with zero remaining gaps.
 - `Node::geometries` (`NodeGeometryRef`: id + url) for scene nodes
 - Per-node `presentation` content type + label: `GetNodePresentation{Type,Label}`
   (DAZ "Content Type" / display name; `""` if absent) (1.5.0)
+- Scene-instance parent and complete local translation/rotation/scale,
+  `general_scale`, and `rotation_order` through `GetSceneNode*` (2.4.0)
+- Raw authored scene-instance `center_point` and `orientation` XYZ values with
+  X/Y/Z presence masks, plus `inherits_scale` value/presence (2.5.0). These are
+  faithful `scene.nodes` reads; resolving and merging a referenced library
+  definition remains importer-side.
 
 **Skin Binding (C)**
 - `node_weights` primary + `local_weights` fallback

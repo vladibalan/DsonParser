@@ -85,6 +85,7 @@ current loader scope.
 `scene`
 : Parsed separately from libraries. Scene arrays contain placed instances and
   references to library entries. The parser currently reads scene nodes,
+  including their raw authored transform/joint overrides and component presence,
   modifiers, materials, and UV sets, plus the post-load addon manifest in
   `scene.extra` (the DAZ "Character Addon Loader" `PostLoadAddons`; see the Scene
   Post-Load Addons section below), the `scene.extra` `scene_post_load_script`
@@ -187,7 +188,7 @@ The C API keeps these separate:
 - `DsonDocument_GetNode*` reads `node_library`.
 - `DsonDocument_GetSceneNode*` reads `scene.nodes`, including each instance's
   verbatim parent pointer and local translation/rotation/scale, general scale,
-  and rotation order.
+  rotation order, raw `center_point` / `orientation`, and raw `inherits_scale`.
 - `DsonDocument_GetMaterial*` reads `material_library`.
 - `DsonDocument_GetSceneMaterial*` reads `scene.materials`.
 
@@ -196,6 +197,26 @@ the configured scene instance.
 
 Scene-instance transform channels prefer their authored `current_value`, falling
 back to `value`; this preserves per-copy local placement stored only on the instance.
+
+For the optional joint fields, the C API exposes both raw values and authored
+presence:
+
+- `DsonDocument_GetSceneNodeCenterPoint{X,Y,Z}` and
+  `DsonDocument_GetSceneNodeCenterPointPresenceMask`.
+- `DsonDocument_GetSceneNodeOrientation{X,Y,Z}` and
+  `DsonDocument_GetSceneNodeOrientationPresenceMask`.
+- `DsonDocument_GetSceneNodeInheritsScale` and
+  `DsonDocument_GetSceneNodeHasInheritsScale`.
+
+The vector masks OR `DSONPARSER_VECTOR_COMPONENT_X` (`0x1`), `_Y` (`0x2`), and
+`_Z` (`0x4`). A bit is set only when that component's selected `current_value`
+or `value` (or positional array element) is numeric, so an explicit zero remains
+distinguishable from absence. `HasInheritsScale` makes the same distinction for
+an explicitly authored `false`. A zero mask / false presence is also the invalid
+handle/index sentinel, so consumers query presence before interpreting a value.
+These are faithful reads from the opened file's `scene.nodes` entry only: the
+parser does not resolve its URL or fill absent fields from a `node_library`
+definition. The importer performs that cross-file merge.
 
 ### Scene Post-Load Addons
 

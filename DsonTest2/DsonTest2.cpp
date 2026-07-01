@@ -1024,6 +1024,149 @@ static bool NearlyEqual(double actual, double expected, double tolerance = 1e-6)
     return std::fabs(actual - expected) <= tolerance;
 }
 
+static void RunSceneNodeAuthoredFieldsTest()
+{
+    static const char kSceneNodeAuthoredFieldsJson[] = R"JSON(
+{
+  "node_library": [
+    {
+      "id": "definition",
+      "center_point": [11, 12, 13],
+      "orientation": [14, 15, 16],
+      "inherits_scale": true
+    }
+  ],
+  "scene": {
+    "nodes": [
+      {
+        "id": "full",
+        "center_point": [
+          {"id":"x", "value":99, "current_value":0},
+          {"id":"y", "value":2},
+          {"id":"z", "current_value":3}
+        ],
+        "orientation": [
+          {"id":"x", "current_value":4},
+          {"id":"y", "value":5},
+          {"id":"z", "value":99, "current_value":0}
+        ],
+        "inherits_scale": true
+      },
+      {
+        "id": "partial",
+        "center_point": [
+          {"id":"x", "value":0},
+          {"id":"y", "value":"not-numeric"},
+          {"id":"z", "current_value":-3}
+        ],
+        "orientation": [0, "not-numeric", 7],
+        "inherits_scale": false
+      },
+      {
+        "id": "instance-without-authored-fields",
+        "url": "#definition"
+      }
+    ]
+  }
+}
+)JSON";
+
+    std::cout << "=================================\n";
+    std::cout << "SCENE NODE AUTHORED FIELDS TEST (2.5.0)\n";
+    std::cout << "=================================\n\n";
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc || DsonDocument_LoadFromString(doc, kSceneNodeAuthoredFieldsJson) != 0) {
+        std::cout << "Scene-node authored-fields fixture load: FAIL\n\n";
+        DsonDocument_Destroy(doc);
+        return;
+    }
+
+    const int xyzMask = DSONPARSER_VECTOR_COMPONENT_X
+        | DSONPARSER_VECTOR_COMPONENT_Y
+        | DSONPARSER_VECTOR_COMPONENT_Z;
+    const int xzMask = DSONPARSER_VECTOR_COMPONENT_X
+        | DSONPARSER_VECTOR_COMPONENT_Z;
+
+    const bool fullPass =
+        NearlyEqual(DsonDocument_GetSceneNodeCenterPointX(doc, 0), 0.0)
+        && NearlyEqual(DsonDocument_GetSceneNodeCenterPointY(doc, 0), 2.0)
+        && NearlyEqual(DsonDocument_GetSceneNodeCenterPointZ(doc, 0), 3.0)
+        && DsonDocument_GetSceneNodeCenterPointPresenceMask(doc, 0) == xyzMask
+        && NearlyEqual(DsonDocument_GetSceneNodeOrientationX(doc, 0), 4.0)
+        && NearlyEqual(DsonDocument_GetSceneNodeOrientationY(doc, 0), 5.0)
+        && NearlyEqual(DsonDocument_GetSceneNodeOrientationZ(doc, 0), 0.0)
+        && DsonDocument_GetSceneNodeOrientationPresenceMask(doc, 0) == xyzMask
+        && DsonDocument_GetSceneNodeInheritsScale(doc, 0)
+        && DsonDocument_GetSceneNodeHasInheritsScale(doc, 0);
+
+    const bool partialPass =
+        NearlyEqual(DsonDocument_GetSceneNodeCenterPointX(doc, 1), 0.0)
+        && NearlyEqual(DsonDocument_GetSceneNodeCenterPointY(doc, 1), 0.0)
+        && NearlyEqual(DsonDocument_GetSceneNodeCenterPointZ(doc, 1), -3.0)
+        && DsonDocument_GetSceneNodeCenterPointPresenceMask(doc, 1) == xzMask
+        && NearlyEqual(DsonDocument_GetSceneNodeOrientationX(doc, 1), 0.0)
+        && NearlyEqual(DsonDocument_GetSceneNodeOrientationY(doc, 1), 0.0)
+        && NearlyEqual(DsonDocument_GetSceneNodeOrientationZ(doc, 1), 7.0)
+        && DsonDocument_GetSceneNodeOrientationPresenceMask(doc, 1) == xzMask
+        && !DsonDocument_GetSceneNodeInheritsScale(doc, 1)
+        && DsonDocument_GetSceneNodeHasInheritsScale(doc, 1);
+
+    const bool separationPass =
+        std::strcmp(DsonDocument_GetSceneNodeUrl(doc, 2), "#definition") == 0
+        && DsonDocument_GetSceneNodeCenterPointX(doc, 2) == 0.0
+        && DsonDocument_GetSceneNodeCenterPointY(doc, 2) == 0.0
+        && DsonDocument_GetSceneNodeCenterPointZ(doc, 2) == 0.0
+        && DsonDocument_GetSceneNodeCenterPointPresenceMask(doc, 2) == 0
+        && DsonDocument_GetSceneNodeOrientationX(doc, 2) == 0.0
+        && DsonDocument_GetSceneNodeOrientationY(doc, 2) == 0.0
+        && DsonDocument_GetSceneNodeOrientationZ(doc, 2) == 0.0
+        && DsonDocument_GetSceneNodeOrientationPresenceMask(doc, 2) == 0
+        && !DsonDocument_GetSceneNodeInheritsScale(doc, 2)
+        && !DsonDocument_GetSceneNodeHasInheritsScale(doc, 2);
+
+    const bool invalidIndexPass =
+        DsonDocument_GetSceneNodeCenterPointX(doc, -1) == 0.0
+        && DsonDocument_GetSceneNodeCenterPointY(doc, -1) == 0.0
+        && DsonDocument_GetSceneNodeCenterPointZ(doc, -1) == 0.0
+        && DsonDocument_GetSceneNodeCenterPointPresenceMask(doc, -1) == 0
+        && DsonDocument_GetSceneNodeOrientationX(doc, -1) == 0.0
+        && DsonDocument_GetSceneNodeOrientationY(doc, -1) == 0.0
+        && DsonDocument_GetSceneNodeOrientationZ(doc, -1) == 0.0
+        && DsonDocument_GetSceneNodeOrientationPresenceMask(doc, -1) == 0
+        && !DsonDocument_GetSceneNodeInheritsScale(doc, -1)
+        && !DsonDocument_GetSceneNodeHasInheritsScale(doc, -1);
+
+    const bool invalidHandlePass =
+        DsonDocument_GetSceneNodeCenterPointX(nullptr, 0) == 0.0
+        && DsonDocument_GetSceneNodeCenterPointY(nullptr, 0) == 0.0
+        && DsonDocument_GetSceneNodeCenterPointZ(nullptr, 0) == 0.0
+        && DsonDocument_GetSceneNodeCenterPointPresenceMask(nullptr, 0) == 0
+        && DsonDocument_GetSceneNodeOrientationX(nullptr, 0) == 0.0
+        && DsonDocument_GetSceneNodeOrientationY(nullptr, 0) == 0.0
+        && DsonDocument_GetSceneNodeOrientationZ(nullptr, 0) == 0.0
+        && DsonDocument_GetSceneNodeOrientationPresenceMask(nullptr, 0) == 0
+        && !DsonDocument_GetSceneNodeInheritsScale(nullptr, 0)
+        && !DsonDocument_GetSceneNodeHasInheritsScale(nullptr, 0);
+
+    const bool knownKeyPass = DsonDocument_GetUnknownKeyCount(doc, "scene") == 0;
+    const bool allPass = fullPass && partialPass && separationPass
+        && invalidIndexPass && invalidHandlePass && knownKeyPass;
+
+    std::cout << "Full vectors/current-value preference/value fallback: "
+              << (fullPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Partial vectors/explicit zero/authored false: "
+              << (partialPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Scene/library non-merge and absent fields: "
+              << (separationPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Invalid index sentinels: " << (invalidIndexPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Invalid handle sentinels: " << (invalidHandlePass ? "PASS" : "FAIL") << "\n";
+    std::cout << "inherits_scale recognized scene key: " << (knownKeyPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Scene-node authored fields overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
+
+    DsonDocument_Destroy(doc);
+}
+
 static void RunSceneNodePlacementTest()
 {
     const std::string filepath = ResolveTestFile("JB Jewel Bikini Bottom And Wrap.duf");
@@ -1092,6 +1235,24 @@ static void RunSceneNodePlacementTest()
         std::cout << "Scene node \"" << item.id << "\" placement: "
                   << (pass ? "PASS" : "FAIL") << "\n";
     }
+
+    int authoredGemIndex = -1;
+    for (int i = 0; i < nodeCount; ++i) {
+        if (std::strcmp(DsonDocument_GetSceneNodeId(doc, i),
+                        "Genesis9_JewelBikini_GemDrop") == 0) {
+            authoredGemIndex = i;
+            break;
+        }
+    }
+    const bool authoredGemCenterPass = authoredGemIndex >= 0
+        && NearlyEqual(DsonDocument_GetSceneNodeCenterPointX(doc, authoredGemIndex), 0.0)
+        && NearlyEqual(DsonDocument_GetSceneNodeCenterPointY(doc, authoredGemIndex), 121.4198)
+        && NearlyEqual(DsonDocument_GetSceneNodeCenterPointZ(doc, authoredGemIndex), 0.0)
+        && DsonDocument_GetSceneNodeCenterPointPresenceMask(doc, authoredGemIndex)
+            == DSONPARSER_VECTOR_COMPONENT_Y;
+    allPass = allPass && authoredGemCenterPass;
+    std::cout << "Gem scene-node authored Y center + presence: "
+              << (authoredGemCenterPass ? "PASS" : "FAIL") << "\n";
 
     const bool invalidPass = std::strcmp(DsonDocument_GetSceneNodeParent(doc, -1), "") == 0
         && DsonDocument_GetSceneNodeTranslationX(doc, -1) == 0.0
@@ -1172,6 +1333,7 @@ int main(int argc, char* argv[])
     RunCatalogPresentationTests();
     RunChannelTypeMismatchTests();
     RunPerThreadLastErrorTest();
+    RunSceneNodeAuthoredFieldsTest();
     RunSceneNodePlacementTest();
 
     // Create a DSON document

@@ -11,6 +11,26 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.5.0 — 2026-07-01 · MINOR (added)
+
+Scene-node instances now expose their raw, as-authored `center_point`,
+`orientation`, and `inherits_scale`. Vector presence masks and an explicit
+`inherits_scale` presence query distinguish authored zero/false from an absent
+override. The parser does not merge these values with `node_library` definitions;
+the importer resolves the referenced definition, often from a second file, and
+decides how to combine it. Existing symbols and semantics are unchanged.
++ DSONPARSER_VECTOR_COMPONENT_X / _Y / _Z — public `0x1` / `0x2` / `0x4` bits for scene-node vector presence masks
++ DsonDocument_GetSceneNodeCenterPointX — raw authored instance center X (`0.0` on invalid handle/index or absence; inspect the mask)
++ DsonDocument_GetSceneNodeCenterPointY — raw authored instance center Y (`0.0` on invalid handle/index or absence; inspect the mask)
++ DsonDocument_GetSceneNodeCenterPointZ — raw authored instance center Z (`0.0` on invalid handle/index or absence; inspect the mask)
++ DsonDocument_GetSceneNodeCenterPointPresenceMask — authored numeric center components, ORed from the public X/Y/Z bits (`0` when none or invalid)
++ DsonDocument_GetSceneNodeOrientationX — raw authored instance orientation X (`0.0` on invalid handle/index or absence; inspect the mask)
++ DsonDocument_GetSceneNodeOrientationY — raw authored instance orientation Y (`0.0` on invalid handle/index or absence; inspect the mask)
++ DsonDocument_GetSceneNodeOrientationZ — raw authored instance orientation Z (`0.0` on invalid handle/index or absence; inspect the mask)
++ DsonDocument_GetSceneNodeOrientationPresenceMask — authored numeric orientation components, ORed from the public X/Y/Z bits (`0` when none or invalid)
++ DsonDocument_GetSceneNodeInheritsScale — raw authored boolean value (`false` on invalid handle/index or absence; inspect `HasInheritsScale`)
++ DsonDocument_GetSceneNodeHasInheritsScale — distinguishes an authored `inherits_scale` (including `false`) from absence
+
 ## 2.4.0 — 2026-07-01 · MINOR (added)
 
 Scene-node instances now expose their verbatim parent pointer and complete local
