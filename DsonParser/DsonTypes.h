@@ -211,6 +211,13 @@ struct Modifier {
     double channel_max = 1.0;
     bool channel_clamped = false;
 
+    // Geometry-shell "Mesh Offset" push modifier (studio/modifier/push nested
+    // in extra[]). The push marker and the offset channel are NOT at the
+    // modifier top level, so they are parsed separately from the top-level
+    // channel above. Faithful, unevaluated (R6.4).
+    bool is_push = false;             // extra[].type == "studio/modifier/push" present
+    double push_offset_value = 0.0;   // effective offset: current_value -> value -> 0.0 (only when is_push)
+
     // For morph modifiers - indexed deltas
     bool has_morph = false;
     IndexedVector3Array morph_deltas;

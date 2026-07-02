@@ -108,6 +108,15 @@ across 4 audit passes with zero remaining gaps.
 - `GetMorphGeometryId` — geometry id from `parent` URL fragment
 - O(1) morph access via lazy `morphIndexCache`
 
+**Modifiers — non-morph (G)**
+- Geometry-shell **push modifier** (`studio/modifier/push`, the "Mesh Offset" of a
+  Geometry Shell wearable): identity + effective "Offset Distance" channel value,
+  both read from the modifier's nested `extra[]` (not the modifier top level) —
+  `GetModifierIsPush` / `GetModifierPushOffset` (offset prefers `current_value` →
+  `value`, returned raw in the channel's cm; `0.0` is both the sentinel and a
+  legitimate value, so gate on `IsPush`). Faithful/unevaluated; `extra[]` is
+  otherwise unmodeled for modifiers (2.7.0)
+
 ### Known Limitations (v1)
 - **Formulas not evaluated** — as shipped in v1, formula keys were suppressed in
   `knownKeys` and neither stored nor exposed. **Resolved at the parser level in

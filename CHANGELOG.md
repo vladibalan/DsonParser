@@ -11,6 +11,32 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.7.0 — 2026-07-02 · MINOR (added)
+
+Geometry-shell "Mesh Offset" **push modifier** identity + effective offset value.
+A DAZ Geometry Shell wearable is the base mesh pushed outward along its normals by
+a `studio/modifier/push` modifier's "Offset Distance (cm)" channel; an importer
+reconstructing the shell needs that distance. Both the push **type marker**
+(`extra[].type == "studio/modifier/push"`) and the offset **channel** (nested under
+`extra[].type == "studio_modifier_channels"` → `channels[0].channel`) live inside
+the modifier's `extra[]`, not at its top level — so `GetModifierType` (top-level
+`type`, absent → `""`) and `GetModifierChannelValue` (top-level `channel`, absent →
+`0.0`) never surfaced them. These two additive accessors read the nested data
+faithfully: `IsPush` from the push marker, `PushOffset` from the offset channel
+preferring `current_value` over `value` (the established ≥2.4.0 channel-read
+convention), gated on the push marker so a non-push modifier's channels are never
+read as an offset. Faithful/unevaluated (R6.4) — the raw value is returned (units
+are the channel's cm; the consumer converts) and no cross-section merge is done.
+`extra` is now in the modifier `knownKeys`, so a shell modifier no longer reports it
+as an unknown key. **No existing accessor changes** — `GetModifierType` and
+`GetModifierChannelValue` still return `""`/`0.0` for such a modifier
+(binary-compatible; all existing symbols intact). `PushOffset`'s `0.0` is both the
+sentinel and a legitimate authored value, so gate on `IsPush` first. Verified on the
+G9 "Sexy Skinz" swimsuit shell (`IsPush=true`, `PushOffset=0.1`) via a crafted
+`LoadFromString` fixture in the DsonTest2 harness.
++ DsonDocument_GetModifierIsPush — true iff the modifier_library item declares a studio/modifier/push entry in extra[] (false = not a push / invalid handle or index)
++ DsonDocument_GetModifierPushOffset — its effective "Offset Distance" channel value from the nested studio_modifier_channels (current_value → value; raw, cm); 0.0 when not a push, no offset channel, or invalid — gate on GetModifierIsPush
+
 ## 2.6.0 — 2026-07-01 · MINOR (added)
 
 Completes the scene-node authored-presence surface begun in 2.5.0. Translation,

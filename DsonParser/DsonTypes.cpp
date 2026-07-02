@@ -729,7 +729,7 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     static const std::set<std::string> knownKeys = {
         "id", "name", "type", "url", "parent", "skin_binding", "channel",
         "deltas", "normal_deltas", "vertex_count", "formulas", "region", "group", "skin", "morph",
-        "presentation"
+        "presentation", "extra"
     };
     
     ParseMember(json, "id", id);
@@ -810,6 +810,50 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     // knownKeys; stored verbatim, no interpretation (R6.4).
     group  = JsonHelper::GetStringOrDefault(json, "group");
     region = JsonHelper::GetStringOrDefault(json, "region");
+
+    // Geometry-shell "Mesh Offset" push modifier: the push type marker and
+    // the "Offset Distance (cm)" channel live nested in extra[], not at the
+    // modifier top level (mirrors the material extra[] walk). Faithful,
+    // unevaluated (R6.4): is_push from studio/modifier/push; push_offset_value
+    // from the first studio_modifier_channels channel, current_value -> value.
+    // The offset is committed only when the push marker is present, so a
+    // non-push modifier's channels are never mis-read as an offset.
+    const rapidjson::Value* extraArr = nullptr;
+    if (JsonHelper::GetArray(json, "extra", extraArr)) {
+        bool sawPush = false;
+        bool sawOffset = false;
+        double offset = 0.0;
+        for (rapidjson::SizeType i = 0; i < extraArr->Size(); i++) {
+            const auto& extraItem = (*extraArr)[i];
+            if (!extraItem.IsObject()) continue;
+            const std::string extraType = JsonHelper::GetStringOrDefault(extraItem, "type");
+
+            if (extraType == "studio/modifier/push") {
+                sawPush = true;
+                continue;
+            }
+            if (extraType != "studio_modifier_channels" || sawOffset) continue;
+
+            const rapidjson::Value* channelsArr = nullptr;
+            if (!JsonHelper::GetArray(extraItem, "channels", channelsArr) ||
+                channelsArr->Size() == 0) continue;
+
+            const auto& entry = (*channelsArr)[0];
+            const rapidjson::Value* chObj = nullptr;
+            if (!entry.IsObject() || !JsonHelper::GetObject(entry, "channel", chObj)) continue;
+
+            const char* valKey = chObj->HasMember("current_value") ? "current_value" : "value";
+            if (chObj->HasMember(valKey)) {
+                double tmp = 0.0;
+                if (JsonHelper::GetNumberOrBool((*chObj)[valKey], tmp)) {
+                    offset = tmp;
+                    sawOffset = true;
+                }
+            }
+        }
+        is_push = sawPush;
+        if (is_push && sawOffset) push_offset_value = offset;
+    }
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;

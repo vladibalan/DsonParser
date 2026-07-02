@@ -123,7 +123,14 @@ current loader scope.
   `…Region`; see Asset Catalog Metadata below). Formula `output`, `stage`, and
   the source-order RPN `operations` (`op` plus scalar `val`/`url`, or array
   `val_array` for spline_tcb knots) are stored and exposed; the parser does not
-  evaluate them or follow their channel references.
+  evaluate them or follow their channel references. For a geometry-shell **push
+  modifier** (`studio/modifier/push`, the "Mesh Offset" of a Geometry Shell
+  wearable), the push identity and its "Offset Distance" channel value — both
+  nested in `extra[]`, not at the modifier top level — are exposed via
+  `DsonDocument_GetModifierIsPush` / `…GetModifierPushOffset` (the offset prefers
+  `current_value` over `value`, returned raw in the channel's cm; `0.0` is both the
+  sentinel and a legitimate value, so gate on `IsPush`). A modifier's `extra[]` is
+  otherwise unmodeled.
 
 `image_library`
 : Parsed into `Image`. Captures id, name, URL, map file/path, and the `map_size` pixel dimensions

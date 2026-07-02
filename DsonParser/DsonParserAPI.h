@@ -12,6 +12,9 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.7.0: DsonDocument_GetModifier{IsPush,PushOffset} - geometry-shell
+//   "Mesh Offset" push modifier identity + effective offset-distance channel value,
+//   read from the modifier's nested extra[] (studio/modifier/push + studio_modifier_channels).
 // What's new in 2.6.0: scene-node translation/rotation/scale presence masks plus
 //   general_scale and rotation_order authored-presence queries.
 // What's new in 2.5.0: DsonDocument_GetSceneNode{CenterPoint*,Orientation*,InheritsScale*}
@@ -297,6 +300,13 @@ DSONPARSER_API double      DsonDocument_GetModifierChannelValue(DsonDocumentHand
 DSONPARSER_API double      DsonDocument_GetModifierChannelMin(DsonDocumentHandle handle, int modifierIndex);
 DSONPARSER_API double      DsonDocument_GetModifierChannelMax(DsonDocumentHandle handle, int modifierIndex);
 DSONPARSER_API bool        DsonDocument_GetModifierChannelClamped(DsonDocumentHandle handle, int modifierIndex);
+// Geometry-shell "Mesh Offset" push modifier (studio/modifier/push nested in extra[]).
+// IsPush: true iff this modifier_library item declares a studio/modifier/push extra entry (false = not a push / invalid).
+// PushOffset: its effective "Offset Distance" channel value (current_value -> value; raw, cm), 0.0 when not a push / no offset channel / invalid - gate on IsPush.
+// @since 2.7.0
+DSONPARSER_API bool        DsonDocument_GetModifierIsPush(DsonDocumentHandle handle, int modifierIndex);
+// @since 2.7.0
+DSONPARSER_API double      DsonDocument_GetModifierPushOffset(DsonDocumentHandle handle, int modifierIndex);
 DSONPARSER_API int         DsonDocument_GetModifierFormulaCount(DsonDocumentHandle handle, int modifierIndex);
 DSONPARSER_API const char* DsonDocument_GetModifierFormulaOutput(DsonDocumentHandle handle, int modifierIndex, int formulaIndex);
 DSONPARSER_API const char* DsonDocument_GetModifierFormulaStage(DsonDocumentHandle handle, int modifierIndex, int formulaIndex);

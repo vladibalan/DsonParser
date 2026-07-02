@@ -1204,6 +1204,16 @@ bool DsonDocument_GetModifierChannelClamped(DsonDocumentHandle handle, int modif
     return GetModifierChannelClamped(GetLibraryModifier(handle, modifierIndex));
 }
 
+bool DsonDocument_GetModifierIsPush(DsonDocumentHandle handle, int modifierIndex) {
+    const Dson::Modifier* mod = GetLibraryModifier(handle, modifierIndex);
+    return mod ? mod->is_push : false;
+}
+
+double DsonDocument_GetModifierPushOffset(DsonDocumentHandle handle, int modifierIndex) {
+    const Dson::Modifier* mod = GetLibraryModifier(handle, modifierIndex);
+    return mod ? mod->push_offset_value : 0.0;
+}
+
 int DsonDocument_GetModifierFormulaCount(DsonDocumentHandle handle, int modifierIndex) {
     const Dson::Modifier* mod = GetLibraryModifier(handle, modifierIndex);
     return mod ? static_cast<int>(mod->formulas.size()) : 0;

@@ -843,6 +843,70 @@ void RunChannelTypeMismatchTests() {
     std::cout << "Channel type-mismatch audit overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
 }
 
+static void RunModifierPushOffsetTest() {
+    std::cout << "=================================\n";
+    std::cout << "MODIFIER PUSH OFFSET TEST (2.7.0)\n";
+    std::cout << "=================================\n\n";
+
+    static const char kPushModifierJson[] = R"JSON(
+{
+  "modifier_library": [
+    {
+      "id": "Offset",
+      "name": "Offset",
+      "parent": "Genesis9_Shell.dsf#Genesis9_Shell",
+      "extra": [
+        { "type": "studio/modifier/push", "push_post_smooth": false },
+        {
+          "type": "studio_modifier_channels",
+          "channels": [
+            {
+              "channel": {
+                "id": "Value", "type": "float",
+                "label": "Offset Distance (cm)",
+                "value": 0, "current_value": 0.1,
+                "min": -10000, "max": 10000, "step_size": 0.01
+              },
+              "group": "/General/Mesh Offset"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+)JSON";
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    const int loadResult = DsonDocument_LoadFromString(doc, kPushModifierJson);
+    if (loadResult != 0) {
+        std::cout << "Push modifier fixture load: FAIL (result " << loadResult << ")\n\n";
+        DsonDocument_Destroy(doc);
+        return;
+    }
+
+    const bool isPush = DsonDocument_GetModifierIsPush(doc, 0);
+    const double offset = DsonDocument_GetModifierPushOffset(doc, 0);
+    const bool typeUnchanged = std::strcmp(DsonDocument_GetModifierType(doc, 0), "") == 0;
+    const bool channelUnchanged = DsonDocument_GetModifierChannelValue(doc, 0) == 0.0;
+    const bool invalidPush = !DsonDocument_GetModifierIsPush(doc, -1);
+    const bool invalidOffset = DsonDocument_GetModifierPushOffset(doc, -1) == 0.0;
+    const bool offsetPass = std::fabs(offset - 0.1) < 1e-9;
+
+    std::cout << "GetModifierIsPush: " << (isPush ? "PASS" : "FAIL") << "\n";
+    std::cout << "GetModifierPushOffset==" << offset << "  [expect 0.1] "
+              << (offsetPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "GetModifierType remains empty: " << (typeUnchanged ? "PASS" : "FAIL") << "\n";
+    std::cout << "GetModifierChannelValue remains 0.0: " << (channelUnchanged ? "PASS" : "FAIL") << "\n";
+    std::cout << "Invalid-index IsPush sentinel: " << (invalidPush ? "PASS" : "FAIL") << "\n";
+    std::cout << "Invalid-index PushOffset sentinel: " << (invalidOffset ? "PASS" : "FAIL") << "\n";
+
+    const bool allPass = isPush && offsetPass && typeUnchanged && channelUnchanged &&
+        invalidPush && invalidOffset;
+    std::cout << "Modifier push offset overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
+    DsonDocument_Destroy(doc);
+}
+
 static const char* kSplineFixture = R"JSON(
 {
   "asset_info": { "id": "/data/test/spline_fixture.dsf", "type": "modifier" },
@@ -1410,6 +1474,7 @@ int main(int argc, char* argv[])
     RunSceneAnimationsTest();
     RunCatalogPresentationTests();
     RunChannelTypeMismatchTests();
+    RunModifierPushOffsetTest();
     RunPerThreadLastErrorTest();
     RunSceneNodeAuthoredFieldsTest();
     RunSceneNodePlacementTest();
