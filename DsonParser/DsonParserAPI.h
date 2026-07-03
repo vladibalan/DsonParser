@@ -12,6 +12,8 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.8.0: DsonDocument_GetNodeRigidFollow* - raw node_library
+//   rigidity-group presence, rotation/scale modes, and reference-vertex indices.
 // What's new in 2.7.0: DsonDocument_GetModifier{IsPush,PushOffset} - geometry-shell
 //   "Mesh Offset" push modifier identity + effective offset-distance channel value,
 //   read from the modifier's nested extra[] (studio/modifier/push + studio_modifier_channels).
@@ -137,6 +139,21 @@ DSONPARSER_API const char* DsonDocument_GetNodePresentationLabel(DsonDocumentHan
 DSONPARSER_API double DsonDocument_GetNodeCenterPointX(DsonDocumentHandle handle, int index);
 DSONPARSER_API double DsonDocument_GetNodeCenterPointY(DsonDocumentHandle handle, int index);
 DSONPARSER_API double DsonDocument_GetNodeCenterPointZ(DsonDocumentHandle handle, int index);
+// Rigid-follow rigidity_group on a node_library item. HasRigidFollow is the presence discriminator;
+// bound-check ScaleModeCount/ReferenceVertexCount before indexing. ReferenceVertex returns -1 on
+// invalid input because vertex index 0 is legitimate. Values are raw and unevaluated.
+// @since 2.8.0
+DSONPARSER_API bool        DsonDocument_GetNodeHasRigidFollow(DsonDocumentHandle handle, int index);
+// @since 2.8.0
+DSONPARSER_API const char* DsonDocument_GetNodeRigidFollowRotationMode(DsonDocumentHandle handle, int index);
+// @since 2.8.0
+DSONPARSER_API int         DsonDocument_GetNodeRigidFollowScaleModeCount(DsonDocumentHandle handle, int index);
+// @since 2.8.0
+DSONPARSER_API const char* DsonDocument_GetNodeRigidFollowScaleMode(DsonDocumentHandle handle, int index, int axisIndex);
+// @since 2.8.0
+DSONPARSER_API int         DsonDocument_GetNodeRigidFollowReferenceVertexCount(DsonDocumentHandle handle, int index);
+// @since 2.8.0
+DSONPARSER_API int         DsonDocument_GetNodeRigidFollowReferenceVertex(DsonDocumentHandle handle, int index, int refIndex);
 
 // Get scene node info by index (the "scene.nodes" array, distinct from node_library).
 // Scene nodes are instances: they reference a library node via Url and carry a Label,

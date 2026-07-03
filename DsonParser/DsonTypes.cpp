@@ -348,6 +348,49 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
         presentation_label = JsonHelper::GetStringOrDefault(*presObj, "label");
     }
 
+    // Rigid-follow rigidity group: a studio/node/rigid_follow entry in extra[]
+    // carries an inline rigidity_group (reference_vertices + rotation_mode +
+    // per-axis scale_modes) describing a fixed vertex patch this node rides
+    // rigidly on a followed mesh. Mirrors the modifier push extra[] walk.
+    // Faithful/unevaluated (R6.4): raw passthrough, no follow reconstruction,
+    // no cross-section merge. A bare marker leaves has_rigid_follow false.
+    const rapidjson::Value* rfExtra = nullptr;
+    if (JsonHelper::GetArray(json, "extra", rfExtra)) {
+        for (rapidjson::SizeType i = 0; i < rfExtra->Size(); i++) {
+            const auto& item = (*rfExtra)[i];
+            if (!item.IsObject()) continue;
+            if (JsonHelper::GetStringOrDefault(item, "type") != "studio/node/rigid_follow") continue;
+
+            const rapidjson::Value* group = nullptr;
+            if (!JsonHelper::GetObject(item, "rigidity_group", group)) continue;
+
+            has_rigid_follow = true;
+            rigid_follow_rotation_mode = JsonHelper::GetStringOrDefault(*group, "rotation_mode");
+
+            const rapidjson::Value* modes = nullptr;
+            if (JsonHelper::GetArray(*group, "scale_modes", modes)) {
+                rigid_follow_scale_modes.reserve(modes->Size());
+                for (rapidjson::SizeType s = 0; s < modes->Size(); s++) {
+                    if ((*modes)[s].IsString())
+                        rigid_follow_scale_modes.push_back((*modes)[s].GetString());
+                }
+            }
+
+            const rapidjson::Value* refv = nullptr;
+            if (JsonHelper::GetObject(*group, "reference_vertices", refv)) {
+                const rapidjson::Value* values = nullptr;
+                if (JsonHelper::GetArray(*refv, "values", values)) {
+                    rigid_follow_reference_vertices.reserve(values->Size());
+                    for (rapidjson::SizeType v = 0; v < values->Size(); v++) {
+                        if ((*values)[v].IsInt())
+                            rigid_follow_reference_vertices.push_back((*values)[v].GetInt());
+                    }
+                }
+            }
+            break; // one rigid_follow group per node
+        }
+    }
+
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
 }

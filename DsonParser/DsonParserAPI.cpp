@@ -686,6 +686,44 @@ double DsonDocument_GetNodeCenterPointZ(DsonDocumentHandle handle, int index) {
     return GetNodeVector3Component(handle, index, &Dson::Node::center_point, 2);
 }
 
+bool DsonDocument_GetNodeHasRigidFollow(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, index) : nullptr;
+    return node ? node->has_rigid_follow : false;
+}
+
+const char* DsonDocument_GetNodeRigidFollowRotationMode(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, index) : nullptr;
+    return node ? node->rigid_follow_rotation_mode.c_str() : "";
+}
+
+int DsonDocument_GetNodeRigidFollowScaleModeCount(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, index) : nullptr;
+    return node ? static_cast<int>(node->rigid_follow_scale_modes.size()) : 0;
+}
+
+const char* DsonDocument_GetNodeRigidFollowScaleMode(DsonDocumentHandle handle, int index, int axisIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, index) : nullptr;
+    const std::string* mode = node ? At(node->rigid_follow_scale_modes, axisIndex) : nullptr;
+    return mode ? mode->c_str() : "";
+}
+
+int DsonDocument_GetNodeRigidFollowReferenceVertexCount(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, index) : nullptr;
+    return node ? static_cast<int>(node->rigid_follow_reference_vertices.size()) : 0;
+}
+
+int DsonDocument_GetNodeRigidFollowReferenceVertex(DsonDocumentHandle handle, int index, int refIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, index) : nullptr;
+    const int* vertex = node ? At(node->rigid_follow_reference_vertices, refIndex) : nullptr;
+    return vertex ? *vertex : -1;
+}
+
 // Scene nodes (scene.nodes) are instances, not library definitions. They may
 // reference node_library entries through Url and carry labels or geometry refs
 // that are meaningful to the placed asset. Keep scene.* and *_library accessors

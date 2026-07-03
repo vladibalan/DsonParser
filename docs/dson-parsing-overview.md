@@ -100,7 +100,21 @@ current loader scope.
   parent, URL, translation, rotation, scale, general scale, center/end points,
   orientation, rotation order, and the item's `presentation` content type +
   label (`DsonDocument_GetNodePresentationType`/`…Label`; see Asset Catalog
-  Metadata below).
+  Metadata below). For a **rigid-follow** node — a DAZ rigid-follow gem/attachment
+  whose `extra[]` carries a `studio/node/rigid_follow` entry with an inline
+  `rigidity_group` (a fixed reference-vertex patch on a followed mesh it rides
+  rigidly) — the group's raw reference-vertex indices, `rotation_mode`, and
+  per-axis `scale_modes` are exposed via `DsonDocument_GetNodeHasRigidFollow` /
+  `…GetNodeRigidFollowRotationMode` / `…GetNodeRigidFollowScaleMode{Count,}` /
+  `…GetNodeRigidFollowReferenceVertex{Count,}`. Read from the **`node_library`**
+  definition — the `scene.nodes` instance carries only a bare
+  `studio/node/rigid_follow` marker with no group — and gated on that marker
+  (twin of the modifier push read below): faithful/unevaluated (R6.4), raw
+  passthrough, no follow reconstruction or cross-section merge. `HasRigidFollow`
+  is the presence discriminator (an empty group still reports `true`, so absence
+  stays distinguishable from an empty vertex list); bound-check the `…Count`
+  accessors, and note `…ReferenceVertex` returns `-1` on invalid because vertex
+  index 0 is legitimate (mirrors `GetSkinJointWeightVertexIndex`). Since 2.8.0.
 
 `geometry_library`
 : Parsed into `Geometry`. Captures vertex positions, polygon/polylist data,

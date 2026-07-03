@@ -1458,6 +1458,83 @@ static void RunSceneNodePlacementTest()
     DsonDocument_Destroy(genesisDoc);
 }
 
+static void RunRigidFollowRigidityTest()
+{
+    std::cout << "=================================\n";
+    std::cout << "RIGID-FOLLOW RIGIDITY TEST (2.8.0)\n";
+    std::cout << "=================================\n\n";
+
+    const std::string filepath = ResolveTestFile("JB Jewel Bikini Bottom And Wrap.duf");
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (filepath.empty() || !doc || DsonDocument_LoadFromFile(doc, filepath.c_str()) != 0) {
+        std::cout << "Rigid-follow fixture load: FAIL";
+        if (doc) std::cout << " (" << DsonParser_GetLastError() << ")";
+        std::cout << "\n\n";
+        if (doc) DsonDocument_Destroy(doc);
+        return;
+    }
+
+    static const int kExpectedCounts[] = { 33, 40, 40, 39, 4, 4, 4, 6, 6, 6, 15, 4, 4, 4, 4 };
+    static const int kFirstVertices[] = { 9241, 9242, 9243, 9244, 9245 };
+    const int expectedNodeCount = static_cast<int>(sizeof(kExpectedCounts) / sizeof(kExpectedCounts[0]));
+    int rigidNodeCount = 0;
+    int totalVertices = 0;
+    bool fieldsPass = true;
+    bool countsPass = true;
+    bool firstVerticesPass = true;
+
+    const int nodeCount = DsonDocument_GetNodeCount(doc);
+    for (int nodeIndex = 0; nodeIndex < nodeCount; ++nodeIndex) {
+        if (!DsonDocument_GetNodeHasRigidFollow(doc, nodeIndex)) continue;
+
+        const int refCount = DsonDocument_GetNodeRigidFollowReferenceVertexCount(doc, nodeIndex);
+        const int modeCount = DsonDocument_GetNodeRigidFollowScaleModeCount(doc, nodeIndex);
+        std::cout << "  [" << rigidNodeCount << "] node=" << DsonDocument_GetNodeId(doc, nodeIndex)
+                  << " rotation=" << DsonDocument_GetNodeRigidFollowRotationMode(doc, nodeIndex)
+                  << " scale_modes=[";
+        for (int modeIndex = 0; modeIndex < modeCount; ++modeIndex) {
+            if (modeIndex > 0) std::cout << ",";
+            const char* mode = DsonDocument_GetNodeRigidFollowScaleMode(doc, nodeIndex, modeIndex);
+            std::cout << mode;
+            fieldsPass = fieldsPass && std::strcmp(mode, "none") == 0;
+        }
+        std::cout << "] reference_vertices=" << refCount << "\n";
+
+        fieldsPass = fieldsPass
+            && std::strcmp(DsonDocument_GetNodeRigidFollowRotationMode(doc, nodeIndex), "full") == 0
+            && modeCount == 3;
+        countsPass = countsPass
+            && rigidNodeCount < expectedNodeCount
+            && refCount == kExpectedCounts[rigidNodeCount];
+        if (rigidNodeCount == 0) {
+            for (int i = 0; i < static_cast<int>(sizeof(kFirstVertices) / sizeof(kFirstVertices[0])); ++i) {
+                firstVerticesPass = firstVerticesPass
+                    && DsonDocument_GetNodeRigidFollowReferenceVertex(doc, nodeIndex, i) == kFirstVertices[i];
+            }
+        }
+        totalVertices += refCount;
+        ++rigidNodeCount;
+    }
+
+    const bool sentinelsPass = !DsonDocument_GetNodeHasRigidFollow(doc, -1)
+        && std::strcmp(DsonDocument_GetNodeRigidFollowRotationMode(doc, -1), "") == 0
+        && DsonDocument_GetNodeRigidFollowScaleModeCount(doc, -1) == 0
+        && std::strcmp(DsonDocument_GetNodeRigidFollowScaleMode(doc, -1, 0), "") == 0
+        && DsonDocument_GetNodeRigidFollowReferenceVertexCount(doc, -1) == 0
+        && DsonDocument_GetNodeRigidFollowReferenceVertex(doc, -1, 0) == -1;
+    const bool allPass = rigidNodeCount == expectedNodeCount && totalVertices == 213
+        && countsPass && fieldsPass && firstVerticesPass && sentinelsPass;
+
+    std::cout << "Rigid-follow nodes=" << rigidNodeCount << " [expect 15], total references="
+              << totalVertices << " [expect 213]\n";
+    std::cout << "Counts: " << (countsPass ? "PASS" : "FAIL")
+              << "; modes: " << (fieldsPass ? "PASS" : "FAIL")
+              << "; first vertices: " << (firstVerticesPass ? "PASS" : "FAIL")
+              << "; sentinels: " << (sentinelsPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Rigid-follow rigidity overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
+    DsonDocument_Destroy(doc);
+}
+
 int main(int argc, char* argv[])
 {
     std::cout << "DSON Parser Test\n";
@@ -1478,6 +1555,7 @@ int main(int argc, char* argv[])
     RunPerThreadLastErrorTest();
     RunSceneNodeAuthoredFieldsTest();
     RunSceneNodePlacementTest();
+    RunRigidFollowRigidityTest();
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();

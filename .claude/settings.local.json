@@ -10,7 +10,11 @@
       "Bash(grep -rn 'implementations live in DsonTypes\\\\|Implementations live in DsonTypes\\\\|live in `DsonTypes.cpp`\\\\|live in DsonTypes.cpp' DsonParser/DsonHelpers.h CLAUDE.md docs/dson-parsing-overview.md)",
       "Bash(ls -1 \"C:/Users/Dolphin/Downloads\" | grep -iE \"handoff|dson|phase|roadmap\" )",
       "Bash(python3 -)",
-      "Bash(git diff *)"
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\Unreal Projects\\\\DsonHost\\\\Plugins\\\\DsonToUnreal\" -Recurse -Include DsonParserAPI.h,CHANGELOG.md,Sync-Parser.ps1 -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })",
+      "Bash(xxd -p)"
     ]
   }
 }

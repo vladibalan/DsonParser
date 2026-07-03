@@ -65,6 +65,13 @@ struct Node {
     bool has_general_scale = false;
     Vector3 center_point; // joint origin (DSF rigs store the real position here)
     unsigned int center_point_presence = 0; // authored numeric components: X=1, Y=2, Z=4
+    // Rigid-follow rigidity group: a studio/node/rigid_follow entry in extra[]
+    // carrying an inline rigidity_group: a fixed reference-vertex patch on a
+    // followed mesh this node rides rigidly. Raw, unevaluated passthrough (R6.4).
+    bool has_rigid_follow = false;                     // marker WITH a rigidity_group is present
+    std::string rigid_follow_rotation_mode;            // rigidity_group.rotation_mode; "" if absent
+    std::vector<std::string> rigid_follow_scale_modes; // rigidity_group.scale_modes, per-axis
+    std::vector<int> rigid_follow_reference_vertices;  // raw DSON indices into the followed geometry
     Vector3 end_point;
     Vector3 orientation;                  // local axis alignment in rest pose (XYZ Euler degrees); default {0,0,0}
     unsigned int orientation_presence = 0; // authored numeric components: X=1, Y=2, Z=4

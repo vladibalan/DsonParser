@@ -11,6 +11,25 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.8.0 — 2026-07-03 · MINOR (added)
+
+Adds faithful access to the rigid-follow rigidity group carried by node_library
+nodes. The payload is nested in `extra[]` and gated on the
+`studio/node/rigid_follow` marker, structurally mirroring the 2.7.0 push-modifier
+support. Scene-node instances carry only bare markers, so these accessors remain
+on the node_library family and perform no cross-section merge or follow
+evaluation. This is purely additive: no existing symbol or behavior changes.
+`ReferenceVertex` returns `-1` for invalid input because vertex index 0 is valid.
+Verified on `JB Jewel Bikini Bottom And Wrap.duf`: 15 rigid-follow nodes with
+reference-vertex counts 33, 40, 40, 39, 4, 4, 4, 6, 6, 6, 15, 4, 4, 4, 4
+(213 total), all using rotation mode `full` and scale modes `[none, none, none]`.
++ DsonDocument_GetNodeHasRigidFollow — true iff the node_library item has a studio/node/rigid_follow extra entry carrying a rigidity_group
++ DsonDocument_GetNodeRigidFollowRotationMode — raw rigidity_group rotation_mode; empty when absent or invalid
++ DsonDocument_GetNodeRigidFollowScaleModeCount — number of authored per-axis scale modes; 0 when absent or invalid
++ DsonDocument_GetNodeRigidFollowScaleMode — raw scale mode by authored array index; empty when absent or invalid
++ DsonDocument_GetNodeRigidFollowReferenceVertexCount — number of raw reference-vertex indices; 0 when absent or invalid
++ DsonDocument_GetNodeRigidFollowReferenceVertex — raw followed-geometry vertex index; -1 when absent or invalid
+
 ## 2.7.0 — 2026-07-02 · MINOR (added)
 
 Geometry-shell "Mesh Offset" **push modifier** identity + effective offset value.
