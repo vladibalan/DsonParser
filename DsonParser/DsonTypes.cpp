@@ -490,13 +490,41 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
 
     JsonHelper::GetString(json, "default_uv_set", default_uv_set_id);
 
-    // Geograft signal: a populated graft (vertex_pairs) marks a geograft; an
-    // empty "graft": {} (base figures, G9 eyes/eyelashes) does not.
+    // Geograft weld correspondence. A populated graft (non-empty vertex_pairs)
+    // marks a geograft; an empty "graft": {} (base figures, G9 eyes/eyelashes)
+    // leaves is_graft false and the arrays empty. Retain the raw weld arrays
+    // faithfully (R6.4) in the file's own DSON index space — no remap/weld
+    // (the importer owns that): vertex_pairs[i] = [graft-local, base-figure];
+    // hidden_polys = base-figure poly indices. The values array is
+    // authoritative for the pair count — DAZ's declared vertex_pairs "count"
+    // can disagree (Genesis9FemaleGenitalia declares 84, ships 82), matching
+    // is_graft's existing size check.
     const rapidjson::Value* graftObj = nullptr;
     if (JsonHelper::GetObject(json, "graft", graftObj)) {
         if (const rapidjson::Value* vp = GetValuesArray(*graftObj, "vertex_pairs")) {
             is_graft = vp->Size() > 0;
+            graft_vertex_pairs.reserve(vp->Size());
+            for (rapidjson::SizeType i = 0; i < vp->Size(); i++) {
+                const auto& pair = (*vp)[i];
+                if (pair.IsArray() && pair.Size() >= 2 &&
+                    pair[0].IsInt() && pair[1].IsInt()) {
+                    GraftVertexPair gp;
+                    gp.graft_vertex = pair[0].GetInt();
+                    gp.base_vertex  = pair[1].GetInt();
+                    graft_vertex_pairs.push_back(gp);
+                }
+            }
         }
+        if (const rapidjson::Value* hp = GetValuesArray(*graftObj, "hidden_polys")) {
+            graft_hidden_polys.reserve(hp->Size());
+            for (rapidjson::SizeType i = 0; i < hp->Size(); i++) {
+                if ((*hp)[i].IsInt()) {
+                    graft_hidden_polys.push_back((*hp)[i].GetInt());
+                }
+            }
+        }
+        ParseMember(*graftObj, "vertex_count", graft_base_vertex_count);
+        ParseMember(*graftObj, "poly_count",   graft_base_poly_count);
     }
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);

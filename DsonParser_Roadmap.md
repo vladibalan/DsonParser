@@ -39,6 +39,9 @@ across 4 audit passes with zero remaining gaps.
 - `default_uv_set_id` per geometry
 - Geograft signal: `GetGeometryIsGraft` — `true` for a populated `graft` (non-empty
   `vertex_pairs`); empty `"graft": {}` → `false` (1.5.0)
+- Geograft weld correspondence: `GetGeometryGraft{VertexPair*,HiddenPoly*,BaseVertexCount,
+  BasePolyCount}` — raw `vertex_pairs` (`[graft-local, base-figure]`), `hidden_polys`, and
+  the declared base vertex/poly counts, file-local (2.9.0)
 
 **Skeleton / Nodes (B)**
 - Full `node_library`: id, name, type, parent
@@ -485,6 +488,34 @@ standalone consumer: TestFiles `test.dsf` (modifier `"Modifier/Shape"`), `Genesi
 `Genesis9FemaleGenitalia.dsf` (`is_graft=true`, 84 `vertex_pairs`; node[0] `"Follower"`).
 
 **Consumer note (additive, non-breaking):** the five new functions are available to the UE
+plugin; existing calls are unaffected.
+
+### Geograft weld correspondence (`graft.vertex_pairs` / `hidden_polys`) — ✅ implemented (Jul 2026)
+The geograft signal (1.5.0) reports *whether* a geometry is a graft; the composed-figure
+assembler in DsonToUnreal also needs the *weld correspondence* to merge the graft into the
+body. Library version **2.9.0** (7 **additive** accessors) exposes the raw `graft` block
+arrays per geometry, in the file's own DSON index space — the importer owns the
+DSON→import-point remap and the weld; the parser does neither (**R6.4**):
+
+- `DsonDocument_GetGeometryGraftVertexPairCount` / `…GraftVertexPairGraftVertex` /
+  `…GraftVertexPairBaseVertex` — the boundary weld pairs, both members, as
+  `[graft-local vertex, base-figure vertex]`. The count is the parsed `values` length,
+  authoritative over DAZ's declared `vertex_pairs.count` (they can disagree).
+- `DsonDocument_GetGeometryGraftHiddenPolyCount` / `…GraftHiddenPoly` — the base-figure
+  polygon indices the graft hides on weld; empty for an additive graft.
+- `DsonDocument_GetGeometryGraftBaseVertexCount` / `…GraftBasePolyCount` — the graft
+  block's declared `vertex_count` / `poly_count`, the base-figure resolution the base-side
+  pair indices are expressed in.
+
+Count family → `0` on invalid; the vertex/poly value accessors → `-1` (index 0 is
+legitimate, mirroring the rigid-follow reference-vertex family). Proof assets, values read
+directly from the DSON and asserted by the `DsonTest2` harness: `Genesis9FemaleGenitalia.dsf`
+(82 weld pairs — DAZ declares 84 — 180 hidden polys, declared base 25182/25156) and the
+additive `BaseShortsGeoGraft_318.dsf` (106 weld pairs, 0 hidden polys, declared base
+8256/8130). Verified by an independent Director build (Release|x64, clean — 0 warnings) and
+the `DsonTest2` harness (all geograft pair/hidden/base/sentinel checks PASS).
+
+**Consumer note (additive, non-breaking):** the seven new functions are available to the UE
 plugin; existing calls are unaffected.
 
 ### Per-layer LIE compositing metadata (`Image::layers`) — ✅ implemented (Jun 2026)

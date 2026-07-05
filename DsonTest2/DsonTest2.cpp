@@ -592,6 +592,59 @@ void RunCatalogPresentationTests()
         DsonDocument_Destroy(g9Doc);
     }
 
+    // --- 2.9.0: raw geograft weld correspondence ---
+    const std::string genitaliaPath = ResolveTestFile("Genesis9FemaleGenitalia.dsf");
+    if (genitaliaPath.empty()) {
+        std::cout << "Genesis9FemaleGenitalia.dsf not found; skipping geograft weld test.\n\n";
+    } else {
+        DsonDocumentHandle genitaliaDoc = DsonDocument_Create();
+        if (DsonDocument_LoadFromFile(genitaliaDoc, genitaliaPath.c_str()) == 0) {
+            const int pairCount = DsonDocument_GetGeometryGraftVertexPairCount(genitaliaDoc, 0);
+            const bool pairPass = DsonDocument_GetGeometryIsGraft(genitaliaDoc, 0)
+                && pairCount == 82
+                && DsonDocument_GetGeometryGraftVertexPairGraftVertex(genitaliaDoc, 0, 0) == 1
+                && DsonDocument_GetGeometryGraftVertexPairBaseVertex(genitaliaDoc, 0, 0) == 8463
+                && DsonDocument_GetGeometryGraftVertexPairGraftVertex(genitaliaDoc, 0, 81) == 653
+                && DsonDocument_GetGeometryGraftVertexPairBaseVertex(genitaliaDoc, 0, 81) == 20922;
+            const bool hiddenAndBasePass = DsonDocument_GetGeometryGraftHiddenPolyCount(genitaliaDoc, 0) == 180
+                && DsonDocument_GetGeometryGraftHiddenPoly(genitaliaDoc, 0, 0) == 21286
+                && DsonDocument_GetGeometryGraftBaseVertexCount(genitaliaDoc, 0) == 25182
+                && DsonDocument_GetGeometryGraftBasePolyCount(genitaliaDoc, 0) == 25156;
+            const bool sentinelPass = DsonDocument_GetGeometryGraftVertexPairCount(genitaliaDoc, -1) == 0
+                && DsonDocument_GetGeometryGraftVertexPairGraftVertex(genitaliaDoc, 0, -1) == -1
+                && DsonDocument_GetGeometryGraftVertexPairGraftVertex(genitaliaDoc, 0, pairCount) == -1
+                && DsonDocument_GetGeometryGraftBaseVertexCount(genitaliaDoc, -1) == 0;
+            std::cout << "Genesis9FemaleGenitalia graft pairs (82, endpoints): " << (pairPass ? "PASS" : "FAIL") << "\n";
+            std::cout << "Genesis9FemaleGenitalia hidden/base counts:       " << (hiddenAndBasePass ? "PASS" : "FAIL") << "\n";
+            std::cout << "Genesis9FemaleGenitalia graft sentinels:          " << (sentinelPass ? "PASS" : "FAIL") << "\n";
+        } else {
+            std::cout << "Genesis9FemaleGenitalia.dsf load error: " << DsonParser_GetLastError() << "\n";
+        }
+        DsonDocument_Destroy(genitaliaDoc);
+    }
+
+    const std::string shortsPath = ResolveTestFile("BaseShortsGeoGraft_318.dsf");
+    if (shortsPath.empty()) {
+        std::cout << "BaseShortsGeoGraft_318.dsf not found; skipping additive geograft weld test.\n\n";
+    } else {
+        DsonDocumentHandle shortsDoc = DsonDocument_Create();
+        if (DsonDocument_LoadFromFile(shortsDoc, shortsPath.c_str()) == 0) {
+            const bool shortsPass = DsonDocument_GetGeometryIsGraft(shortsDoc, 0)
+                && DsonDocument_GetGeometryGraftVertexPairCount(shortsDoc, 0) == 106
+                && DsonDocument_GetGeometryGraftVertexPairGraftVertex(shortsDoc, 0, 0) == 0
+                && DsonDocument_GetGeometryGraftVertexPairBaseVertex(shortsDoc, 0, 0) == 7291
+                && DsonDocument_GetGeometryGraftHiddenPolyCount(shortsDoc, 0) == 0
+                && DsonDocument_GetGeometryGraftBaseVertexCount(shortsDoc, 0) == 8256
+                && DsonDocument_GetGeometryGraftBasePolyCount(shortsDoc, 0) == 8130;
+            const bool shortsSentinelPass = DsonDocument_GetGeometryGraftHiddenPoly(shortsDoc, 0, 0) == -1;
+            std::cout << "BaseShortsGeoGraft additive graft values:          " << (shortsPass ? "PASS" : "FAIL") << "\n";
+            std::cout << "BaseShortsGeoGraft empty-hidden sentinel:          " << (shortsSentinelPass ? "PASS" : "FAIL") << "\n\n";
+        } else {
+            std::cout << "BaseShortsGeoGraft_318.dsf load error: " << DsonParser_GetLastError() << "\n";
+        }
+        DsonDocument_Destroy(shortsDoc);
+    }
+
     // --- 2.2.0: modifier group/region/icon faithful passthrough ---
     // body_bs_NipplesFeminine_HD3.dsf modifier[0]: all three populated (icon is a real, percent-encoded path).
     const std::string nipPath = ResolveTestFile("body_bs_NipplesFeminine_HD3.dsf");

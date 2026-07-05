@@ -11,6 +11,37 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.9.0 — 2026-07-05 · MINOR (added)
+
+Exposes the raw geograft **weld correspondence** from a geometry's `graft` block —
+the two arrays `GetGeometryIsGraft` (1.5.0) already keys on but that reached no
+consumer, plus the block's declared base counts. This is the parser side of the
+DsonToUnreal composed-figure geograft weld: `vertex_pairs` gives the boundary weld
+pairs as `[graft-local vertex, base-figure vertex]`, `hidden_polys` gives the
+base-figure polygons the graft hides on weld (empty for an additive graft), and
+`GraftBaseVertexCount`/`GraftBasePolyCount` give the graft block's declared
+`vertex_count`/`poly_count` — the base-figure resolution the base-side pair indices
+are expressed in. All raw and file-local (R6.4): the parser does **no** remap,
+weld, or reorder; the importer owns the DSON→import-point mapping (same posture as
+the raw LIE per-layer data and the rigid-follow reference vertices). Purely
+additive — `GetGeometryIsGraft` and every other symbol are unchanged. The
+pair-count accessor returns the parsed `values` length, which is authoritative over
+DAZ's declared `vertex_pairs.count` (they can disagree). Count family → `0` on
+invalid; the vertex/poly accessors → `-1` (index 0 is legitimate, as with the
+rigid-follow reference-vertex family). Proof assets (values read directly from the
+DSON, asserted against the accessors by the `DsonTest2` harness): Genesis 9
+Anatomical Elements Female (`Genesis9FemaleGenitalia.dsf` — 82 weld pairs [DAZ
+declares 84], 180 hidden polys, declared base 25182 verts / 25156 polys) and the
+additive Toon Base Shorts Geograft (`BaseShortsGeoGraft_318.dsf` — 106 weld pairs,
+0 hidden polys, declared base 8256 / 8130).
++ DsonDocument_GetGeometryGraftVertexPairCount — number of parsed weld pairs (values length, not DAZ's declared count); 0 when absent or invalid
++ DsonDocument_GetGeometryGraftVertexPairGraftVertex — a pair's graft-local vertex index; -1 when absent or invalid
++ DsonDocument_GetGeometryGraftVertexPairBaseVertex — a pair's base-figure vertex index; -1 when absent or invalid
++ DsonDocument_GetGeometryGraftHiddenPolyCount — number of base-figure polys hidden on weld (0 for an additive graft); 0 when absent or invalid
++ DsonDocument_GetGeometryGraftHiddenPoly — a hidden base-figure polygon index; -1 when absent or invalid
++ DsonDocument_GetGeometryGraftBaseVertexCount — graft block's declared vertex_count (base target resolution the base-side indices live in); 0 when absent or invalid
++ DsonDocument_GetGeometryGraftBasePolyCount — graft block's declared poly_count; 0 when absent or invalid
+
 ## 2.8.0 — 2026-07-03 · MINOR (added)
 
 Adds faithful access to the rigid-follow rigidity group carried by node_library

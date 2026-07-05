@@ -86,6 +86,12 @@ struct Node {
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
 
+// One geograft weld pair, raw DSON file-local indices (no remap).
+struct GraftVertexPair {
+    int graft_vertex = -1; // pair[0]: graft-local vertex index
+    int base_vertex  = -1; // pair[1]: base-figure vertex index
+};
+
 // Geometry data
 struct Geometry {
     String id;
@@ -103,6 +109,12 @@ struct Geometry {
     std::string default_uv_set_id;                    // primary UV channel URL (e.g. "/data/.../Base.dsf#Base Multi UDIM")
     bool is_graft = false; // true iff a populated graft (vertex_pairs) is present;
                            // an empty "graft": {} (base figures, G9 eyes/eyelashes) stays false.
+    // Geograft weld correspondence — raw DSON, file-local index space, only
+    // meaningful when is_graft. Faithful passthrough (R6.4): no remap/weld.
+    std::vector<GraftVertexPair> graft_vertex_pairs; // [graft-local, base-figure] per pair
+    std::vector<int> graft_hidden_polys;             // base-figure polys hidden on weld (may be empty)
+    Int graft_base_vertex_count;                     // graft.vertex_count: base target resolution; 0 if no graft
+    Int graft_base_poly_count;                       // graft.poly_count; 0 if no graft
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

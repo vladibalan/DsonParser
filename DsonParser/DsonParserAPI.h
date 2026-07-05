@@ -12,6 +12,10 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.9.0: DsonDocument_GetGeometryGraft{VertexPair*,HiddenPoly*,
+//   BaseVertexCount,BasePolyCount} - raw geograft weld correspondence
+//   (vertex_pairs [graft-local, base-figure], hidden_polys, declared base
+//   vertex/poly counts) for the composed-figure weld; faithful, no remap.
 // What's new in 2.8.0: DsonDocument_GetNodeRigidFollow* - raw node_library
 //   rigidity-group presence, rotation/scale modes, and reference-vertex indices.
 // What's new in 2.7.0: DsonDocument_GetModifier{IsPush,PushOffset} - geometry-shell
@@ -265,6 +269,19 @@ DSONPARSER_API const char* DsonDocument_GetGeometryDefaultUVSetId(DsonDocumentHa
 // true iff the geometry declares a populated graft (vertex_pairs present); false for empty/absent graft. Bool family -> false on invalid handle/index (R1).
 // @since 1.5.0
 DSONPARSER_API bool DsonDocument_GetGeometryIsGraft(DsonDocumentHandle handle, int index);
+// Geograft weld correspondence (raw DSON, file-local index space; only
+// meaningful when GetGeometryIsGraft). The importer owns the remap/weld.
+// Count family -> 0 on invalid; vertex/poly accessors -> -1 (index 0 is
+// legitimate). Pair member order: [graft-local vertex, base-figure vertex].
+// The pair count is the parsed values length, not DAZ's declared count.
+// @since 2.9.0
+DSONPARSER_API int DsonDocument_GetGeometryGraftVertexPairCount(DsonDocumentHandle handle, int index);
+DSONPARSER_API int DsonDocument_GetGeometryGraftVertexPairGraftVertex(DsonDocumentHandle handle, int index, int pairIndex);
+DSONPARSER_API int DsonDocument_GetGeometryGraftVertexPairBaseVertex(DsonDocumentHandle handle, int index, int pairIndex);
+DSONPARSER_API int DsonDocument_GetGeometryGraftHiddenPolyCount(DsonDocumentHandle handle, int index);
+DSONPARSER_API int DsonDocument_GetGeometryGraftHiddenPoly(DsonDocumentHandle handle, int index, int hiddenIndex);
+DSONPARSER_API int DsonDocument_GetGeometryGraftBaseVertexCount(DsonDocumentHandle handle, int index);
+DSONPARSER_API int DsonDocument_GetGeometryGraftBasePolyCount(DsonDocumentHandle handle, int index);
 
 // ---- A. Geometry: vertex positions ----
 DSONPARSER_API int    DsonDocument_GetVertexCount(DsonDocumentHandle handle, int geomIndex);

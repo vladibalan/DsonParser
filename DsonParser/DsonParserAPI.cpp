@@ -1186,6 +1186,51 @@ bool DsonDocument_GetGeometryIsGraft(DsonDocumentHandle handle, int index) {
     return geom ? geom->is_graft : false;
 }
 
+int DsonDocument_GetGeometryGraftVertexPairCount(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, index) : nullptr;
+    return geom ? static_cast<int>(geom->graft_vertex_pairs.size()) : 0;
+}
+
+int DsonDocument_GetGeometryGraftVertexPairGraftVertex(DsonDocumentHandle handle, int index, int pairIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, index) : nullptr;
+    const Dson::GraftVertexPair* pair = geom ? At(geom->graft_vertex_pairs, pairIndex) : nullptr;
+    return pair ? pair->graft_vertex : -1;
+}
+
+int DsonDocument_GetGeometryGraftVertexPairBaseVertex(DsonDocumentHandle handle, int index, int pairIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, index) : nullptr;
+    const Dson::GraftVertexPair* pair = geom ? At(geom->graft_vertex_pairs, pairIndex) : nullptr;
+    return pair ? pair->base_vertex : -1;
+}
+
+int DsonDocument_GetGeometryGraftHiddenPolyCount(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, index) : nullptr;
+    return geom ? static_cast<int>(geom->graft_hidden_polys.size()) : 0;
+}
+
+int DsonDocument_GetGeometryGraftHiddenPoly(DsonDocumentHandle handle, int index, int hiddenIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, index) : nullptr;
+    const int* poly = geom ? At(geom->graft_hidden_polys, hiddenIndex) : nullptr;
+    return poly ? *poly : -1;
+}
+
+int DsonDocument_GetGeometryGraftBaseVertexCount(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, index) : nullptr;
+    return geom ? static_cast<int>(geom->graft_base_vertex_count) : 0;
+}
+
+int DsonDocument_GetGeometryGraftBasePolyCount(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, index) : nullptr;
+    return geom ? static_cast<int>(geom->graft_base_poly_count) : 0;
+}
+
 const char* DsonDocument_GetModifierId(DsonDocumentHandle handle, int index) {
     const Dson::Modifier* mod = GetLibraryModifier(handle, index);
     return mod ? mod->id.c_str() : "";

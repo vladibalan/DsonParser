@@ -119,9 +119,10 @@ current loader scope.
 `geometry_library`
 : Parsed into `Geometry`. Captures vertex positions, polygon/polylist data,
   face offsets, polygon groups, material groups, vertex/polygon counts,
-  default UV-set reference, and a geograft signal — whether the geometry
-  declares a populated `graft` block (`DsonDocument_GetGeometryIsGraft`; see
-  Asset Catalog Metadata below).
+  default UV-set reference, a geograft signal — whether the geometry
+  declares a populated `graft` block (`DsonDocument_GetGeometryIsGraft`) — and,
+  for a graft, the raw geograft weld correspondence (`vertex_pairs` /
+  `hidden_polys` / declared base counts; see Asset Catalog Metadata below).
 
 `material_library`
 : Parsed into `Material`. Captures source-order material channels, shader type
@@ -184,6 +185,22 @@ resolution (R6.4); the consumer maps and selects.
   empty `"graft": {}` on non-graft meshes (base figures, and Genesis 9 Eyes — which uses
   `rigidity` — and Eyelashes), so key-presence alone is not the signal; an empty graft
   reports `false`.
+- **Geograft weld correspondence** — when the geometry is a graft, the `graft` block's
+  raw weld arrays are exposed per geometry in the file's own DSON index space (the
+  importer owns the DSON→import-point remap and the weld; the parser does neither):
+  - `vertex_pairs` — the boundary weld pairs, **both** members as `[graft-local vertex,
+    base-figure vertex]` — via `DsonDocument_GetGeometryGraftVertexPairCount` /
+    `…GraftVertexPairGraftVertex` / `…GraftVertexPairBaseVertex`.
+  - `hidden_polys` — the base-figure polygon indices the graft hides on weld (empty for
+    an additive graft) — via `…GetGeometryGraftHiddenPolyCount` / `…GraftHiddenPoly`.
+  - the graft block's declared `vertex_count` / `poly_count` — the base-figure resolution
+    the base-side pair indices are expressed in — via `…GetGeometryGraftBaseVertexCount` /
+    `…GraftBasePolyCount`.
+  The **pair count is the parsed `values` length, not DAZ's declared
+  `vertex_pairs.count`** (they can disagree: `Genesis9FemaleGenitalia.dsf` declares 84 but
+  ships 82 rows), consistent with how `is_graft` keys off the values size. Count family →
+  `0` on invalid; the vertex/poly accessors → `-1` (index 0 is legitimate). Faithful
+  passthrough (R6.4): no remap, weld, reorder, or cross-section merge. Since 2.9.0.
 - **Control inventory (modifier `group`/`region`/icon)** — for a UI over a figure's
   sliderable controls. A modifier carries its DAZ Parameter-Settings "Path" as a
   modifier-level `group` (`DsonDocument_GetModifierGroup`, e.g.
