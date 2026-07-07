@@ -12,6 +12,8 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.10.0: DsonDocument_GetGeometryRigidity* - complete raw
+//   geometry.rigidity weights/groups, in the authored geometry's index space.
 // What's new in 2.9.0: DsonDocument_GetGeometryGraft{VertexPair*,HiddenPoly*,
 //   BaseVertexCount,BasePolyCount} - raw geograft weld correspondence
 //   (vertex_pairs [graft-local, base-figure], hidden_polys, declared base
@@ -282,6 +284,43 @@ DSONPARSER_API int DsonDocument_GetGeometryGraftHiddenPolyCount(DsonDocumentHand
 DSONPARSER_API int DsonDocument_GetGeometryGraftHiddenPoly(DsonDocumentHandle handle, int index, int hiddenIndex);
 DSONPARSER_API int DsonDocument_GetGeometryGraftBaseVertexCount(DsonDocumentHandle handle, int index);
 DSONPARSER_API int DsonDocument_GetGeometryGraftBasePolyCount(DsonDocumentHandle handle, int index);
+// Complete authored geometry.rigidity passthrough. Presence is independent of
+// array sizes. Counts return 0 on invalid; vertex-index accessors return -1;
+// weight returns 0.0; strings return ""; bool returns false.
+// @since 2.10.0
+DSONPARSER_API bool DsonDocument_GetGeometryHasRigidity(DsonDocumentHandle handle, int geomIndex);
+// @since 2.10.0
+DSONPARSER_API int DsonDocument_GetGeometryRigidityWeightCount(DsonDocumentHandle handle, int geomIndex);
+// @since 2.10.0
+DSONPARSER_API int DsonDocument_GetGeometryRigidityWeightVertexIndex(DsonDocumentHandle handle, int geomIndex, int weightIndex);
+// @since 2.10.0
+DSONPARSER_API double DsonDocument_GetGeometryRigidityWeight(DsonDocumentHandle handle, int geomIndex, int weightIndex);
+// @since 2.10.0
+DSONPARSER_API int DsonDocument_GetGeometryRigidityGroupCount(DsonDocumentHandle handle, int geomIndex);
+// @since 2.10.0
+DSONPARSER_API const char* DsonDocument_GetGeometryRigidityGroupId(DsonDocumentHandle handle, int geomIndex, int groupIndex);
+// @since 2.10.0
+DSONPARSER_API const char* DsonDocument_GetGeometryRigidityGroupRotationMode(DsonDocumentHandle handle, int geomIndex, int groupIndex);
+// @since 2.10.0
+DSONPARSER_API int DsonDocument_GetGeometryRigidityGroupScaleModeCount(DsonDocumentHandle handle, int geomIndex, int groupIndex);
+// @since 2.10.0
+DSONPARSER_API const char* DsonDocument_GetGeometryRigidityGroupScaleMode(DsonDocumentHandle handle, int geomIndex, int groupIndex, int modeIndex);
+// @since 2.10.0
+DSONPARSER_API int DsonDocument_GetGeometryRigidityGroupReferenceVertexCount(DsonDocumentHandle handle, int geomIndex, int groupIndex);
+// @since 2.10.0
+DSONPARSER_API int DsonDocument_GetGeometryRigidityGroupReferenceVertex(DsonDocumentHandle handle, int geomIndex, int groupIndex, int vertexIndex);
+// @since 2.10.0
+DSONPARSER_API int DsonDocument_GetGeometryRigidityGroupMaskVertexCount(DsonDocumentHandle handle, int geomIndex, int groupIndex);
+// @since 2.10.0
+DSONPARSER_API int DsonDocument_GetGeometryRigidityGroupMaskVertex(DsonDocumentHandle handle, int geomIndex, int groupIndex, int vertexIndex);
+// @since 2.10.0
+DSONPARSER_API const char* DsonDocument_GetGeometryRigidityGroupReference(DsonDocumentHandle handle, int geomIndex, int groupIndex);
+// @since 2.10.0
+DSONPARSER_API int DsonDocument_GetGeometryRigidityGroupTransformNodeCount(DsonDocumentHandle handle, int geomIndex, int groupIndex);
+// @since 2.10.0
+DSONPARSER_API const char* DsonDocument_GetGeometryRigidityGroupTransformNode(DsonDocumentHandle handle, int geomIndex, int groupIndex, int nodeIndex);
+// @since 2.10.0
+DSONPARSER_API bool DsonDocument_GetGeometryRigidityGroupUseTransformBonesForScale(DsonDocumentHandle handle, int geomIndex, int groupIndex);
 
 // ---- A. Geometry: vertex positions ----
 DSONPARSER_API int    DsonDocument_GetVertexCount(DsonDocumentHandle handle, int geomIndex);

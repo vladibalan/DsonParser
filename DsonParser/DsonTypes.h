@@ -10,7 +10,8 @@
 // The typed DSON model: section structs (AssetInfo, Node, Geometry, Material,
 // Modifier, Image, UVSet, scene instances) and the root DsonDocument that owns
 // them. These compose the primitive wrappers from DsonDataTypes.h. Parsing
-// logic lives in DsonTypes.cpp; the C ABI over this model is in DsonParserAPI.
+// logic lives in DsonTypes.cpp; Geometry includes raw graft and rigidity data.
+// The C ABI over this model is in DsonParserAPI.
 //
 // Internal header — NOT part of the public surface. Consumers use the C ABI in
 // DsonParserAPI.h and must not include this header; the RapidJSON it references
@@ -92,6 +93,29 @@ struct GraftVertexPair {
     int base_vertex  = -1; // pair[1]: base-figure vertex index
 };
 
+// One sparse geometry.rigidity weight row, in the authored geometry's own
+// vertex-index space. No remapping or normalization is performed.
+struct GeometryRigidityWeight {
+    int vertex_index = -1;
+    double weight = 0.0;
+};
+
+// One source-order geometry.rigidity group. Strings and vertex/node references
+// are retained verbatim; interpreting rotation/scale behavior belongs to the
+// consumer.
+struct GeometryRigidityGroup {
+    std::string id;
+    std::string rotation_mode;
+    std::vector<std::string> scale_modes;
+    std::vector<int> reference_vertices;
+    std::vector<int> mask_vertices;
+    std::string reference;
+    std::vector<std::string> transform_nodes;
+    bool use_transform_bones_for_scale = false;
+
+    bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
+};
+
 // Geometry data
 struct Geometry {
     String id;
@@ -115,6 +139,9 @@ struct Geometry {
     std::vector<int> graft_hidden_polys;             // base-figure polys hidden on weld (may be empty)
     Int graft_base_vertex_count;                     // graft.vertex_count: base target resolution; 0 if no graft
     Int graft_base_poly_count;                       // graft.poly_count; 0 if no graft
+    bool has_rigidity = false; // true for an authored object, even if its arrays are empty
+    std::vector<GeometryRigidityWeight> rigidity_weights;
+    std::vector<GeometryRigidityGroup> rigidity_groups;
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

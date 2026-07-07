@@ -11,6 +11,41 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.10.0 — 2026-07-07 · MINOR (added)
+
+Exposes a geometry-library entry's complete authored `geometry.rigidity` block:
+sparse vertex/weight rows plus every source-order rigidity group field. Values
+remain raw and file-local (R6.4): vertex indices stay in the graft geometry's
+index space, node references stay as-authored, and the parser performs no remap,
+weld, reference resolution, scale derivation, or rigidity evaluation. Presence is
+independent of array sizes, so an authored empty object remains distinguishable
+from absence. The DAZ JSON key is parsed with its authored misspelling,
+`use_tranform_bones_for_scale`; the public accessor uses correctly spelled API
+English. Purely additive: all existing symbols and behavior are unchanged.
+Counts return `0` on invalid input, strings `""`, bools `false`, weight `0.0`, and
+vertex-index accessors `-1`. Verified by a deterministic whole-block regression
+and the installed Genesis 9 Male Genitalia proof (1,354 sparse weights; complete
+`Gens` group). Non-`none` rotation and mixed `primary`/`secondary`/`none` scale
+modes are covered by the synthetic regression; no installed rotation-using graft
+was found in the targeted asset search.
++ DsonDocument_GetGeometryHasRigidity — whether a valid authored rigidity object exists, including an empty object
++ DsonDocument_GetGeometryRigidityWeightCount — number of valid parsed sparse weight rows
++ DsonDocument_GetGeometryRigidityWeightVertexIndex — one sparse row's geometry-local vertex index
++ DsonDocument_GetGeometryRigidityWeight — one sparse row's raw authored weight
++ DsonDocument_GetGeometryRigidityGroupCount — number of valid source-order rigidity groups
++ DsonDocument_GetGeometryRigidityGroupId — group's authored id
++ DsonDocument_GetGeometryRigidityGroupRotationMode — group's authored rotation mode
++ DsonDocument_GetGeometryRigidityGroupScaleModeCount — number of authored per-axis scale modes
++ DsonDocument_GetGeometryRigidityGroupScaleMode — one authored per-axis scale mode
++ DsonDocument_GetGeometryRigidityGroupReferenceVertexCount — number of reference vertices
++ DsonDocument_GetGeometryRigidityGroupReferenceVertex — one geometry-local reference-vertex index
++ DsonDocument_GetGeometryRigidityGroupMaskVertexCount — number of mask vertices
++ DsonDocument_GetGeometryRigidityGroupMaskVertex — one geometry-local mask-vertex index
++ DsonDocument_GetGeometryRigidityGroupReference — authored reference node id/name
++ DsonDocument_GetGeometryRigidityGroupTransformNodeCount — number of authored transform-node references
++ DsonDocument_GetGeometryRigidityGroupTransformNode — one authored transform-node id/name
++ DsonDocument_GetGeometryRigidityGroupUseTransformBonesForScale — raw value of DAZ's misspelled `use_tranform_bones_for_scale`
+
 ## 2.9.0 — 2026-07-05 · MINOR (added)
 
 Exposes the raw geograft **weld correspondence** from a geometry's `graft` block —

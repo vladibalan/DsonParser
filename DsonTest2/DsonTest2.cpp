@@ -1,8 +1,9 @@
 // Test harness orientation:
 // Console program that exercises the DsonParser C ABI end to end: loads a DSON
 // file via DsonParserAPI.h, then queries nodes, geometry, materials, skin, and
-// morphs to sanity-check the parser. Links DsonParser.lib. This is a manual
-// smoke test / example consumer, not an automated unit test suite.
+// morphs to sanity-check the parser. Links DsonParser.lib. Most execution is a
+// manual smoke test/example consumer; selected in-memory regressions also have
+// deterministic command-line modes that bypass the final keypress.
 //
 
 #include <iostream>
@@ -1588,8 +1589,138 @@ static void RunRigidFollowRigidityTest()
     DsonDocument_Destroy(doc);
 }
 
+static bool RunGeometryRigidityTest()
+{
+    std::cout << "=================================\n";
+    std::cout << "GEOMETRY RIGIDITY TEST (2.10.0)\n";
+    std::cout << "=================================\n\n";
+
+    static const char kRigidityJson[] =
+        "{\"geometry_library\":["
+        "{\"id\":\"populated\",\"rigidity\":{"
+          "\"weights\":{\"count\":99,\"values\":[[7,0.125],[\"bad\",0.5],[9,0.875],[11,\"bad\"],null]},"
+          "\"groups\":["
+            "{\"id\":\"first\",\"rotation_mode\":\"full\","
+             "\"scale_modes\":[\"primary\",\"secondary\",\"none\"],"
+             "\"reference_vertices\":{\"count\":3,\"values\":[2,4,\"bad\",6]},"
+             "\"mask_vertices\":[8,10,null],\"reference\":\"#pelvis\","
+             "\"transform_nodes\":[\"#Gen1\",7,\"#Gen2\"],"
+             "\"use_tranform_bones_for_scale\":true},"
+            "\"malformed-group\","
+            "{\"id\":\"second\",\"rotation_mode\":\"none\",\"scale_modes\":[],"
+             "\"reference_vertices\":[],\"mask_vertices\":[],\"transform_nodes\":[],"
+             "\"use_transform_bones_for_scale\":true}"
+          "]}},"
+        "{\"id\":\"authored-empty\",\"rigidity\":{}},"
+        "{\"id\":\"absent\"}"
+        "]}";
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc || DsonDocument_LoadFromString(doc, kRigidityJson) != 0) {
+        std::cout << "Geometry rigidity fixture load: FAIL";
+        if (doc) std::cout << " (" << DsonParser_GetLastError() << ")";
+        std::cout << "\n\n";
+        if (doc) DsonDocument_Destroy(doc);
+        return false;
+    }
+
+    const bool presencePass = DsonDocument_GetGeometryHasRigidity(doc, 0)
+        && DsonDocument_GetGeometryHasRigidity(doc, 1)
+        && !DsonDocument_GetGeometryHasRigidity(doc, 2);
+    const bool weightsPass = DsonDocument_GetGeometryRigidityWeightCount(doc, 0) == 2
+        && DsonDocument_GetGeometryRigidityWeightVertexIndex(doc, 0, 0) == 7
+        && NearlyEqual(DsonDocument_GetGeometryRigidityWeight(doc, 0, 0), 0.125)
+        && DsonDocument_GetGeometryRigidityWeightVertexIndex(doc, 0, 1) == 9
+        && NearlyEqual(DsonDocument_GetGeometryRigidityWeight(doc, 0, 1), 0.875);
+    const bool firstGroupPass = DsonDocument_GetGeometryRigidityGroupCount(doc, 0) == 2
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupId(doc, 0, 0), "first") == 0
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupRotationMode(doc, 0, 0), "full") == 0
+        && DsonDocument_GetGeometryRigidityGroupScaleModeCount(doc, 0, 0) == 3
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupScaleMode(doc, 0, 0, 0), "primary") == 0
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupScaleMode(doc, 0, 0, 1), "secondary") == 0
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupScaleMode(doc, 0, 0, 2), "none") == 0
+        && DsonDocument_GetGeometryRigidityGroupReferenceVertexCount(doc, 0, 0) == 3
+        && DsonDocument_GetGeometryRigidityGroupReferenceVertex(doc, 0, 0, 2) == 6
+        && DsonDocument_GetGeometryRigidityGroupMaskVertexCount(doc, 0, 0) == 2
+        && DsonDocument_GetGeometryRigidityGroupMaskVertex(doc, 0, 0, 1) == 10
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupReference(doc, 0, 0), "#pelvis") == 0
+        && DsonDocument_GetGeometryRigidityGroupTransformNodeCount(doc, 0, 0) == 2
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupTransformNode(doc, 0, 0, 1), "#Gen2") == 0
+        && DsonDocument_GetGeometryRigidityGroupUseTransformBonesForScale(doc, 0, 0);
+    const bool secondGroupPass = std::strcmp(DsonDocument_GetGeometryRigidityGroupId(doc, 0, 1), "second") == 0
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupRotationMode(doc, 0, 1), "none") == 0
+        && DsonDocument_GetGeometryRigidityGroupScaleModeCount(doc, 0, 1) == 0
+        && DsonDocument_GetGeometryRigidityGroupReferenceVertexCount(doc, 0, 1) == 0
+        && DsonDocument_GetGeometryRigidityGroupMaskVertexCount(doc, 0, 1) == 0
+        && DsonDocument_GetGeometryRigidityGroupTransformNodeCount(doc, 0, 1) == 0
+        && !DsonDocument_GetGeometryRigidityGroupUseTransformBonesForScale(doc, 0, 1);
+
+    // Exercise the sentinel of every function in the new family.
+    const bool sentinelsPass = !DsonDocument_GetGeometryHasRigidity(nullptr, 0)
+        && DsonDocument_GetGeometryRigidityWeightCount(doc, -1) == 0
+        && DsonDocument_GetGeometryRigidityWeightVertexIndex(doc, 0, 2) == -1
+        && NearlyEqual(DsonDocument_GetGeometryRigidityWeight(doc, 0, 2), 0.0)
+        && DsonDocument_GetGeometryRigidityGroupCount(doc, -1) == 0
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupId(doc, 0, 2), "") == 0
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupRotationMode(doc, 0, 2), "") == 0
+        && DsonDocument_GetGeometryRigidityGroupScaleModeCount(doc, 0, 2) == 0
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupScaleMode(doc, 0, 0, 3), "") == 0
+        && DsonDocument_GetGeometryRigidityGroupReferenceVertexCount(doc, 0, 2) == 0
+        && DsonDocument_GetGeometryRigidityGroupReferenceVertex(doc, 0, 0, 3) == -1
+        && DsonDocument_GetGeometryRigidityGroupMaskVertexCount(doc, 0, 2) == 0
+        && DsonDocument_GetGeometryRigidityGroupMaskVertex(doc, 0, 0, 2) == -1
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupReference(doc, 0, 2), "") == 0
+        && DsonDocument_GetGeometryRigidityGroupTransformNodeCount(doc, 0, 2) == 0
+        && std::strcmp(DsonDocument_GetGeometryRigidityGroupTransformNode(doc, 0, 0, 2), "") == 0
+        && !DsonDocument_GetGeometryRigidityGroupUseTransformBonesForScale(doc, 0, 2);
+    bool proofAssetPass = true;
+    bool proofAssetTested = false;
+    const std::string proofPath = ResolveTestFile(
+        "D:/Daz_content/data/DAZ 3D/Genesis 9/Anatomical Elements Male/Genesis9MaleGenitalia.dsf");
+    if (!proofPath.empty()) {
+        proofAssetTested = true;
+        DsonDocumentHandle proof = DsonDocument_Create();
+        proofAssetPass = proof && DsonDocument_LoadFromFile(proof, proofPath.c_str()) == 0
+            && DsonDocument_GetGeometryHasRigidity(proof, 0)
+            && DsonDocument_GetGeometryRigidityWeightCount(proof, 0) == 1354
+            && DsonDocument_GetGeometryRigidityGroupCount(proof, 0) == 1
+            && std::strcmp(DsonDocument_GetGeometryRigidityGroupId(proof, 0, 0), "Gens") == 0
+            && std::strcmp(DsonDocument_GetGeometryRigidityGroupRotationMode(proof, 0, 0), "none") == 0
+            && DsonDocument_GetGeometryRigidityGroupScaleModeCount(proof, 0, 0) == 3
+            && std::strcmp(DsonDocument_GetGeometryRigidityGroupScaleMode(proof, 0, 0, 0), "primary") == 0
+            && std::strcmp(DsonDocument_GetGeometryRigidityGroupScaleMode(proof, 0, 0, 1), "primary") == 0
+            && std::strcmp(DsonDocument_GetGeometryRigidityGroupScaleMode(proof, 0, 0, 2), "primary") == 0
+            && DsonDocument_GetGeometryRigidityGroupReferenceVertexCount(proof, 0, 0) == 26
+            && DsonDocument_GetGeometryRigidityGroupMaskVertexCount(proof, 0, 0) == 1322
+            && std::strcmp(DsonDocument_GetGeometryRigidityGroupReference(proof, 0, 0), "#pelvis") == 0
+            && DsonDocument_GetGeometryRigidityGroupTransformNodeCount(proof, 0, 0) == 9
+            && std::strcmp(DsonDocument_GetGeometryRigidityGroupTransformNode(proof, 0, 0, 0), "#Gen1") == 0
+            && std::strcmp(DsonDocument_GetGeometryRigidityGroupTransformNode(proof, 0, 0, 8), "#lTeste") == 0
+            && DsonDocument_GetGeometryRigidityGroupUseTransformBonesForScale(proof, 0, 0);
+        if (proof) DsonDocument_Destroy(proof);
+    }
+
+    const bool allPass = presencePass && weightsPass && firstGroupPass
+        && secondGroupPass && sentinelsPass && proofAssetPass;
+
+    std::cout << "presence: " << (presencePass ? "PASS" : "FAIL")
+              << "; weights/malformed rows: " << (weightsPass ? "PASS" : "FAIL")
+              << "; groups/order/fields: " << ((firstGroupPass && secondGroupPass) ? "PASS" : "FAIL")
+              << "; all sentinels: " << (sentinelsPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "real Genesis9MaleGenitalia proof: "
+              << (proofAssetTested ? (proofAssetPass ? "PASS" : "FAIL") : "not installed (synthetic remains sufficient)")
+              << "\n";
+    std::cout << "Geometry rigidity overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
+    DsonDocument_Destroy(doc);
+    return allPass;
+}
+
 int main(int argc, char* argv[])
 {
+    if (argc == 2 && std::strcmp(argv[1], "--rigidity-regression") == 0) {
+        return RunGeometryRigidityTest() ? 0 : 1;
+    }
+
     std::cout << "DSON Parser Test\n";
     std::cout << "================\n\n";
 
@@ -1609,6 +1740,7 @@ int main(int argc, char* argv[])
     RunSceneNodeAuthoredFieldsTest();
     RunSceneNodePlacementTest();
     RunRigidFollowRigidityTest();
+    RunGeometryRigidityTest();
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();

@@ -25,6 +25,8 @@
 //   always return 0 on error (never -1); -1 is reserved for value/index
 //   accessors reporting "no such element".
 // - Expose raw stored formula RPN payloads without evaluating them.
+// - Expose authored geometry rigidity weights/groups without remapping or
+//   interpreting their geometry-local indices and node references.
 // - Build lazy query caches for morph indexes and per-vertex skin influences.
 //
 // Important behavior:
@@ -337,6 +339,13 @@ static double GetIndexedVector3Component(const Dson::IndexedVector3Array& deltas
 static const Dson::Node* GetLibraryNode(DsonDocumentHandle handle, int nodeIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     return doc ? At(doc->nodes, nodeIndex) : nullptr;
+}
+
+static const Dson::GeometryRigidityGroup* GetGeometryRigidityGroup(
+    DsonDocumentHandle handle, int geomIndex, int groupIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
+    return geom ? At(geom->rigidity_groups, groupIndex) : nullptr;
 }
 
 static const Dson::Node* GetSceneNode(DsonDocumentHandle handle, int sceneNodeIndex) {
@@ -1229,6 +1238,102 @@ int DsonDocument_GetGeometryGraftBasePolyCount(DsonDocumentHandle handle, int in
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Geometry* geom = doc ? At(doc->geometries, index) : nullptr;
     return geom ? static_cast<int>(geom->graft_base_poly_count) : 0;
+}
+
+bool DsonDocument_GetGeometryHasRigidity(DsonDocumentHandle handle, int geomIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
+    return geom ? geom->has_rigidity : false;
+}
+
+int DsonDocument_GetGeometryRigidityWeightCount(DsonDocumentHandle handle, int geomIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
+    return geom ? static_cast<int>(geom->rigidity_weights.size()) : 0;
+}
+
+int DsonDocument_GetGeometryRigidityWeightVertexIndex(DsonDocumentHandle handle, int geomIndex, int weightIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
+    const Dson::GeometryRigidityWeight* weight = geom ? At(geom->rigidity_weights, weightIndex) : nullptr;
+    return weight ? weight->vertex_index : -1;
+}
+
+double DsonDocument_GetGeometryRigidityWeight(DsonDocumentHandle handle, int geomIndex, int weightIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
+    const Dson::GeometryRigidityWeight* weight = geom ? At(geom->rigidity_weights, weightIndex) : nullptr;
+    return weight ? weight->weight : 0.0;
+}
+
+int DsonDocument_GetGeometryRigidityGroupCount(DsonDocumentHandle handle, int geomIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
+    return geom ? static_cast<int>(geom->rigidity_groups.size()) : 0;
+}
+
+const char* DsonDocument_GetGeometryRigidityGroupId(DsonDocumentHandle handle, int geomIndex, int groupIndex) {
+    const Dson::GeometryRigidityGroup* group = GetGeometryRigidityGroup(handle, geomIndex, groupIndex);
+    return group ? group->id.c_str() : "";
+}
+
+const char* DsonDocument_GetGeometryRigidityGroupRotationMode(DsonDocumentHandle handle, int geomIndex, int groupIndex) {
+    const Dson::GeometryRigidityGroup* group = GetGeometryRigidityGroup(handle, geomIndex, groupIndex);
+    return group ? group->rotation_mode.c_str() : "";
+}
+
+int DsonDocument_GetGeometryRigidityGroupScaleModeCount(DsonDocumentHandle handle, int geomIndex, int groupIndex) {
+    const Dson::GeometryRigidityGroup* group = GetGeometryRigidityGroup(handle, geomIndex, groupIndex);
+    return group ? static_cast<int>(group->scale_modes.size()) : 0;
+}
+
+const char* DsonDocument_GetGeometryRigidityGroupScaleMode(DsonDocumentHandle handle, int geomIndex, int groupIndex, int modeIndex) {
+    const Dson::GeometryRigidityGroup* group = GetGeometryRigidityGroup(handle, geomIndex, groupIndex);
+    const std::string* mode = group ? At(group->scale_modes, modeIndex) : nullptr;
+    return mode ? mode->c_str() : "";
+}
+
+int DsonDocument_GetGeometryRigidityGroupReferenceVertexCount(DsonDocumentHandle handle, int geomIndex, int groupIndex) {
+    const Dson::GeometryRigidityGroup* group = GetGeometryRigidityGroup(handle, geomIndex, groupIndex);
+    return group ? static_cast<int>(group->reference_vertices.size()) : 0;
+}
+
+int DsonDocument_GetGeometryRigidityGroupReferenceVertex(DsonDocumentHandle handle, int geomIndex, int groupIndex, int vertexIndex) {
+    const Dson::GeometryRigidityGroup* group = GetGeometryRigidityGroup(handle, geomIndex, groupIndex);
+    const int* vertex = group ? At(group->reference_vertices, vertexIndex) : nullptr;
+    return vertex ? *vertex : -1;
+}
+
+int DsonDocument_GetGeometryRigidityGroupMaskVertexCount(DsonDocumentHandle handle, int geomIndex, int groupIndex) {
+    const Dson::GeometryRigidityGroup* group = GetGeometryRigidityGroup(handle, geomIndex, groupIndex);
+    return group ? static_cast<int>(group->mask_vertices.size()) : 0;
+}
+
+int DsonDocument_GetGeometryRigidityGroupMaskVertex(DsonDocumentHandle handle, int geomIndex, int groupIndex, int vertexIndex) {
+    const Dson::GeometryRigidityGroup* group = GetGeometryRigidityGroup(handle, geomIndex, groupIndex);
+    const int* vertex = group ? At(group->mask_vertices, vertexIndex) : nullptr;
+    return vertex ? *vertex : -1;
+}
+
+const char* DsonDocument_GetGeometryRigidityGroupReference(DsonDocumentHandle handle, int geomIndex, int groupIndex) {
+    const Dson::GeometryRigidityGroup* group = GetGeometryRigidityGroup(handle, geomIndex, groupIndex);
+    return group ? group->reference.c_str() : "";
+}
+
+int DsonDocument_GetGeometryRigidityGroupTransformNodeCount(DsonDocumentHandle handle, int geomIndex, int groupIndex) {
+    const Dson::GeometryRigidityGroup* group = GetGeometryRigidityGroup(handle, geomIndex, groupIndex);
+    return group ? static_cast<int>(group->transform_nodes.size()) : 0;
+}
+
+const char* DsonDocument_GetGeometryRigidityGroupTransformNode(DsonDocumentHandle handle, int geomIndex, int groupIndex, int nodeIndex) {
+    const Dson::GeometryRigidityGroup* group = GetGeometryRigidityGroup(handle, geomIndex, groupIndex);
+    const std::string* node = group ? At(group->transform_nodes, nodeIndex) : nullptr;
+    return node ? node->c_str() : "";
+}
+
+bool DsonDocument_GetGeometryRigidityGroupUseTransformBonesForScale(DsonDocumentHandle handle, int geomIndex, int groupIndex) {
+    const Dson::GeometryRigidityGroup* group = GetGeometryRigidityGroup(handle, geomIndex, groupIndex);
+    return group ? group->use_transform_bones_for_scale : false;
 }
 
 const char* DsonDocument_GetModifierId(DsonDocumentHandle handle, int index) {

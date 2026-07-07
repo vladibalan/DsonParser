@@ -20,8 +20,9 @@
 //   asset_info, scene, node_library, geometry_library, material_library,
 //   modifier_library, image_library, and uv_set_library.
 // - Section structs parse only the fields needed by the public C API and UE5
-//   import pipeline: geometry, skeleton nodes, skin weights, UVs, materials,
-//   images, morph deltas, formula payloads, and scene instances.
+//   import pipeline: geometry (including raw graft/rigidity blocks), skeleton
+//   nodes, skin weights, UVs, materials, images, morph deltas, formula payloads,
+//   and scene instances.
 // - A post-parse pass resolves material channel image references to image
 //   texture paths and, for identity-linked LIE images, their per-layer paths.
 //   Broader cross-file asset resolution is outside this parser.
@@ -232,6 +233,22 @@ static void ParseStringValuedArray(const rapidjson::Value& container, const char
     }
 }
 
+// Read a { count, values:[...ints] } object (or a plain int array) into out.
+// Malformed elements are skipped, consistent with the parser's permissive
+// array handling.
+static void ParseIntValuedArray(const rapidjson::Value& container, const char* key, std::vector<int>& out) {
+    const rapidjson::Value* values = GetValuesArray(container, key);
+    if (!values) {
+        return;
+    }
+    out.reserve(values->Size());
+    for (rapidjson::SizeType i = 0; i < values->Size(); i++) {
+        if ((*values)[i].IsInt()) {
+            out.push_back((*values)[i].GetInt());
+        }
+    }
+}
+
 // JsonHelper implementations moved to DsonHelpers.cpp.
 
 // AssetInfo implementation
@@ -395,6 +412,24 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
     return true;
 }
 
+bool GeometryRigidityGroup::ParseFromJson(const rapidjson::Value& json, std::set<std::string>*) {
+    if (!json.IsObject()) {
+        return false;
+    }
+
+    id = JsonHelper::GetStringOrDefault(json, "id");
+    rotation_mode = JsonHelper::GetStringOrDefault(json, "rotation_mode");
+    ParseStringValuedArray(json, "scale_modes", scale_modes);
+    ParseIntValuedArray(json, "reference_vertices", reference_vertices);
+    ParseIntValuedArray(json, "mask_vertices", mask_vertices);
+    reference = JsonHelper::GetStringOrDefault(json, "reference");
+    ParseStringValuedArray(json, "transform_nodes", transform_nodes);
+    // DAZ authors this key with the missing 's'; preserve that exact schema.
+    use_transform_bones_for_scale =
+        JsonHelper::GetBoolOrDefault(json, "use_tranform_bones_for_scale", false);
+    return true;
+}
+
 // Geometry parser:
 // Captures mesh topology exactly enough for downstream importers to rebuild the
 // surface: vertex positions, face lists, polygon groups, material groups, and
@@ -410,7 +445,7 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     static const std::set<std::string> knownKeys = {
         "id", "name", "type", "url", "vertices", "polygons", "polylist",
         "vertex_count", "polygon_count", "edge_interpolation_mode", "default_uv_set",
-        "polygon_groups", "polygon_material_groups", "graft"
+        "polygon_groups", "polygon_material_groups", "graft", "rigidity"
     };
     
     ParseMember(json, "id", id);
@@ -525,6 +560,26 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
         }
         ParseMember(*graftObj, "vertex_count", graft_base_vertex_count);
         ParseMember(*graftObj, "poly_count",   graft_base_poly_count);
+    }
+
+    // Authored geometry rigidity, retained in this geometry's raw index space.
+    // Object presence is independent of whether weights/groups contain rows.
+    const rapidjson::Value* rigidityObj = nullptr;
+    if (JsonHelper::GetObject(json, "rigidity", rigidityObj)) {
+        has_rigidity = true;
+        if (const rapidjson::Value* weights = GetValuesArray(*rigidityObj, "weights")) {
+            rigidity_weights.reserve(weights->Size());
+            for (rapidjson::SizeType i = 0; i < weights->Size(); i++) {
+                const rapidjson::Value& row = (*weights)[i];
+                if (row.IsArray() && row.Size() >= 2 && row[0].IsInt() && row[1].IsNumber()) {
+                    GeometryRigidityWeight parsed;
+                    parsed.vertex_index = row[0].GetInt();
+                    parsed.weight = row[1].GetDouble();
+                    rigidity_weights.push_back(parsed);
+                }
+            }
+        }
+        ParseObjectArray(*rigidityObj, "groups", rigidity_groups, unknownKeys);
     }
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);

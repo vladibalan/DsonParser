@@ -122,7 +122,10 @@ current loader scope.
   default UV-set reference, a geograft signal — whether the geometry
   declares a populated `graft` block (`DsonDocument_GetGeometryIsGraft`) — and,
   for a graft, the raw geograft weld correspondence (`vertex_pairs` /
-  `hidden_polys` / declared base counts; see Asset Catalog Metadata below).
+  `hidden_polys` / declared base counts; see Asset Catalog Metadata below), plus
+  the complete authored `rigidity` block: sparse vertex weights and source-order
+  groups with rotation/scale modes, reference/mask vertices, reference and
+  transform-node strings, and the authored transform-bones-for-scale flag.
 
 `material_library`
 : Parsed into `Material`. Captures source-order material channels, shader type
@@ -201,6 +204,17 @@ resolution (R6.4); the consumer maps and selects.
   ships 82 rows), consistent with how `is_graft` keys off the values size. Count family →
   `0` on invalid; the vertex/poly accessors → `-1` (index 0 is legitimate). Faithful
   passthrough (R6.4): no remap, weld, reorder, or cross-section merge. Since 2.9.0.
+- **Geometry rigidity** — `DsonDocument_GetGeometryHasRigidity` distinguishes an
+  authored `geometry.rigidity` object (including an empty one) from absence. The
+  `DsonDocument_GetGeometryRigidityWeight*` family exposes valid parsed sparse
+  `[vertexIndex, weight]` rows; the `...RigidityGroup*` family exposes every group
+  field: `id`, `rotation_mode`, per-axis `scale_modes`, `reference_vertices`,
+  `mask_vertices`, `reference`, `transform_nodes`, and DAZ's literally misspelled
+  `use_tranform_bones_for_scale` boolean. Vertex arrays remain in the owning
+  geometry's index space and node references remain as-authored; there is no
+  remap, weld, reference resolution, transform/scale derivation, or evaluation
+  (R6.4). Counts return `0` on invalid input; vertex-index accessors return `-1`;
+  strings return `""`, weight `0.0`, and bools `false`. Since 2.10.0.
 - **Control inventory (modifier `group`/`region`/icon)** — for a UI over a figure's
   sliderable controls. A modifier carries its DAZ Parameter-Settings "Path" as a
   modifier-level `group` (`DsonDocument_GetModifierGroup`, e.g.

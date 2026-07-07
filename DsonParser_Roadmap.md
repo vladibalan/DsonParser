@@ -42,6 +42,9 @@ across 4 audit passes with zero remaining gaps.
 - Geograft weld correspondence: `GetGeometryGraft{VertexPair*,HiddenPoly*,BaseVertexCount,
   BasePolyCount}` — raw `vertex_pairs` (`[graft-local, base-figure]`), `hidden_polys`, and
   the declared base vertex/poly counts, file-local (2.9.0)
+- Geometry rigidity: `GetGeometryHasRigidity` plus
+  `GetGeometryRigidity{Weight*,Group*}` — complete raw `geometry.rigidity`
+  sparse weights and groups, geometry-local and unevaluated (2.10.0)
 
 **Skeleton / Nodes (B)**
 - Full `node_library`: id, name, type, parent
@@ -516,6 +519,29 @@ additive `BaseShortsGeoGraft_318.dsf` (106 weld pairs, 0 hidden polys, declared 
 the `DsonTest2` harness (all geograft pair/hidden/base/sentinel checks PASS).
 
 **Consumer note (additive, non-breaking):** the seven new functions are available to the UE
+plugin; existing calls are unaffected.
+
+### Geometry rigidity (`geometry.rigidity`) — ✅ implemented (Jul 2026)
+Library version **2.10.0** adds 17 geometry-indexed C-ABI accessors for the complete
+authored rigidity block. `DsonDocument_GetGeometryHasRigidity` is an explicit presence
+discriminator, including for an authored empty object. `...RigidityWeight*` exposes valid
+parsed sparse `[vertexIndex, weight]` rows, while `...RigidityGroup*` exposes source-order
+group id, rotation mode, per-axis scale modes, reference/mask vertex arrays, reference,
+transform-node strings, and the boolean authored under DAZ's misspelled
+`use_tranform_bones_for_scale` key.
+
+All values are faithful raw passthrough (R6.4): vertex indices remain in the owning
+geometry's index space, node ids/names remain as-authored, and the parser performs no
+remap, weld, node resolution, scale derivation, or rigidity evaluation. Counts return
+`0` on invalid input; vertex-index accessors return `-1`; strings return `""`, weight
+`0.0`, and bools `false`. A deterministic in-memory regression covers authored-empty vs
+absent presence, malformed-row skipping, fractional weights, multiple groups, every
+field and sentinel, non-`none` rotation, and mixed `primary`/`secondary`/`none` scale
+modes. The installed Genesis 9 Male Genitalia proof additionally passes with 1,354
+weights and the complete `Gens` group; no installed rotation-using graft was found in
+the targeted search, so that variant is verified synthetically.
+
+**Consumer note (additive, non-breaking):** the 17 new functions are available to the UE
 plugin; existing calls are unaffected.
 
 ### Per-layer LIE compositing metadata (`Image::layers`) — ✅ implemented (Jun 2026)
