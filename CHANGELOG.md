@@ -11,6 +11,17 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.11.0 — 2026-07-08 · MINOR (added)
+
+Exposes each `modifier_library` item's authored `parent` URL verbatim. This lets
+consumers associate multiple geometry-shell push modifiers with their individual
+target geometries by URL fragment while keeping matching and URL resolution in
+the importer (R6.4). The accessor is general to all library modifiers, uses the
+raw `modifier_library` index, and returns `""` when `parent` is absent or the
+handle/index is invalid. Purely additive: all existing symbols and behavior are
+unchanged.
++ DsonDocument_GetModifierParent — authored modifier parent URL, including its target fragment
+
 ## 2.10.0 — 2026-07-07 · MINOR (added)
 
 Exposes a geometry-library entry's complete authored `geometry.rigidity` block:

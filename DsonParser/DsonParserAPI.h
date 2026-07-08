@@ -12,6 +12,8 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.11.0: DsonDocument_GetModifierParent - complete authored
+//   modifier.parent URL for each raw modifier_library item, exposed verbatim.
 // What's new in 2.10.0: DsonDocument_GetGeometryRigidity* - complete raw
 //   geometry.rigidity weights/groups, in the authored geometry's index space.
 // What's new in 2.9.0: DsonDocument_GetGeometryGraft{VertexPair*,HiddenPoly*,
@@ -380,6 +382,10 @@ DSONPARSER_API bool        DsonDocument_GetModifierChannelClamped(DsonDocumentHa
 DSONPARSER_API bool        DsonDocument_GetModifierIsPush(DsonDocumentHandle handle, int modifierIndex);
 // @since 2.7.0
 DSONPARSER_API double      DsonDocument_GetModifierPushOffset(DsonDocumentHandle handle, int modifierIndex);
+// Raw/verbatim modifier.parent for a raw modifier_library index: the complete authored URL,
+// including any #fragment. Returns "" when absent or the handle/index is invalid.
+// @since 2.11.0
+DSONPARSER_API const char* DsonDocument_GetModifierParent(DsonDocumentHandle handle, int modifierIndex);
 DSONPARSER_API int         DsonDocument_GetModifierFormulaCount(DsonDocumentHandle handle, int modifierIndex);
 DSONPARSER_API const char* DsonDocument_GetModifierFormulaOutput(DsonDocumentHandle handle, int modifierIndex, int formulaIndex);
 DSONPARSER_API const char* DsonDocument_GetModifierFormulaStage(DsonDocumentHandle handle, int modifierIndex, int formulaIndex);

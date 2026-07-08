@@ -135,6 +135,7 @@ current loader scope.
 `modifier_library`
 : Parsed into `Modifier`. Captures morph deltas, normal deltas, stored channel
   dial metadata/value bounds, skin binding payloads, formulas, the item's
+  authored parent URL (`DsonDocument_GetModifierParent`),
   `presentation` content type + label + icon
   (`DsonDocument_GetModifierPresentationType`/`…Label`/`…Icon`), and the
   modifier-level `group`/`region` control tags (`DsonDocument_GetModifierGroup`/
@@ -147,8 +148,11 @@ current loader scope.
   nested in `extra[]`, not at the modifier top level — are exposed via
   `DsonDocument_GetModifierIsPush` / `…GetModifierPushOffset` (the offset prefers
   `current_value` over `value`, returned raw in the channel's cm; `0.0` is both the
-  sentinel and a legitimate value, so gate on `IsPush`). A modifier's `extra[]` is
-  otherwise unmodeled.
+  sentinel and a legitimate value, so gate on `IsPush`). `GetModifierParent`
+  addresses that same raw modifier index and returns the parent URL verbatim, so
+  a consumer can match each push to its target geometry by fragment; the parser
+  does not resolve or join the reference (R6.4). A modifier's `extra[]` is otherwise
+  unmodeled.
 
 `image_library`
 : Parsed into `Image`. Captures id, name, URL, map file/path, and the `map_size` pixel dimensions

@@ -897,9 +897,9 @@ void RunChannelTypeMismatchTests() {
     std::cout << "Channel type-mismatch audit overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
 }
 
-static void RunModifierPushOffsetTest() {
+static bool RunModifierPushOffsetTest() {
     std::cout << "=================================\n";
-    std::cout << "MODIFIER PUSH OFFSET TEST (2.7.0)\n";
+    std::cout << "MODIFIER PARENT/PUSH TEST (2.11.0)\n";
     std::cout << "=================================\n\n";
 
     static const char kPushModifierJson[] = R"JSON(
@@ -908,7 +908,7 @@ static void RunModifierPushOffsetTest() {
     {
       "id": "Offset",
       "name": "Offset",
-      "parent": "Genesis9_Shell.dsf#Genesis9_Shell",
+      "parent": "GoldenPalace_G9.dsf#GoldenPalace_G9_Shell_Minora",
       "extra": [
         { "type": "studio/modifier/push", "push_post_smooth": false },
         {
@@ -918,7 +918,29 @@ static void RunModifierPushOffsetTest() {
               "channel": {
                 "id": "Value", "type": "float",
                 "label": "Offset Distance (cm)",
-                "value": 0, "current_value": 0.1,
+                "value": 0, "current_value": 0.015,
+                "min": -10000, "max": 10000, "step_size": 0.01
+              },
+              "group": "/General/Mesh Offset"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Offset_2",
+      "name": "Offset 2",
+      "parent": "GoldenPalace_G9.dsf#GoldenPalace_G9_Shell_Majora",
+      "extra": [
+        { "type": "studio/modifier/push", "push_post_smooth": false },
+        {
+          "type": "studio_modifier_channels",
+          "channels": [
+            {
+              "channel": {
+                "id": "Value", "type": "float",
+                "label": "Offset Distance (cm)",
+                "value": 0, "current_value": 0.01,
                 "min": -10000, "max": 10000, "step_size": 0.01
               },
               "group": "/General/Mesh Offset"
@@ -936,29 +958,47 @@ static void RunModifierPushOffsetTest() {
     if (loadResult != 0) {
         std::cout << "Push modifier fixture load: FAIL (result " << loadResult << ")\n\n";
         DsonDocument_Destroy(doc);
-        return;
+        return false;
     }
 
-    const bool isPush = DsonDocument_GetModifierIsPush(doc, 0);
-    const double offset = DsonDocument_GetModifierPushOffset(doc, 0);
-    const bool typeUnchanged = std::strcmp(DsonDocument_GetModifierType(doc, 0), "") == 0;
-    const bool channelUnchanged = DsonDocument_GetModifierChannelValue(doc, 0) == 0.0;
+    const bool firstIsPush = DsonDocument_GetModifierIsPush(doc, 0);
+    const bool secondIsPush = DsonDocument_GetModifierIsPush(doc, 1);
+    const double firstOffset = DsonDocument_GetModifierPushOffset(doc, 0);
+    const double secondOffset = DsonDocument_GetModifierPushOffset(doc, 1);
+    const bool firstParent = std::strcmp(DsonDocument_GetModifierParent(doc, 0),
+        "GoldenPalace_G9.dsf#GoldenPalace_G9_Shell_Minora") == 0;
+    const bool secondParent = std::strcmp(DsonDocument_GetModifierParent(doc, 1),
+        "GoldenPalace_G9.dsf#GoldenPalace_G9_Shell_Majora") == 0;
+    const bool typeUnchanged = std::strcmp(DsonDocument_GetModifierType(doc, 0), "") == 0 &&
+        std::strcmp(DsonDocument_GetModifierType(doc, 1), "") == 0;
+    const bool channelUnchanged = DsonDocument_GetModifierChannelValue(doc, 0) == 0.0 &&
+        DsonDocument_GetModifierChannelValue(doc, 1) == 0.0;
     const bool invalidPush = !DsonDocument_GetModifierIsPush(doc, -1);
     const bool invalidOffset = DsonDocument_GetModifierPushOffset(doc, -1) == 0.0;
-    const bool offsetPass = std::fabs(offset - 0.1) < 1e-9;
+    const bool invalidParent = std::strcmp(DsonDocument_GetModifierParent(doc, -1), "") == 0;
+    const bool firstOffsetPass = std::fabs(firstOffset - 0.015) < 1e-9;
+    const bool secondOffsetPass = std::fabs(secondOffset - 0.01) < 1e-9;
 
-    std::cout << "GetModifierIsPush: " << (isPush ? "PASS" : "FAIL") << "\n";
-    std::cout << "GetModifierPushOffset==" << offset << "  [expect 0.1] "
-              << (offsetPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Modifier[0] IsPush/Parent/Offset: "
+              << ((firstIsPush && firstParent && firstOffsetPass) ? "PASS" : "FAIL") << "\n";
+    std::cout << "  parent=" << DsonDocument_GetModifierParent(doc, 0)
+              << " offset=" << firstOffset << " [expect 0.015]\n";
+    std::cout << "Modifier[1] IsPush/Parent/Offset: "
+              << ((secondIsPush && secondParent && secondOffsetPass) ? "PASS" : "FAIL") << "\n";
+    std::cout << "  parent=" << DsonDocument_GetModifierParent(doc, 1)
+              << " offset=" << secondOffset << " [expect 0.01]\n";
     std::cout << "GetModifierType remains empty: " << (typeUnchanged ? "PASS" : "FAIL") << "\n";
     std::cout << "GetModifierChannelValue remains 0.0: " << (channelUnchanged ? "PASS" : "FAIL") << "\n";
     std::cout << "Invalid-index IsPush sentinel: " << (invalidPush ? "PASS" : "FAIL") << "\n";
     std::cout << "Invalid-index PushOffset sentinel: " << (invalidOffset ? "PASS" : "FAIL") << "\n";
+    std::cout << "Invalid-index ModifierParent sentinel: " << (invalidParent ? "PASS" : "FAIL") << "\n";
 
-    const bool allPass = isPush && offsetPass && typeUnchanged && channelUnchanged &&
-        invalidPush && invalidOffset;
-    std::cout << "Modifier push offset overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
+    const bool allPass = firstIsPush && secondIsPush && firstParent && secondParent &&
+        firstOffsetPass && secondOffsetPass && typeUnchanged && channelUnchanged &&
+        invalidPush && invalidOffset && invalidParent;
+    std::cout << "Modifier parent/push overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
     DsonDocument_Destroy(doc);
+    return allPass;
 }
 
 static const char* kSplineFixture = R"JSON(
@@ -1717,6 +1757,10 @@ static bool RunGeometryRigidityTest()
 
 int main(int argc, char* argv[])
 {
+    if (argc == 2 && std::strcmp(argv[1], "--modifier-parent-regression") == 0) {
+        return RunModifierPushOffsetTest() ? 0 : 1;
+    }
+
     if (argc == 2 && std::strcmp(argv[1], "--rigidity-regression") == 0) {
         return RunGeometryRigidityTest() ? 0 : 1;
     }

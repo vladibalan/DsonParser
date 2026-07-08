@@ -1402,6 +1402,11 @@ double DsonDocument_GetModifierPushOffset(DsonDocumentHandle handle, int modifie
     return mod ? mod->push_offset_value : 0.0;
 }
 
+const char* DsonDocument_GetModifierParent(DsonDocumentHandle handle, int modifierIndex) {
+    const Dson::Modifier* mod = GetLibraryModifier(handle, modifierIndex);
+    return mod ? mod->parent.c_str() : "";
+}
+
 int DsonDocument_GetModifierFormulaCount(DsonDocumentHandle handle, int modifierIndex) {
     const Dson::Modifier* mod = GetLibraryModifier(handle, modifierIndex);
     return mod ? static_cast<int>(mod->formulas.size()) : 0;

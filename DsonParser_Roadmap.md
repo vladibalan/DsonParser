@@ -122,6 +122,10 @@ across 4 audit passes with zero remaining gaps.
   `value`, returned raw in the channel's cm; `0.0` is both the sentinel and a
   legitimate value, so gate on `IsPush`). Faithful/unevaluated; `extra[]` is
   otherwise unmodeled for modifiers (2.7.0)
+- Modifier target: `GetModifierParent` returns each raw `modifier_library` item's
+  complete authored `parent` URL verbatim, including its fragment. This lets a
+  consumer associate multiple push modifiers with their individual geometry-shell
+  targets; fragment matching and URL resolution remain consumer work (2.11.0).
 
 ### Known Limitations (v1)
 - **Formulas not evaluated** — as shipped in v1, formula keys were suppressed in
