@@ -86,6 +86,7 @@ current loader scope.
 : Parsed separately from libraries. Scene arrays contain placed instances and
   references to library entries. The parser currently reads scene nodes,
   including their raw authored transform/joint overrides and component presence,
+  and each node's `studio/node/shell` extra `material_uvs` assignments,
   modifiers, materials, and UV sets, plus the post-load addon manifest in
   `scene.extra` (the DAZ "Character Addon Loader" `PostLoadAddons`; see the Scene
   Post-Load Addons section below), the `scene.extra` `scene_post_load_script`
@@ -248,6 +249,16 @@ The C API keeps these separate:
   rotation order, raw `center_point` / `orientation`, and raw `inherits_scale`.
 - `DsonDocument_GetMaterial*` reads `material_library`.
 - `DsonDocument_GetSceneMaterial*` reads `scene.materials`.
+
+A geometry shell may author its per-surface UV selection on the placed scene
+node rather than on any `geometry_library` definition. For each exact
+`studio/node/shell` object in `scene.nodes[i].extra[]`, the parser retains valid
+`material_uvs` `[material-group-name, uv-set-name]` rows in authored extra/row
+order and exposes them through
+`DsonDocument_GetSceneNodeShellMaterialUVAssignment{Count,MaterialGroup,UVSetName}`.
+These are node-indexed, verbatim reads. They do not fall back to or combine with
+`DsonDocument_GetGeometryMaterialUVAssignment*`; resolving the UV-set name to an
+external DSF remains importer work (R6.3/R6.4). Since 2.13.0.
 
 This distinction matters when an importer needs the base asset definition versus
 the configured scene instance.

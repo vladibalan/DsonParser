@@ -27,8 +27,8 @@
 // - Expose raw stored formula RPN payloads without evaluating them.
 // - Expose authored geometry rigidity weights/groups without remapping or
 //   interpreting their geometry-local indices and node references.
-// - Expose authored geometry material-to-UV names without resolving or joining
-//   them to materials, UV objects, or external files.
+// - Expose authored geometry and scene-node shell material-to-UV names without
+//   resolving or joining them to materials, UV objects, or external files.
 // - Build lazy query caches for morph indexes and per-vertex skin influences.
 //
 // Important behavior:
@@ -353,6 +353,12 @@ static const Dson::GeometryRigidityGroup* GetGeometryRigidityGroup(
 static const Dson::Node* GetSceneNode(DsonDocumentHandle handle, int sceneNodeIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     return doc ? At(doc->scene.nodes, sceneNodeIndex) : nullptr;
+}
+
+static const Dson::MaterialUVAssignment* GetSceneNodeShellMaterialUVAssignment(
+    DsonDocumentHandle handle, int sceneNodeIndex, int assignmentIndex) {
+    const Dson::Node* node = GetSceneNode(handle, sceneNodeIndex);
+    return node ? At(node->shell_material_uv_assignments, assignmentIndex) : nullptr;
 }
 
 static const Dson::Modifier* GetLibraryModifier(DsonDocumentHandle handle, int modifierIndex) {
@@ -889,6 +895,26 @@ bool DsonDocument_GetSceneNodeHasInheritsScale(DsonDocumentHandle handle, int in
     return node ? node->has_inherits_scale : false;
 }
 
+int DsonDocument_GetSceneNodeShellMaterialUVAssignmentCount(
+    DsonDocumentHandle handle, int sceneNodeIndex) {
+    const Dson::Node* node = GetSceneNode(handle, sceneNodeIndex);
+    return node ? static_cast<int>(node->shell_material_uv_assignments.size()) : 0;
+}
+
+const char* DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup(
+    DsonDocumentHandle handle, int sceneNodeIndex, int assignmentIndex) {
+    const Dson::MaterialUVAssignment* assignment =
+        GetSceneNodeShellMaterialUVAssignment(handle, sceneNodeIndex, assignmentIndex);
+    return assignment ? assignment->material_group.c_str() : "";
+}
+
+const char* DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(
+    DsonDocumentHandle handle, int sceneNodeIndex, int assignmentIndex) {
+    const Dson::MaterialUVAssignment* assignment =
+        GetSceneNodeShellMaterialUVAssignment(handle, sceneNodeIndex, assignmentIndex);
+    return assignment ? assignment->uv_set_name.c_str() : "";
+}
+
 int DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneNodeIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Node* node = doc ? At(doc->scene.nodes, sceneNodeIndex) : nullptr;
@@ -1199,7 +1225,7 @@ int DsonDocument_GetGeometryMaterialUVAssignmentCount(DsonDocumentHandle handle,
 const char* DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(
     DsonDocumentHandle handle, int geomIndex, int assignmentIndex) {
     const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
-    const Dson::GeometryMaterialUVAssignment* assignment =
+    const Dson::MaterialUVAssignment* assignment =
         geom ? At(geom->material_uv_assignments, assignmentIndex) : nullptr;
     return assignment ? assignment->material_group.c_str() : "";
 }
@@ -1207,7 +1233,7 @@ const char* DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(
 const char* DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(
     DsonDocumentHandle handle, int geomIndex, int assignmentIndex) {
     const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
-    const Dson::GeometryMaterialUVAssignment* assignment =
+    const Dson::MaterialUVAssignment* assignment =
         geom ? At(geom->material_uv_assignments, assignmentIndex) : nullptr;
     return assignment ? assignment->uv_set_name.c_str() : "";
 }

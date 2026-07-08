@@ -68,6 +68,11 @@ across 4 audit passes with zero remaining gaps.
 - Authored scene-instance translation/rotation/scale XYZ presence masks plus
   `general_scale` and `rotation_order` presence (2.6.0), completing exact sparse
   transform override merging without default-value heuristics.
+- Per-scene-node geometry-shell `material_uvs` assignments through
+  `GetSceneNodeShellMaterialUVAssignment{Count,MaterialGroup,UVSetName}` — valid
+  `[material-group, uv-set-name]` rows from exact `studio/node/shell` extras,
+  retained verbatim and kept separate from geometry-library assignments, with
+  external UV-set resolution left to the importer (2.13.0).
 
 **Skin Binding (C)**
 - `node_weights` primary + `local_weights` fallback

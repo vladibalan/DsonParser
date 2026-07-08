@@ -20,8 +20,8 @@
 //   asset_info, scene, node_library, geometry_library, material_library,
 //   modifier_library, image_library, and uv_set_library.
 // - Section structs parse only the fields needed by the public C API and UE5
-//   import pipeline: geometry (including material-UV assignments and raw
-//   graft/rigidity blocks), skeleton
+//   import pipeline: geometry and scene-node shell material-UV assignments,
+//   geometry graft/rigidity blocks, skeleton
 //   nodes, skin weights, UVs, materials, images, morph deltas, formula payloads,
 //   and scene instances.
 // - A post-parse pass resolves material channel image references to image
@@ -234,6 +234,28 @@ static void ParseStringValuedArray(const rapidjson::Value& container, const char
     }
 }
 
+// Append valid [material-group-name, uv-set-name] rows from an array or
+// {count,values} member. Declared counts and later row elements are ignored.
+static void ParseMaterialUVAssignments(
+    const rapidjson::Value& container,
+    const char* key,
+    std::vector<MaterialUVAssignment>& out) {
+    const rapidjson::Value* assignments = GetValuesArray(container, key);
+    if (!assignments) {
+        return;
+    }
+    out.reserve(out.size() + assignments->Size());
+    for (rapidjson::SizeType i = 0; i < assignments->Size(); i++) {
+        const rapidjson::Value& row = (*assignments)[i];
+        if (row.IsArray() && row.Size() >= 2 && row[0].IsString() && row[1].IsString()) {
+            MaterialUVAssignment assignment;
+            assignment.material_group = row[0].GetString();
+            assignment.uv_set_name = row[1].GetString();
+            out.push_back(assignment);
+        }
+    }
+}
+
 // Read a { count, values:[...ints] } object (or a plain int array) into out.
 // Malformed elements are skipped, consistent with the parser's permissive
 // array handling.
@@ -366,18 +388,21 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
         presentation_label = JsonHelper::GetStringOrDefault(*presObj, "label");
     }
 
-    // Rigid-follow rigidity group: a studio/node/rigid_follow entry in extra[]
-    // carries an inline rigidity_group (reference_vertices + rotation_mode +
-    // per-axis scale_modes) describing a fixed vertex patch this node rides
-    // rigidly on a followed mesh. Mirrors the modifier push extra[] walk.
-    // Faithful/unevaluated (R6.4): raw passthrough, no follow reconstruction,
-    // no cross-section merge. A bare marker leaves has_rigid_follow false.
+    // Walk node extras once for the typed payloads exposed by the model.
+    // Rigid-follow data is raw and unevaluated. Shell material_uvs rows are
+    // appended across every exact studio/node/shell entry in authored order.
+    // Neither path resolves references or merges sections (R6.3/R6.4).
     const rapidjson::Value* rfExtra = nullptr;
     if (JsonHelper::GetArray(json, "extra", rfExtra)) {
         for (rapidjson::SizeType i = 0; i < rfExtra->Size(); i++) {
             const auto& item = (*rfExtra)[i];
             if (!item.IsObject()) continue;
-            if (JsonHelper::GetStringOrDefault(item, "type") != "studio/node/rigid_follow") continue;
+            const std::string extraType = JsonHelper::GetStringOrDefault(item, "type");
+            if (extraType == "studio/node/shell") {
+                ParseMaterialUVAssignments(item, "material_uvs", shell_material_uv_assignments);
+                continue;
+            }
+            if (extraType != "studio/node/rigid_follow" || has_rigid_follow) continue;
 
             const rapidjson::Value* group = nullptr;
             if (!JsonHelper::GetObject(item, "rigidity_group", group)) continue;
@@ -405,7 +430,6 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
                     }
                 }
             }
-            break; // one rigid_follow group per node
         }
     }
 
@@ -527,21 +551,9 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
 
     JsonHelper::GetString(json, "default_uv_set", default_uv_set_id);
 
-    // Authored per-surface UV selection. The valid parsed rows, not the
-    // wrapper's declared count, are authoritative. Keep only the first two
-    // strings from each valid row and preserve them byte-for-byte.
-    if (const rapidjson::Value* assignments = GetValuesArray(json, "material_uvs")) {
-        material_uv_assignments.reserve(assignments->Size());
-        for (rapidjson::SizeType i = 0; i < assignments->Size(); i++) {
-            const rapidjson::Value& row = (*assignments)[i];
-            if (row.IsArray() && row.Size() >= 2 && row[0].IsString() && row[1].IsString()) {
-                GeometryMaterialUVAssignment assignment;
-                assignment.material_group = row[0].GetString();
-                assignment.uv_set_name = row[1].GetString();
-                material_uv_assignments.push_back(assignment);
-            }
-        }
-    }
+    // Authored per-surface UV selection, retained byte-for-byte in valid-row
+    // source order. The wrapper's declared count is not authoritative.
+    ParseMaterialUVAssignments(json, "material_uvs", material_uv_assignments);
 
     // Geograft weld correspondence. A populated graft (non-empty vertex_pairs)
     // marks a geograft; an empty "graft": {} (base figures, G9 eyes/eyelashes)

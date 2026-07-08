@@ -10,8 +10,9 @@
 // The typed DSON model: section structs (AssetInfo, Node, Geometry, Material,
 // Modifier, Image, UVSet, scene instances) and the root DsonDocument that owns
 // them. These compose the primitive wrappers from DsonDataTypes.h. Parsing
-// logic lives in DsonTypes.cpp; Geometry includes authored material-to-UV
-// assignments plus raw graft and rigidity data.
+// logic lives in DsonTypes.cpp; Node and Geometry retain their own authored
+// material-to-UV assignments, while Geometry also includes raw graft and
+// rigidity data.
 // The C ABI over this model is in DsonParserAPI.
 //
 // Internal header — NOT part of the public surface. Consumers use the C ABI in
@@ -49,6 +50,13 @@ struct NodeGeometryRef {
     std::string url;
 };
 
+// One authored material_uvs pair. Both names are retained verbatim; resolving
+// either name to another object or file belongs to the consumer.
+struct MaterialUVAssignment {
+    std::string material_group;
+    std::string uv_set_name;
+};
+
 // Node in scene hierarchy
 struct Node {
     String id;
@@ -82,6 +90,8 @@ struct Node {
     std::string rotation_order = "YXZ";  // Euler rotation order; default matches DAZ Genesis 9
     bool has_rotation_order = false;
     std::vector<NodeGeometryRef> geometries; // only populated on scene figure nodes
+    // Rows from studio/node/shell extra entries, in authored extra/row order.
+    std::vector<MaterialUVAssignment> shell_material_uv_assignments;
     std::string presentation_type;   // presentation.type  (DAZ "Content Type"; "" if absent)
     std::string presentation_label;  // presentation.label (declared display name; "" if absent)
 
@@ -92,13 +102,6 @@ struct Node {
 struct GraftVertexPair {
     int graft_vertex = -1; // pair[0]: graft-local vertex index
     int base_vertex  = -1; // pair[1]: base-figure vertex index
-};
-
-// One authored geometry.material_uvs pair. Both names are retained verbatim;
-// resolving either name to another object or file belongs to the consumer.
-struct GeometryMaterialUVAssignment {
-    std::string material_group;
-    std::string uv_set_name;
 };
 
 // One sparse geometry.rigidity weight row, in the authored geometry's own
@@ -139,7 +142,7 @@ struct Geometry {
     std::vector<std::string> polygon_groups;          // face group names
     std::vector<std::string> polygon_material_groups; // material group names
     std::string default_uv_set_id;                    // primary UV channel URL (e.g. "/data/.../Base.dsf#Base Multi UDIM")
-    std::vector<GeometryMaterialUVAssignment> material_uv_assignments; // authored source-order pairs
+    std::vector<MaterialUVAssignment> material_uv_assignments; // authored source-order pairs
     bool is_graft = false; // true iff a populated graft (vertex_pairs) is present;
                            // an empty "graft": {} (base figures, G9 eyes/eyelashes) stays false.
     // Geograft weld correspondence — raw DSON, file-local index space, only

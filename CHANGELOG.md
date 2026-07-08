@@ -11,6 +11,20 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.13.0 — 2026-07-08 · MINOR (added)
+
+Exposes each `scene.nodes` item's authored `material_uvs` pairs from exact
+`studio/node/shell` entries in that node's `extra[]`, preserving valid-row order
+and both bare names verbatim. This covers multi-geoshell DUFs where no top-level
+`geometry_library` exists and the referenced shell geometry carries no useful
+assignment. The scene-node family is separate from the unchanged 2.12.0
+geometry family: the parser performs no fallback, merge, name resolution, or
+external load (R6.3/R6.4). Counts return `0` on invalid input and strings return
+`""`.
++ DsonDocument_GetSceneNodeShellMaterialUVAssignmentCount — number of valid shell-extra `[material-group, uv-set-name]` pairs for one scene node
++ DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup — one shell assignment's authored material-group name
++ DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName — one shell assignment's authored UV-set name
+
 ## 2.12.0 — 2026-07-08 · MINOR (added)
 
 Exposes each `geometry_library` item's authored `material_uvs` pairs in source

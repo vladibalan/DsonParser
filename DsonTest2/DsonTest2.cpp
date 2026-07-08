@@ -2,8 +2,9 @@
 // Console program that exercises the DsonParser C ABI end to end: loads a DSON
 // file via DsonParserAPI.h, then queries nodes, geometry, materials, skin, and
 // morphs to sanity-check the parser. Links DsonParser.lib. Most execution is a
-// manual smoke test/example consumer; selected in-memory regressions also have
-// deterministic command-line modes that bypass the final keypress.
+// manual smoke test/example consumer; selected in-memory regressions, including
+// geometry and scene-node shell material-UV coverage, also have deterministic
+// command-line modes that bypass the final keypress.
 //
 
 #include <iostream>
@@ -1729,6 +1730,146 @@ static bool RunGeometryMaterialUVAssignmentTest()
     return allPass;
 }
 
+static bool RunSceneNodeShellMaterialUVAssignmentTest()
+{
+    std::cout << "==============================================\n";
+    std::cout << "SCENE-NODE SHELL MATERIAL-UV TEST (2.13.0)\n";
+    std::cout << "==============================================\n\n";
+
+    static const char kShellMaterialUVJson[] = R"JSON(
+{
+  "geometry_library": [
+    { "id": "geometry-source", "material_uvs": [["Geometry Group", "Geometry UV"]] }
+  ],
+  "scene": {
+    "nodes": [
+      {
+        "id": "shell-a",
+        "extra": [
+          {
+            "type": "not/studio/node/shell",
+            "material_uvs": [["Ignored Group", "Ignored UV"]]
+          },
+          {
+            "type": "studio/node/shell",
+            "material_uvs": [
+              ["  Shell A Group  ", "UV Set A", "ignored later element"],
+              ["malformed-only-one"],
+              [7, "wrong-first-type"],
+              ["Shell A Second", "UV/A 2"],
+              ["wrong-second-type", 9]
+            ]
+          },
+          {
+            "type": "studio/node/shell",
+            "material_uvs": {
+              "count": 99,
+              "values": [
+                ["Shell A Third", " UV A3 "],
+                null
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "shell-b",
+        "extra": [
+          {
+            "type": "studio/node/shellish",
+            "material_uvs": [["Wrong Exact Type", "Wrong UV"]]
+          },
+          {
+            "type": "studio/node/shell",
+            "material_uvs": {
+              "count": 1,
+              "values": [["Node B Group", "Node B UV"]]
+            }
+          }
+        ]
+      },
+      {
+        "id": "empty-shell",
+        "extra": [
+          { "type": "studio/node/shell" },
+          { "type": "studio/node/shell", "material_uvs": { "count": 5, "values": [] } }
+        ]
+      },
+      { "id": "absent-shell" }
+    ]
+  }
+}
+)JSON";
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc || DsonDocument_LoadFromString(doc, kShellMaterialUVJson) != 0) {
+        std::cout << "Scene-node shell material-UV fixture load: FAIL";
+        if (doc) std::cout << " (" << DsonParser_GetLastError() << ")";
+        std::cout << "\n\n";
+        if (doc) DsonDocument_Destroy(doc);
+        return false;
+    }
+
+    const bool firstNodePass =
+        DsonDocument_GetSceneNodeShellMaterialUVAssignmentCount(doc, 0) == 3
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup(doc, 0, 0),
+                       "  Shell A Group  ") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(doc, 0, 0),
+                       "UV Set A") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup(doc, 0, 1),
+                       "Shell A Second") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(doc, 0, 1),
+                       "UV/A 2") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup(doc, 0, 2),
+                       "Shell A Third") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(doc, 0, 2),
+                       " UV A3 ") == 0;
+    const bool secondNodePass =
+        DsonDocument_GetSceneNodeShellMaterialUVAssignmentCount(doc, 1) == 1
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup(doc, 1, 0),
+                       "Node B Group") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(doc, 1, 0),
+                       "Node B UV") == 0;
+    const bool emptyAbsentPass =
+        DsonDocument_GetSceneNodeShellMaterialUVAssignmentCount(doc, 2) == 0
+        && DsonDocument_GetSceneNodeShellMaterialUVAssignmentCount(doc, 3) == 0;
+    const bool sentinelsPass =
+        DsonDocument_GetSceneNodeShellMaterialUVAssignmentCount(nullptr, 0) == 0
+        && DsonDocument_GetSceneNodeShellMaterialUVAssignmentCount(doc, -1) == 0
+        && DsonDocument_GetSceneNodeShellMaterialUVAssignmentCount(doc, 4) == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup(nullptr, 0, 0), "") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup(doc, -1, 0), "") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup(doc, 4, 0), "") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup(doc, 0, -1), "") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup(doc, 0, 3), "") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(nullptr, 0, 0), "") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(doc, -1, 0), "") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(doc, 4, 0), "") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(doc, 0, -1), "") == 0
+        && std::strcmp(DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(doc, 0, 3), "") == 0;
+    const bool geometryRegressionPass =
+        DsonDocument_GetGeometryMaterialUVAssignmentCount(doc, 0) == 1
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(doc, 0, 0),
+                       "Geometry Group") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(doc, 0, 0),
+                       "Geometry UV") == 0
+        && DsonDocument_GetSceneNodeShellMaterialUVAssignmentCount(doc, 2) == 0;
+    const bool allPass = firstNodePass && secondNodePass && emptyAbsentPass
+        && sentinelsPass && geometryRegressionPass;
+
+    std::cout << "first node direct/wrapped/order/malformed/verbatim/non-shell ignored: "
+              << (firstNodePass ? "PASS" : "FAIL") << "\n";
+    std::cout << "second node exact-type/index separation: " << (secondNodePass ? "PASS" : "FAIL") << "\n";
+    std::cout << "bare/empty and absent shell data: " << (emptyAbsentPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "all invalid-input sentinels: " << (sentinelsPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "2.12.0 geometry family unchanged/no fallback: "
+              << (geometryRegressionPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Scene-node shell material-UV overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
+
+    DsonDocument_Destroy(doc);
+    return allPass;
+}
+
 static bool RunGeometryRigidityTest()
 {
     std::cout << "=================================\n";
@@ -1869,6 +2010,10 @@ int main(int argc, char* argv[])
         return RunGeometryMaterialUVAssignmentTest() ? 0 : 1;
     }
 
+    if (argc == 2 && std::strcmp(argv[1], "--scene-shell-material-uv-regression") == 0) {
+        return RunSceneNodeShellMaterialUVAssignmentTest() ? 0 : 1;
+    }
+
     std::cout << "DSON Parser Test\n";
     std::cout << "================\n\n";
 
@@ -1890,6 +2035,7 @@ int main(int argc, char* argv[])
     RunRigidFollowRigidityTest();
     RunGeometryRigidityTest();
     RunGeometryMaterialUVAssignmentTest();
+    RunSceneNodeShellMaterialUVAssignmentTest();
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();

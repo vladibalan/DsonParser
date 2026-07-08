@@ -12,6 +12,8 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.13.0: DsonDocument_GetSceneNodeShellMaterialUVAssignment* -
+//   authored shell-extra material-group to UV-set-name pairs per scene node.
 // What's new in 2.12.0: DsonDocument_GetGeometryMaterialUVAssignment* -
 //   authored material-group to UV-set-name pairs, retained verbatim.
 // What's new in 2.11.0: DsonDocument_GetModifierParent - complete authored
@@ -231,6 +233,16 @@ DSONPARSER_API int DsonDocument_GetSceneNodeOrientationPresenceMask(DsonDocument
 DSONPARSER_API bool DsonDocument_GetSceneNodeInheritsScale(DsonDocumentHandle handle, int index);
 // @since 2.5.0
 DSONPARSER_API bool DsonDocument_GetSceneNodeHasInheritsScale(DsonDocumentHandle handle, int index);
+// Authored material_uvs pairs from exact studio/node/shell entries in this
+// scene.nodes item. Rows retain authored order and strings verbatim; the parser
+// performs no geometry fallback, lookup, merge, or external-file resolution.
+// Count -> 0 and strings -> "" on invalid input.
+// @since 2.13.0
+DSONPARSER_API int DsonDocument_GetSceneNodeShellMaterialUVAssignmentCount(DsonDocumentHandle handle, int sceneNodeIndex);
+// @since 2.13.0
+DSONPARSER_API const char* DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup(DsonDocumentHandle handle, int sceneNodeIndex, int assignmentIndex);
+// @since 2.13.0
+DSONPARSER_API const char* DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(DsonDocumentHandle handle, int sceneNodeIndex, int assignmentIndex);
 DSONPARSER_API int         DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneNodeIndex);
 DSONPARSER_API const char* DsonDocument_GetSceneNodeGeometryId(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex);
 DSONPARSER_API const char* DsonDocument_GetSceneNodeGeometryUrl(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex);
