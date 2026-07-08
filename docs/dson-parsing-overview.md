@@ -119,7 +119,8 @@ current loader scope.
 `geometry_library`
 : Parsed into `Geometry`. Captures vertex positions, polygon/polylist data,
   face offsets, polygon groups, material groups, vertex/polygon counts,
-  default UV-set reference, a geograft signal — whether the geometry
+  default UV-set reference, source-order `material_uvs` assignments from each
+  material-group name to its authored UV-set name, a geograft signal — whether the geometry
   declares a populated `graft` block (`DsonDocument_GetGeometryIsGraft`) — and,
   for a graft, the raw geograft weld correspondence (`vertex_pairs` /
   `hidden_polys` / declared base counts; see Asset Catalog Metadata below), plus
@@ -373,6 +374,15 @@ Polylist faces are flattened into `Geometry::polylist.values`, while
 DSON leading group/material indices before the vertex indices. This lets callers
 reconstruct variable-length faces and recover both polygon group and material
 group assignments.
+
+A geometry may also author `material_uvs` as source-order
+`[material-group, uv-set-name]` pairs. These per-surface assignments are exposed
+faithfully through `DsonDocument_GetGeometryMaterialUVAssignmentCount`,
+`DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup`, and
+`DsonDocument_GetGeometryMaterialUVAssignmentUVSetName`. Both strings are
+returned verbatim. The parser does not resolve the UV-set name to a sibling DSF,
+join it to a scene/library material, or replace the geometry's
+`default_uv_set`; those are importer decisions (R6.4).
 
 ## UV Sets
 

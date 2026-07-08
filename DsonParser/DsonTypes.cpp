@@ -20,7 +20,8 @@
 //   asset_info, scene, node_library, geometry_library, material_library,
 //   modifier_library, image_library, and uv_set_library.
 // - Section structs parse only the fields needed by the public C API and UE5
-//   import pipeline: geometry (including raw graft/rigidity blocks), skeleton
+//   import pipeline: geometry (including material-UV assignments and raw
+//   graft/rigidity blocks), skeleton
 //   nodes, skin weights, UVs, materials, images, morph deltas, formula payloads,
 //   and scene instances.
 // - A post-parse pass resolves material channel image references to image
@@ -433,8 +434,9 @@ bool GeometryRigidityGroup::ParseFromJson(const rapidjson::Value& json, std::set
 // Geometry parser:
 // Captures mesh topology exactly enough for downstream importers to rebuild the
 // surface: vertex positions, face lists, polygon groups, material groups, and
-// the geometry's default UV-set reference. DSON commonly wraps arrays as
-// {count, values:[...]}; legacy flat arrays are accepted where practical.
+// the geometry's default UV-set reference and authored per-material UV-set
+// names. DSON commonly wraps arrays as {count, values:[...]}; legacy flat
+// arrays are accepted where practical.
 // Polylist faces are kept flattened, with a per-face offset table, because DSON
 // faces may vary in length and include leading group/material indices.
 bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
@@ -445,7 +447,7 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     static const std::set<std::string> knownKeys = {
         "id", "name", "type", "url", "vertices", "polygons", "polylist",
         "vertex_count", "polygon_count", "edge_interpolation_mode", "default_uv_set",
-        "polygon_groups", "polygon_material_groups", "graft", "rigidity"
+        "polygon_groups", "polygon_material_groups", "material_uvs", "graft", "rigidity"
     };
     
     ParseMember(json, "id", id);
@@ -524,6 +526,22 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     ParseStringValuedArray(json, "polygon_material_groups", polygon_material_groups);
 
     JsonHelper::GetString(json, "default_uv_set", default_uv_set_id);
+
+    // Authored per-surface UV selection. The valid parsed rows, not the
+    // wrapper's declared count, are authoritative. Keep only the first two
+    // strings from each valid row and preserve them byte-for-byte.
+    if (const rapidjson::Value* assignments = GetValuesArray(json, "material_uvs")) {
+        material_uv_assignments.reserve(assignments->Size());
+        for (rapidjson::SizeType i = 0; i < assignments->Size(); i++) {
+            const rapidjson::Value& row = (*assignments)[i];
+            if (row.IsArray() && row.Size() >= 2 && row[0].IsString() && row[1].IsString()) {
+                GeometryMaterialUVAssignment assignment;
+                assignment.material_group = row[0].GetString();
+                assignment.uv_set_name = row[1].GetString();
+                material_uv_assignments.push_back(assignment);
+            }
+        }
+    }
 
     // Geograft weld correspondence. A populated graft (non-empty vertex_pairs)
     // marks a geograft; an empty "graft": {} (base figures, G9 eyes/eyelashes)

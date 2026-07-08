@@ -1629,6 +1629,106 @@ static void RunRigidFollowRigidityTest()
     DsonDocument_Destroy(doc);
 }
 
+static bool RunGeometryMaterialUVAssignmentTest()
+{
+    std::cout << "=========================================\n";
+    std::cout << "GEOMETRY MATERIAL-UV TEST (2.12.0)\n";
+    std::cout << "=========================================\n\n";
+
+    static const char kMaterialUVJson[] = R"JSON(
+{
+  "geometry_library": [
+    {
+      "id": "wrapped",
+      "material_uvs": {
+        "count": 99,
+        "values": [
+          ["GoldenPalace_G9_9694_GP_Labia Minora", "Golden Palace", "ignored"],
+          ["malformed-only-one"],
+          [7, "wrong-first-type"],
+          ["  Mixed CASE Group  ", "Golden Palace 2"],
+          ["", ""],
+          null
+        ]
+      }
+    },
+    {
+      "id": "bare",
+      "material_uvs": [
+        ["Bare Group", " Bare UV "],
+        ["CaseSensitive", "UvCase"],
+        ["wrong-second-type", 3]
+      ]
+    },
+    { "id": "empty", "material_uvs": { "count": 4, "values": [] } },
+    { "id": "absent" }
+  ]
+}
+)JSON";
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc || DsonDocument_LoadFromString(doc, kMaterialUVJson) != 0) {
+        std::cout << "Material-UV fixture load: FAIL";
+        if (doc) std::cout << " (" << DsonParser_GetLastError() << ")";
+        std::cout << "\n\n";
+        if (doc) DsonDocument_Destroy(doc);
+        return false;
+    }
+
+    const bool wrappedPass =
+        DsonDocument_GetGeometryMaterialUVAssignmentCount(doc, 0) == 3
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(doc, 0, 0),
+                       "GoldenPalace_G9_9694_GP_Labia Minora") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(doc, 0, 0),
+                       "Golden Palace") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(doc, 0, 1),
+                       "  Mixed CASE Group  ") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(doc, 0, 1),
+                       "Golden Palace 2") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(doc, 0, 2), "") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(doc, 0, 2), "") == 0;
+    const bool barePass =
+        DsonDocument_GetGeometryMaterialUVAssignmentCount(doc, 1) == 2
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(doc, 1, 0),
+                       "Bare Group") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(doc, 1, 0),
+                       " Bare UV ") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(doc, 1, 1),
+                       "CaseSensitive") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(doc, 1, 1),
+                       "UvCase") == 0;
+    const bool emptyAbsentPass =
+        DsonDocument_GetGeometryMaterialUVAssignmentCount(doc, 2) == 0
+        && DsonDocument_GetGeometryMaterialUVAssignmentCount(doc, 3) == 0;
+
+    // Exercise invalid-handle, geometry-index, and assignment-index sentinels
+    // for every function in the new family.
+    const bool sentinelsPass =
+        DsonDocument_GetGeometryMaterialUVAssignmentCount(nullptr, 0) == 0
+        && DsonDocument_GetGeometryMaterialUVAssignmentCount(doc, -1) == 0
+        && DsonDocument_GetGeometryMaterialUVAssignmentCount(doc, 4) == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(nullptr, 0, 0), "") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(doc, -1, 0), "") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(doc, 0, -1), "") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(doc, 0, 3), "") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(nullptr, 0, 0), "") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(doc, -1, 0), "") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(doc, 0, -1), "") == 0
+        && std::strcmp(DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(doc, 0, 3), "") == 0;
+    const bool knownKeyPass = DsonDocument_GetUnknownKeyCount(doc, "geometry_library") == 0;
+    const bool allPass = wrappedPass && barePass && emptyAbsentPass && sentinelsPass && knownKeyPass;
+
+    std::cout << "wrapped/count ignored/order/malformed/verbatim: " << (wrappedPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "bare array/order/verbatim: " << (barePass ? "PASS" : "FAIL") << "\n";
+    std::cout << "empty and absent data: " << (emptyAbsentPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "all invalid-input sentinels: " << (sentinelsPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "material_uvs known-key tracking: " << (knownKeyPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Geometry material-UV overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
+
+    DsonDocument_Destroy(doc);
+    return allPass;
+}
+
 static bool RunGeometryRigidityTest()
 {
     std::cout << "=================================\n";
@@ -1765,6 +1865,10 @@ int main(int argc, char* argv[])
         return RunGeometryRigidityTest() ? 0 : 1;
     }
 
+    if (argc == 2 && std::strcmp(argv[1], "--material-uv-regression") == 0) {
+        return RunGeometryMaterialUVAssignmentTest() ? 0 : 1;
+    }
+
     std::cout << "DSON Parser Test\n";
     std::cout << "================\n\n";
 
@@ -1785,6 +1889,7 @@ int main(int argc, char* argv[])
     RunSceneNodePlacementTest();
     RunRigidFollowRigidityTest();
     RunGeometryRigidityTest();
+    RunGeometryMaterialUVAssignmentTest();
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();

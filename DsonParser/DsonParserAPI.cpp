@@ -27,6 +27,8 @@
 // - Expose raw stored formula RPN payloads without evaluating them.
 // - Expose authored geometry rigidity weights/groups without remapping or
 //   interpreting their geometry-local indices and node references.
+// - Expose authored geometry material-to-UV names without resolving or joining
+//   them to materials, UV objects, or external files.
 // - Build lazy query caches for morph indexes and per-vertex skin influences.
 //
 // Important behavior:
@@ -1187,6 +1189,27 @@ const char* DsonDocument_GetGeometryDefaultUVSetId(DsonDocumentHandle handle, in
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
     return geom ? geom->default_uv_set_id.c_str() : "";
+}
+
+int DsonDocument_GetGeometryMaterialUVAssignmentCount(DsonDocumentHandle handle, int geomIndex) {
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    return geom ? static_cast<int>(geom->material_uv_assignments.size()) : 0;
+}
+
+const char* DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(
+    DsonDocumentHandle handle, int geomIndex, int assignmentIndex) {
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    const Dson::GeometryMaterialUVAssignment* assignment =
+        geom ? At(geom->material_uv_assignments, assignmentIndex) : nullptr;
+    return assignment ? assignment->material_group.c_str() : "";
+}
+
+const char* DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(
+    DsonDocumentHandle handle, int geomIndex, int assignmentIndex) {
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    const Dson::GeometryMaterialUVAssignment* assignment =
+        geom ? At(geom->material_uv_assignments, assignmentIndex) : nullptr;
+    return assignment ? assignment->uv_set_name.c_str() : "";
 }
 
 bool DsonDocument_GetGeometryIsGraft(DsonDocumentHandle handle, int index) {

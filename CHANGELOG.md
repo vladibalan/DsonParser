@@ -11,6 +11,19 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.12.0 — 2026-07-08 · MINOR (added)
+
+Exposes each `geometry_library` item's authored `material_uvs` pairs in source
+order. Each assignment retains the material-group name and UV-set name verbatim,
+allowing geometry-shell consumers to select the shell-authored UV set instead of
+the reconstructed graft geometry's default UV set. The parser performs no
+name-to-file resolution, material join, or UV override (R6.4); the importer owns
+that work. Purely additive: all existing symbols and behavior are unchanged.
+Counts return `0` on invalid input and strings return `""`.
++ DsonDocument_GetGeometryMaterialUVAssignmentCount — number of valid parsed `[material-group, uv-set-name]` pairs
++ DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup — one assignment's authored material-group name
++ DsonDocument_GetGeometryMaterialUVAssignmentUVSetName — one assignment's authored UV-set name
+
 ## 2.11.0 — 2026-07-08 · MINOR (added)
 
 Exposes each `modifier_library` item's authored `parent` URL verbatim. This lets

@@ -37,6 +37,10 @@ across 4 audit passes with zero remaining gaps.
 - Vertex indices per face
 - `polygon_groups` and `polygon_material_groups` name arrays
 - `default_uv_set_id` per geometry
+- Source-order geometry `material_uvs` assignments through
+  `GetGeometryMaterialUVAssignment{Count,MaterialGroup,UVSetName}` — verbatim
+  per-surface material-group → UV-set names, with resolution left to the importer
+  (2.12.0)
 - Geograft signal: `GetGeometryIsGraft` — `true` for a populated `graft` (non-empty
   `vertex_pairs`); empty `"graft": {}` → `false` (1.5.0)
 - Geograft weld correspondence: `GetGeometryGraft{VertexPair*,HiddenPoly*,BaseVertexCount,

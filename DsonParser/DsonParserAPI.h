@@ -12,6 +12,8 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.12.0: DsonDocument_GetGeometryMaterialUVAssignment* -
+//   authored material-group to UV-set-name pairs, retained verbatim.
 // What's new in 2.11.0: DsonDocument_GetModifierParent - complete authored
 //   modifier.parent URL for each raw modifier_library item, exposed verbatim.
 // What's new in 2.10.0: DsonDocument_GetGeometryRigidity* - complete raw
@@ -270,6 +272,15 @@ DSONPARSER_API const char* DsonDocument_GetGeometryName(DsonDocumentHandle handl
 DSONPARSER_API int DsonDocument_GetGeometryVertexCount(DsonDocumentHandle handle, int index);
 DSONPARSER_API int DsonDocument_GetGeometryPolygonCount(DsonDocumentHandle handle, int index);
 DSONPARSER_API const char* DsonDocument_GetGeometryDefaultUVSetId(DsonDocumentHandle handle, int geomIndex);
+// Authored geometry.material_uvs pairs in source order. The parser performs no
+// material/UV lookup or cross-file resolution. Count -> 0 and strings -> "" on
+// invalid input.
+// @since 2.12.0
+DSONPARSER_API int DsonDocument_GetGeometryMaterialUVAssignmentCount(DsonDocumentHandle handle, int geomIndex);
+// @since 2.12.0
+DSONPARSER_API const char* DsonDocument_GetGeometryMaterialUVAssignmentMaterialGroup(DsonDocumentHandle handle, int geomIndex, int assignmentIndex);
+// @since 2.12.0
+DSONPARSER_API const char* DsonDocument_GetGeometryMaterialUVAssignmentUVSetName(DsonDocumentHandle handle, int geomIndex, int assignmentIndex);
 // true iff the geometry declares a populated graft (vertex_pairs present); false for empty/absent graft. Bool family -> false on invalid handle/index (R1).
 // @since 1.5.0
 DSONPARSER_API bool DsonDocument_GetGeometryIsGraft(DsonDocumentHandle handle, int index);
