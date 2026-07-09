@@ -12,6 +12,8 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.14.0: DsonDocument_GetUVSetName/GetUVSetLabel - authored
+//   uv_set_library "name" / "label" strings, exposed verbatim.
 // What's new in 2.13.0: DsonDocument_GetSceneNodeShellMaterialUVAssignment* -
 //   authored shell-extra material-group to UV-set-name pairs per scene node.
 // What's new in 2.12.0: DsonDocument_GetGeometryMaterialUVAssignment* -
@@ -532,6 +534,11 @@ DSONPARSER_API bool DsonDocument_GetVertexBoneInfluenceCapped(DsonDocumentHandle
 
 // ---- D. UV Sets (library uv_sets, not scene instances) ----
 DSONPARSER_API const char* DsonDocument_GetUVSetId(DsonDocumentHandle handle, int uvSetIndex);
+// Authored uv_set_library "name" / "label", returned verbatim; "" when the field is absent or the handle/index is invalid.
+// @since 2.14.0
+DSONPARSER_API const char* DsonDocument_GetUVSetName(DsonDocumentHandle handle, int uvSetIndex);
+// @since 2.14.0
+DSONPARSER_API const char* DsonDocument_GetUVSetLabel(DsonDocumentHandle handle, int uvSetIndex);
 DSONPARSER_API int         DsonDocument_GetUVCount(DsonDocumentHandle handle, int uvSetIndex);
 DSONPARSER_API double      DsonDocument_GetUVU(DsonDocumentHandle handle, int uvSetIndex, int uvIndex);
 DSONPARSER_API double      DsonDocument_GetUVV(DsonDocumentHandle handle, int uvSetIndex, int uvIndex);

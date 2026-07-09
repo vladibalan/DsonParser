@@ -168,8 +168,11 @@ current loader scope.
   Channels below).
 
 `uv_set_library`
-: Parsed into `UVSet`. Captures UV coordinates, vertex count, and sparse
-  polygon-vertex UV overrides.
+: Parsed into `UVSet`. Captures id, name, label, UV coordinates, vertex count,
+  and sparse polygon-vertex UV overrides. The authored `name` and `label` (the
+  DAZ display name, e.g. `"Base Multi UDIM"`) are exposed verbatim via
+  `DsonDocument_GetUVSetName` / `…GetUVSetLabel`, `""` when absent (since
+  2.14.0).
 
 ## Asset Catalog Metadata (presentation + geograft)
 

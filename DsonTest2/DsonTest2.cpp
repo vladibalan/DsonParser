@@ -1870,6 +1870,60 @@ static bool RunSceneNodeShellMaterialUVAssignmentTest()
     return allPass;
 }
 
+static bool RunUVSetNameLabelTest()
+{
+    std::cout << "=========================================\n";
+    std::cout << "UV SET NAME/LABEL TEST (2.14.0)\n";
+    std::cout << "=========================================\n\n";
+
+    static const char kUVSetNameLabelJson[] = R"JSON(
+{
+  "uv_set_library": [
+    { "id": "set-id", "name": "set-name", "label": "Set Label" },
+    { "id": "no-label-id", "name": "no-label-name" }
+  ]
+}
+)JSON";
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc || DsonDocument_LoadFromString(doc, kUVSetNameLabelJson) != 0) {
+        std::cout << "UV set name/label fixture load: FAIL";
+        if (doc) std::cout << " (" << DsonParser_GetLastError() << ")";
+        std::cout << "\n\n";
+        if (doc) DsonDocument_Destroy(doc);
+        return false;
+    }
+
+    const bool distinctPass =
+        std::strcmp(DsonDocument_GetUVSetId(doc, 0), "set-id") == 0
+        && std::strcmp(DsonDocument_GetUVSetName(doc, 0), "set-name") == 0
+        && std::strcmp(DsonDocument_GetUVSetLabel(doc, 0), "Set Label") == 0;
+    const bool labelAbsentPass =
+        std::strcmp(DsonDocument_GetUVSetName(doc, 1), "no-label-name") == 0
+        && std::strcmp(DsonDocument_GetUVSetLabel(doc, 1), "") == 0;
+
+    // Exercise invalid-handle, negative-index, and out-of-range sentinels for
+    // both new accessors.
+    const bool sentinelsPass =
+        std::strcmp(DsonDocument_GetUVSetName(nullptr, 0), "") == 0
+        && std::strcmp(DsonDocument_GetUVSetName(doc, -1), "") == 0
+        && std::strcmp(DsonDocument_GetUVSetName(doc, 2), "") == 0
+        && std::strcmp(DsonDocument_GetUVSetLabel(nullptr, 0), "") == 0
+        && std::strcmp(DsonDocument_GetUVSetLabel(doc, -1), "") == 0
+        && std::strcmp(DsonDocument_GetUVSetLabel(doc, 2), "") == 0;
+    const bool knownKeyPass = DsonDocument_GetUnknownKeyCount(doc, "uv_set_library") == 0;
+    const bool allPass = distinctPass && labelAbsentPass && sentinelsPass && knownKeyPass;
+
+    std::cout << "distinct id/name/label verbatim: " << (distinctPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "label absent -> \"\", name still reads: " << (labelAbsentPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "all invalid-input sentinels: " << (sentinelsPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "uv_set_library known-key tracking: " << (knownKeyPass ? "PASS" : "FAIL") << "\n";
+    std::cout << "UV set name/label overall: " << (allPass ? "PASS" : "FAIL") << "\n\n";
+
+    DsonDocument_Destroy(doc);
+    return allPass;
+}
+
 static bool RunGeometryRigidityTest()
 {
     std::cout << "=================================\n";
@@ -2014,6 +2068,10 @@ int main(int argc, char* argv[])
         return RunSceneNodeShellMaterialUVAssignmentTest() ? 0 : 1;
     }
 
+    if (argc == 2 && std::strcmp(argv[1], "--uvset-name-label-regression") == 0) {
+        return RunUVSetNameLabelTest() ? 0 : 1;
+    }
+
     std::cout << "DSON Parser Test\n";
     std::cout << "================\n\n";
 
@@ -2036,6 +2094,7 @@ int main(int argc, char* argv[])
     RunGeometryRigidityTest();
     RunGeometryMaterialUVAssignmentTest();
     RunSceneNodeShellMaterialUVAssignmentTest();
+    RunUVSetNameLabelTest();
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();
@@ -2180,7 +2239,13 @@ int main(int argc, char* argv[])
 
     // Display UV set information
     int uvCount = DsonDocument_GetUVSetCount(doc);
-    std::cout << "UV Sets (" << uvCount << "):\n\n";
+    std::cout << "UV Sets (" << uvCount << "):\n";
+    for (int i = 0; i < uvCount; i++) {
+        std::cout << "  [" << i << "] ID: " << DsonDocument_GetUVSetId(doc, i)
+                  << ", Name: " << DsonDocument_GetUVSetName(doc, i)
+                  << ", Label: " << DsonDocument_GetUVSetLabel(doc, i) << "\n";
+    }
+    std::cout << "\n";
 
     // Display unknown keys report
     std::cout << "=================================\n";

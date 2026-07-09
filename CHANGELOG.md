@@ -11,6 +11,18 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.14.0 — 2026-07-09 · MINOR (added)
+
+Exposes each `uv_set_library` entry's authored `name` and `label` verbatim.
+`label` is the DAZ display name (e.g. `"Base Multi UDIM"`) a consumer surfaces
+when emitting discovered alternate UV sets; it is now parsed and known-key
+tracked (previously an authored `label` landed in the `uv_set_library`
+unknown-key audit trail) alongside the already-parsed `name`. Purely additive:
+all existing symbols and behavior are unchanged. Both strings return `""` when
+the field is absent or the handle/index is invalid.
++ DsonDocument_GetUVSetName — one `uv_set_library` entry's authored `name`
++ DsonDocument_GetUVSetLabel — one `uv_set_library` entry's authored display `label`
+
 ## 2.13.0 — 2026-07-08 · MINOR (added)
 
 Exposes each `scene.nodes` item's authored `material_uvs` pairs from exact

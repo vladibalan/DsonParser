@@ -321,6 +321,7 @@ struct UVOverride {
 struct UVSet {
     String id;
     String name;
+    String label;
     Url url;
     FloatArray uvs;
     int vertex_count = 0;                   // parsed from JSON "vertex_count"; identity-default basis for consumers expanding overrides

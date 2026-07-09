@@ -2021,6 +2021,18 @@ const char* DsonDocument_GetUVSetId(DsonDocumentHandle handle, int uvSetIndex) {
     return uv ? uv->id.c_str() : "";
 }
 
+const char* DsonDocument_GetUVSetName(DsonDocumentHandle handle, int uvSetIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::UVSet* uv = doc ? At(doc->uv_sets, uvSetIndex) : nullptr;
+    return uv ? uv->name.c_str() : "";
+}
+
+const char* DsonDocument_GetUVSetLabel(DsonDocumentHandle handle, int uvSetIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::UVSet* uv = doc ? At(doc->uv_sets, uvSetIndex) : nullptr;
+    return uv ? uv->label.c_str() : "";
+}
+
 int DsonDocument_GetUVCount(DsonDocumentHandle handle, int uvSetIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::UVSet* uv = doc ? At(doc->uv_sets, uvSetIndex) : nullptr;

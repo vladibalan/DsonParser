@@ -85,6 +85,7 @@ across 4 audit passes with zero remaining gaps.
 - UV coordinates (U/V per UV vertex)
 - `polygon_vertex_indices` face-varying mapping, exposed as sparse `[face, corner, uv_index]` UV overrides (`GetUVOverride*`)
 - Multiple UV channels
+- Authored `id` / `name` / `label` per set (`GetUVSetId` / `GetUVSetName` / `GetUVSetLabel` — `label` = the DAZ display name, verbatim; since 2.14.0)
 
 **Materials (E)**
 - Source-order channels keyed by raw DAZ channel id — **no fixed engine-slot

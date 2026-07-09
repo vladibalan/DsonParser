@@ -1100,11 +1100,12 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     }
     
     static const std::set<std::string> knownKeys = {
-        "id", "name", "url", "uvs", "polygon_vertex_indices", "vertex_count"
+        "id", "name", "label", "url", "uvs", "polygon_vertex_indices", "vertex_count"
     };
-    
+
     ParseMember(json, "id", id);
     ParseMember(json, "name", name);
+    ParseMember(json, "label", label);
     ParseMember(json, "url", url);
 
     if (JsonHelper::HasMember(json, "vertex_count") && json["vertex_count"].IsInt()) {
