@@ -374,9 +374,14 @@ Addons list above; the two are modeled independently.
 DAZ `preset_hierarchical_material` presets (e.g. a Genesis 9 companion MAT preset)
 often declare `scene.materials` channels as bare `{id,type}` placeholders and park
 the real channel values and `image_file` paths in `scene.animations` as `{url, keys}`
-keyframes, where **key 0 is initialization data** (not runtime animation). The parser
-stores each entry faithfully on `Scene::animations` — the verbatim `url` property
-pointer plus the first key's typed value — and exposes it:
+keyframes, where **key 0 is initialization data** (not runtime animation). An
+animated `preset_pose` uses the same shape to carry a real multi-frame animation on
+its bone / dial channels — the two cases are distinguished by per-channel key count,
+not by `asset_info.type` (an animated pose preset is still `"preset_pose"`). The
+parser stores each entry faithfully on `Scene::animations` — the verbatim `url`
+property pointer, the first key's typed value (the 1.2.0 initialization-data
+surface), and, since 2.16.0, every authored key's time plus the numeric value at
+DSON-native double precision — and exposes it:
 
 - `DsonDocument_GetSceneAnimationCount`
 - `DsonDocument_GetSceneAnimationUrl` — the raw DSON pointer, e.g.
@@ -384,14 +389,35 @@ pointer plus the first key's typed value — and exposes it:
 - `DsonDocument_GetSceneAnimationValueKind` — first-key value kind:
   `0` null · `1` number · `2` bool · `3` string · `4` color (`-1` invalid).
 - `DsonDocument_GetSceneAnimationFloat` / `…Bool` / `…String` / `…ColorR` /
-  `…ColorG` / `…ColorB` — the value, read per kind.
+  `…ColorG` / `…ColorB` — key 0's value, read per kind (the 1.2.0 init-data
+  surface; unchanged).
+- `DsonDocument_GetSceneAnimationKeyCount` — authored key count on the channel
+  (all kinds; `0` on invalid handle/index). The distinguishing signal between
+  an animated (`> 1`) and a static (`1`) channel.
+- `DsonDocument_GetSceneAnimationKeyTime` — one key's authored time in seconds
+  at DSON-native double precision, returned verbatim (no fps inference, no
+  snapping). Populated for **all** value kinds — DAZ times are always numeric —
+  so the accessor works even on non-numeric channels. `0.0` on invalid, but
+  `0.0` is also a legitimate value (the first key is authored at `t=0`); gate on
+  `KeyCount` first.
+- `DsonDocument_GetSceneAnimationKeyFloat` — one key's numeric value at
+  DSON-native double precision when `ValueKind == 1` (number); `0.0` on invalid
+  or when the channel is non-numeric (call the kind-typed 1.2.0 accessor above
+  for key 0's bool/string/color value; multi-key non-numeric channels are not
+  covered by this family — no such content is in evidence).
 
 Per **R6.4** the parser does **not** apply these onto `scene.materials`: it does not
 resolve the pointer, match the target channel, or fill an empty channel, and it leaves
 the `image_file` string as the verbatim DSON path (not resolved against
 `image_library`). The consumer reads both sections and decides whether key 0 overrides
-its material. Every entry is exposed (including `image_modification`/tiling rows);
-v1 reads the first key only, so multi-key keyframes are not modeled.
+its material, and reconstructs a multi-frame animation from the per-key surface. Every
+entry is exposed (including `image_modification`/tiling rows). Since 2.16.0 all keys
+are retained — key 0's typed value stays on the 1.2.0 fields byte-identically, and
+the additional keys populate parallel `key_times` / (numeric-only) `key_values`
+vectors on `Scene::animations`. No cross-section merge, no interpolation-hint
+exposure (zero 3-element keys in evidence; a sample would be needed to widen scope),
+no fps/playrange inference (not authored on the file — importer-side interpretation,
+not parsing).
 
 ## Geometry And Faces
 

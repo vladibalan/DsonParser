@@ -11,6 +11,32 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.16.0 — 2026-07-10 · MINOR (added)
+
+Extends each `scene.animations` channel from key-0-only exposure (1.2.0) to
+full per-key access: authored key count, per-key time in seconds, and per-key
+numeric value at DSON-native double precision. The 1.2.0 accessors are
+untouched — `GetSceneAnimationFloat`/`…Bool`/`…String`/`…ColorR|G|B` still
+return key 0's typed value byte-identical, and `GetSceneAnimationValueKind`
+still classifies key 0's value. This surfaces the missing shape signal the
+1.2.0 family cannot provide: an animated `preset_pose` (`asset_info.type`
+still `"preset_pose"`, no distinguishing tag) is indistinguishable from a
+static pose through key-0 alone, so a 6-second, 30 fps DAZ animation preset
+imported silently as frame 0. `GetSceneAnimationKeyCount` alone is the
+"animated — dropped" warning; `KeyTime` + `KeyFloat` back a real multi-frame
+import. Faithful raw passthrough (R6.4): times return as authored (seconds,
+double precision); no resampling, no fps inference, no keyframe application
+onto `scene.materials`. `KeyTime` covers all value kinds (DAZ times are
+always numeric); `KeyFloat` is defined only when `GetSceneAnimationValueKind`
+returns `1` (number) — for other kinds it returns `0.0` (call the 1.2.0
+kind-typed accessor for the key-0 value). Sentinels follow the R1 family
+contract: count → `0`, numeric → `0.0`. No `knownKeys` change (`keys` was
+already known). Purely additive: all existing symbols and behavior are
+unchanged.
++ DsonDocument_GetSceneAnimationKeyCount — number of authored keys on one scene.animations channel; `0` on invalid handle/index
++ DsonDocument_GetSceneAnimationKeyTime — one key's authored time in seconds at DSON double precision; `0.0` on invalid; also a legitimate value (first key at t=0), so bound-check on KeyCount
++ DsonDocument_GetSceneAnimationKeyFloat — one key's numeric value at DSON double precision when `ValueKind == 1` (number); `0.0` on invalid or non-numeric channel
+
 ## 2.15.0 — 2026-07-10 · MINOR (added)
 
 Exposes each `node_library` entry's `presentation.preferred_base` string

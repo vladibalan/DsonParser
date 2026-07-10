@@ -401,6 +401,54 @@ G. Formulas
 
 ## Recently completed (post-v1)
 
+### Scene animations full-keyframe surface (count + per-key time + numeric value) — ✅ implemented (Jul 2026)
+The additive sibling of the 1.2.0 key-0 surface (library version **2.16.0**, 3
+**additive** accessors). The 1.2.0 family exposes each `scene.animations`
+channel's verbatim `url`, its first key's `ValueKind`, and the first key's typed
+value — exactly right for its motivating use (material initialization data;
+single-frame pose presets). 2.16.0 extends that surface with the shape and
+numeric-value data an animated preset actually carries.
+
+Motivation (originating consumer FR, 2026-07-10): a real DAZ animated pose
+preset — `GEA G8F Getting Up Tired From Seat.duf`, 6 s at 30 fps, 1820
+scene.animations channels (1700 bone + 120 dial), 544 multi-key channels —
+still declares `asset_info.type = "preset_pose"`, indistinguishable from a
+static pose except by per-channel key count. Through 1.2.0 the DsonToUnreal
+importer imported such a file as a silent frame-0 pose and could not even warn.
+
+The parser now retains every authored key on `SceneAnimation`:
+- `SceneAnimation::key_times` — one `double` per authored `[t, v]` row, all
+  value kinds (DAZ times are always numeric).
+- `SceneAnimation::key_values` — one `double` per row, populated **only** when
+  `kind == KindNumber`; empty otherwise. Non-numeric multi-key channels are not
+  in evidence.
+- `SceneAnimation::number` / `boolean` / `str` / `color` (the 1.2.0 fields) are
+  unchanged — still populated from `keys[0][1]`, still returned byte-identical by
+  the 1.2.0 kind-typed accessors.
+
+Exposed:
+- `DsonDocument_GetSceneAnimationKeyCount` — `key_times.size()`; `0` on invalid.
+- `DsonDocument_GetSceneAnimationKeyTime(handle, animIndex, keyIndex)` — key
+  time in seconds at DSON-native double precision, populated for all kinds;
+  `0.0` on invalid, but `0.0` is also legitimate (first key at `t=0`), so
+  gate on `KeyCount`.
+- `DsonDocument_GetSceneAnimationKeyFloat(handle, animIndex, keyIndex)` — the
+  numeric value at DSON-native double precision when `ValueKind == 1` (number);
+  `0.0` on invalid or non-numeric channel.
+
+Faithful raw passthrough (**R6.4**): times return verbatim (no snapping, no fps
+inference — the file carries no fps/playrange metadata; that is consumer-side
+interpretation), no interpolation-hint exposure (zero 3-element keys in
+evidence), no keyframe application onto `scene.materials`. Sentinels follow the
+R1 family contract: count → `0`, numeric → `0.0`. `knownKeys` unchanged
+(`keys` already known). Purely additive; the 1.2.0 accessors keep their exact
+behavior.
+
+**Consumer note (additive, non-breaking):** the three new functions are
+available to the UE plugin; existing calls are unaffected. `KeyCount` alone
+enables the loud "animation dropped" warning; `KeyTime` + `KeyFloat` back a
+full multi-frame `UAnimSequence` import.
+
 ### Gzip blank (all-zero) trailer acceptance — DAZ-compat loader — ✅ implemented (Jun 2026)
 A gzip-wrapped DSON member whose 8-byte trailer (CRC32 + ISIZE) is all-zero now loads instead of
 being rejected with `gzip CRC32 mismatch`, provided the DEFLATE stream itself inflated cleanly

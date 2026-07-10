@@ -1159,10 +1159,14 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
 }
 
 // SceneAnimation parser:
-// Reads one scene.animations entry: the verbatim url property pointer and the
-// first key's typed value. Permissive — missing url/keys or an unmodeled value
-// shape leaves kind at KindNull and url/str empty. Per R6.4, no data is applied
-// onto scene.materials; this is a raw passthrough only.
+// Reads one scene.animations entry: the verbatim url property pointer, the
+// first key's typed value (the 1.2.0 kind-typed surface), and, as of 2.16.0,
+// every authored key's time plus the numeric value at DSON-native double
+// precision on the parallel key_times / key_values vectors. Permissive —
+// missing url/keys or an unmodeled value shape leaves kind at KindNull and
+// url/str empty; malformed rows (not [t, v] with a numeric time) are skipped
+// from key_times. Per R6.4, no data is applied onto scene.materials; this is
+// a raw passthrough only.
 bool SceneAnimation::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) return false;
 
@@ -1171,29 +1175,43 @@ bool SceneAnimation::ParseFromJson(const rapidjson::Value& json, std::set<std::s
     JsonHelper::GetString(json, "url", url);
 
     const rapidjson::Value* keysArr = nullptr;
-    if (JsonHelper::GetArray(json, "keys", keysArr) && keysArr->Size() >= 1) {
-        const rapidjson::Value& key0 = (*keysArr)[0];
-        if (key0.IsArray() && key0.Size() >= 2) {
-            const rapidjson::Value& val = key0[1];
-            if (val.IsNull()) {
-                kind = KindNull;
-            } else if (val.IsBool()) {
-                kind = KindBool;
-                boolean = val.GetBool();
-            } else if (val.IsNumber()) {
-                kind = KindNumber;
-                number = val.GetDouble();
-            } else if (val.IsString()) {
-                kind = KindString;
-                str = val.GetString();
-            } else if (val.IsArray() && val.Size() >= 3 &&
-                       val[0].IsNumber() && val[1].IsNumber() && val[2].IsNumber()) {
-                kind = KindColor;
-                color.x = val[0].GetDouble();
-                color.y = val[1].GetDouble();
-                color.z = val[2].GetDouble();
+    if (JsonHelper::GetArray(json, "keys", keysArr)) {
+        const rapidjson::SizeType n = keysArr->Size();
+        key_times.reserve(n);
+
+        for (rapidjson::SizeType i = 0; i < n; ++i) {
+            const rapidjson::Value& row = (*keysArr)[i];
+            if (!row.IsArray() || row.Size() < 2) continue;
+            const rapidjson::Value& tv = row[0];
+            const rapidjson::Value& vv = row[1];
+            if (!tv.IsNumber()) continue;
+            key_times.push_back(tv.GetDouble());
+
+            if (i == 0) {
+                if (vv.IsNull()) {
+                    kind = KindNull;
+                } else if (vv.IsBool()) {
+                    kind = KindBool;
+                    boolean = vv.GetBool();
+                } else if (vv.IsNumber()) {
+                    kind = KindNumber;
+                    number = vv.GetDouble();
+                } else if (vv.IsString()) {
+                    kind = KindString;
+                    str = vv.GetString();
+                } else if (vv.IsArray() && vv.Size() >= 3 &&
+                           vv[0].IsNumber() && vv[1].IsNumber() && vv[2].IsNumber()) {
+                    kind = KindColor;
+                    color.x = vv[0].GetDouble();
+                    color.y = vv[1].GetDouble();
+                    color.z = vv[2].GetDouble();
+                }
+                // else: unmodeled shape — keep kind = KindNull (faithful boundary)
             }
-            // else: unmodeled shape — keep kind = KindNull (faithful boundary)
+
+            if (kind == KindNumber && vv.IsNumber()) {
+                key_values.push_back(vv.GetDouble());
+            }
         }
     }
 

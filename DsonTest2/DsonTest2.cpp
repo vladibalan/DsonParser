@@ -490,6 +490,17 @@ void RunSceneAnimationsTest() {
     }
     std::cout << "\n";
 
+    // 2.16.0 byte-identity check: every entry must be single-key (KeyCount == 1,
+    // KeyTime(0) == 0.0), and numeric anchors must match the 1.2.0 accessor.
+    bool allKeyCountOne = true;
+    bool allKeyTimeZero = true;
+    for (int i = 0; i < animCount; i++) {
+        if (DsonDocument_GetSceneAnimationKeyCount(doc, i) != 1) allKeyCountOne = false;
+        if (DsonDocument_GetSceneAnimationKeyTime(doc, i, 0) != 0.0) allKeyTimeZero = false;
+    }
+    std::cout << "2.16.0 KeyCount == 1 for all entries:  " << (allKeyCountOne ? "PASS" : "FAIL") << "\n";
+    std::cout << "2.16.0 KeyTime(0) == 0.0 for all:     " << (allKeyTimeZero ? "PASS" : "FAIL") << "\n";
+
     // Anchor 1: diffuse/image_file → String == expected path
     const char* kImageFileSuffix  = "Mouth:?diffuse/image_file";
     const char* kExpectedImagePath = "/Runtime/Textures/DAZ/Characters/Genesis9/Base/Genesis9_Mouth_D_1001.jpg";
@@ -499,6 +510,7 @@ void RunSceneAnimationsTest() {
     const char* kTransWeightSuffix = "Mouth:?extra/studio_material_channels/channels/Translucency%20Weight/value";
 
     bool anchor1Pass = false, anchor2Pass = false, anchor3Pass = false;
+    bool anchor2KeyFloat = false, anchor3KeyFloat = false;
     for (int i = 0; i < animCount; i++) {
         std::string url = DsonDocument_GetSceneAnimationUrl(doc, i);
         if (url.find(kImageFileSuffix) != std::string::npos) {
@@ -508,15 +520,21 @@ void RunSceneAnimationsTest() {
         if (url.find(kDiffRoughSuffix) != std::string::npos) {
             anchor2Pass = (DsonDocument_GetSceneAnimationValueKind(doc, i) == 1) &&
                           (std::fabs(DsonDocument_GetSceneAnimationFloat(doc, i) - 0.3) < 1e-9);
+            anchor2KeyFloat = (std::fabs(DsonDocument_GetSceneAnimationKeyFloat(doc, i, 0) -
+                                         DsonDocument_GetSceneAnimationFloat(doc, i)) < 1e-15);
         }
         if (url.find(kTransWeightSuffix) != std::string::npos) {
             anchor3Pass = (DsonDocument_GetSceneAnimationValueKind(doc, i) == 1) &&
                           (std::fabs(DsonDocument_GetSceneAnimationFloat(doc, i) - 0.8) < 1e-9);
+            anchor3KeyFloat = (std::fabs(DsonDocument_GetSceneAnimationKeyFloat(doc, i, 0) -
+                                         DsonDocument_GetSceneAnimationFloat(doc, i)) < 1e-15);
         }
     }
     std::cout << "Anchor 1 (Mouth diffuse/image_file == expected path): " << (anchor1Pass ? "PASS" : "FAIL") << "\n";
     std::cout << "Anchor 2 (Diffuse Roughness/value == 0.3):            " << (anchor2Pass ? "PASS" : "FAIL") << "\n";
-    std::cout << "Anchor 3 (Translucency Weight/value == 0.8):          " << (anchor3Pass ? "PASS" : "FAIL") << "\n\n";
+    std::cout << "Anchor 3 (Translucency Weight/value == 0.8):          " << (anchor3Pass ? "PASS" : "FAIL") << "\n";
+    std::cout << "Anchor 2 KeyFloat(0) == Float byte-identity:          " << (anchor2KeyFloat ? "PASS" : "FAIL") << "\n";
+    std::cout << "Anchor 3 KeyFloat(0) == Float byte-identity:          " << (anchor3KeyFloat ? "PASS" : "FAIL") << "\n\n";
 
     // NO-MERGE check: Mouth scene material diffuse channel must still read ≈ 0.7529 (the gray placeholder)
     int mouthMatIndex = -1;
@@ -542,6 +560,94 @@ void RunSceneAnimationsTest() {
         }
     }
     std::cout << "NO-MERGE (Mouth diffuse ColorR ≈ 0.7529, not 1.0 from anim): " << (noMergePass ? "PASS" : "FAIL") << "\n\n";
+
+    DsonDocument_Destroy(doc);
+}
+
+void RunSceneAnimationKeysTest() {
+    std::cout << "=================================\n";
+    std::cout << "SCENE ANIMATION KEYS TEST (2.16.0)\n";
+    std::cout << "=================================\n\n";
+
+    const char* kAnimJson =
+        "{"
+        "  \"file_version\": \"0.6.0.0\","
+        "  \"asset_info\": { \"id\": \"test_anim.duf\", \"type\": \"preset_pose\" },"
+        "  \"scene\": {"
+        "    \"animations\": ["
+        "      { \"url\": \"name://@selection/lToe:?translation/x/value\","
+        "        \"keys\": [ [0.0, 0.0], [0.03333333, 1.5], [6.0, 3.25] ] },"
+        "      { \"url\": \"name://@selection:?state/is_hidden/value\","
+        "        \"keys\": [ [0.0, false], [1.0, true] ] }"
+        "    ]"
+        "  }"
+        "}";
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc || DsonDocument_LoadFromString(doc, kAnimJson) != 0) {
+        std::cout << "Synthetic animation fixture load: FAIL";
+        if (doc) std::cout << " (" << DsonParser_GetLastError() << ")";
+        std::cout << "\n\n";
+        if (doc) DsonDocument_Destroy(doc);
+        return;
+    }
+
+    bool allPass = true;
+    auto check = [&](const char* label, bool cond) {
+        std::cout << "  " << label << ": " << (cond ? "PASS" : "FAIL") << "\n";
+        if (!cond) allPass = false;
+    };
+
+    check("AnimCount == 2",
+          DsonDocument_GetSceneAnimationCount(doc) == 2);
+
+    // Channel 0: numeric, 3 keys
+    check("Ch0 KeyCount == 3",
+          DsonDocument_GetSceneAnimationKeyCount(doc, 0) == 3);
+    check("Ch0 ValueKind == 1 (number)",
+          DsonDocument_GetSceneAnimationValueKind(doc, 0) == 1);
+    check("Ch0 KeyTime(0) == 0.0",
+          DsonDocument_GetSceneAnimationKeyTime(doc, 0, 0) == 0.0);
+    check("Ch0 KeyTime(1) == 0.03333333",
+          DsonDocument_GetSceneAnimationKeyTime(doc, 0, 1) == 0.03333333);
+    check("Ch0 KeyTime(2) == 6.0",
+          DsonDocument_GetSceneAnimationKeyTime(doc, 0, 2) == 6.0);
+    check("Ch0 KeyFloat(0) == 0.0",
+          DsonDocument_GetSceneAnimationKeyFloat(doc, 0, 0) == 0.0);
+    check("Ch0 KeyFloat(1) == 1.5",
+          DsonDocument_GetSceneAnimationKeyFloat(doc, 0, 1) == 1.5);
+    check("Ch0 KeyFloat(2) == 3.25",
+          DsonDocument_GetSceneAnimationKeyFloat(doc, 0, 2) == 3.25);
+    check("Ch0 Float (1.2.0) == 0.0",
+          DsonDocument_GetSceneAnimationFloat(doc, 0) == 0.0);
+
+    // Channel 1: bool, 2 keys
+    check("Ch1 KeyCount == 2",
+          DsonDocument_GetSceneAnimationKeyCount(doc, 1) == 2);
+    check("Ch1 ValueKind == 2 (bool)",
+          DsonDocument_GetSceneAnimationValueKind(doc, 1) == 2);
+    check("Ch1 KeyTime(0) == 0.0",
+          DsonDocument_GetSceneAnimationKeyTime(doc, 1, 0) == 0.0);
+    check("Ch1 KeyTime(1) == 1.0",
+          DsonDocument_GetSceneAnimationKeyTime(doc, 1, 1) == 1.0);
+    check("Ch1 KeyFloat(0) == 0.0 (bool channel sentinel)",
+          DsonDocument_GetSceneAnimationKeyFloat(doc, 1, 0) == 0.0);
+    check("Ch1 KeyFloat(1) == 0.0 (bool channel sentinel)",
+          DsonDocument_GetSceneAnimationKeyFloat(doc, 1, 1) == 0.0);
+
+    // Out-of-range sentinels
+    check("OOB animIndex KeyCount == 0",
+          DsonDocument_GetSceneAnimationKeyCount(doc, 2) == 0);
+    check("OOB keyIndex KeyTime == 0.0",
+          DsonDocument_GetSceneAnimationKeyTime(doc, 0, 99) == 0.0);
+    check("OOB keyIndex KeyFloat == 0.0",
+          DsonDocument_GetSceneAnimationKeyFloat(doc, 0, 99) == 0.0);
+    check("Negative keyIndex KeyTime == 0.0",
+          DsonDocument_GetSceneAnimationKeyTime(doc, 0, -1) == 0.0);
+    check("Negative keyIndex KeyFloat == 0.0",
+          DsonDocument_GetSceneAnimationKeyFloat(doc, 0, -1) == 0.0);
+
+    std::cout << "\nScene Animation Keys Test: " << (allPass ? "ALL PASS" : "SOME FAILED") << "\n\n";
 
     DsonDocument_Destroy(doc);
 }
@@ -2084,6 +2190,7 @@ int main(int argc, char* argv[])
     RunImageLayerCompositingTest();
     RunChannelLayerCompositingTest();
     RunSceneAnimationsTest();
+    RunSceneAnimationKeysTest();
     RunCatalogPresentationTests();
     RunChannelTypeMismatchTests();
     RunModifierPushOffsetTest();

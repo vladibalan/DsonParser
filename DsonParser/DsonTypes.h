@@ -335,9 +335,11 @@ struct UVSet {
 };
 
 // One scene.animations keyframe channel, stored faithfully: the verbatim DSON
-// property pointer plus the first key's typed value. Per R6.4 the parser never
-// applies this onto scene.materials — the consumer resolves the pointer and
-// decides. v1 reads the first key only.
+// property pointer plus every authored key at DSON-native double precision.
+// Per R6.4 the parser never applies this onto scene.materials — the consumer
+// resolves the pointer and decides. The 1.2.0 key-0 typed fields
+// (number/boolean/str/color) remain populated from keys[0][1] for the 1.2.0
+// kind-typed accessors; 2.16.0 adds the full per-key vectors below.
 struct SceneAnimation {
     // ValueKind: 0 null · 1 number · 2 bool · 3 string · 4 color
     enum ValueKind { KindNull = 0, KindNumber = 1, KindBool = 2, KindString = 3, KindColor = 4 };
@@ -347,6 +349,8 @@ struct SceneAnimation {
     bool boolean = false;   // kind == KindBool
     std::string str;        // kind == KindString (e.g. an image_file path)
     Vector3 color = {};     // kind == KindColor (first 3 of a numeric array)
+    std::vector<double> key_times;   // one per authored [t, v] row (all kinds)
+    std::vector<double> key_values;  // one per row, ONLY when kind == KindNumber; empty otherwise
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

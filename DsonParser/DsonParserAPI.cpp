@@ -1050,6 +1050,29 @@ double DsonDocument_GetSceneAnimationColorB(DsonDocumentHandle handle, int animI
     return (anim && anim->kind == Dson::SceneAnimation::KindColor) ? anim->color.z : 0.0;
 }
 
+int DsonDocument_GetSceneAnimationKeyCount(DsonDocumentHandle handle, int animIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::SceneAnimation* anim = doc ? At(doc->scene.animations, animIndex) : nullptr;
+    return anim ? static_cast<int>(anim->key_times.size()) : 0;
+}
+
+double DsonDocument_GetSceneAnimationKeyTime(DsonDocumentHandle handle, int animIndex, int keyIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::SceneAnimation* anim = doc ? At(doc->scene.animations, animIndex) : nullptr;
+    if (!anim || keyIndex < 0 || static_cast<size_t>(keyIndex) >= anim->key_times.size()) {
+        return 0.0;
+    }
+    return anim->key_times[static_cast<size_t>(keyIndex)];
+}
+
+double DsonDocument_GetSceneAnimationKeyFloat(DsonDocumentHandle handle, int animIndex, int keyIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::SceneAnimation* anim = doc ? At(doc->scene.animations, animIndex) : nullptr;
+    if (!anim || anim->kind != Dson::SceneAnimation::KindNumber) return 0.0;
+    if (keyIndex < 0 || static_cast<size_t>(keyIndex) >= anim->key_values.size()) return 0.0;
+    return anim->key_values[static_cast<size_t>(keyIndex)];
+}
+
 // Scene modifier instances (scene.modifiers)
 int DsonDocument_GetSceneModifierCount(DsonDocumentHandle handle) {
     Dson::DsonDocument* doc = Doc(handle);

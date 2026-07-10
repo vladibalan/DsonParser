@@ -12,6 +12,10 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.16.0: DsonDocument_GetSceneAnimationKey{Count,Time,Float}
+//   - per-key access to scene.animations channels (authored key count +
+//   time in seconds + numeric value at DSON precision); the 1.2.0
+//   key-0 kind-typed accessors are unchanged.
 // What's new in 2.15.0: DsonDocument_GetNodePresentationPreferredBase - authored
 //   presentation.preferred_base conform-target base-figure string, faithful passthrough.
 // What's new in 2.14.0: DsonDocument_GetUVSetName/GetUVSetLabel - authored
@@ -675,9 +679,14 @@ DSONPARSER_API const char* DsonDocument_GetScenePostLoadScriptType(DsonDocumentH
 DSONPARSER_API const char* DsonDocument_GetScenePostLoadScriptFile(DsonDocumentHandle handle, int index);
 
 // Scene animations (scene.animations): one entry per keyframe channel.
-// Each entry carries the verbatim DSON property pointer (url) and the first key's
-// typed value. Per R6.4 this surface is a raw passthrough — the parser does NOT
-// apply these onto scene.materials. The consumer reads both surfaces and decides.
+// Each entry carries the verbatim DSON property pointer (url), the first
+// key's typed value (1.2.0), and — as of 2.16.0 — per-key access:
+// authored key count, per-key time in seconds, and per-key numeric value
+// at DSON-native double precision. Per R6.4 this surface is a raw
+// passthrough — the parser does NOT apply these onto scene.materials.
+// The consumer reads both surfaces and decides.
+// 1.2.0 accessors below are unchanged; 2.16.0 accessors read the full
+// authored keys array.
 // @since 1.2.0
 DSONPARSER_API int         DsonDocument_GetSceneAnimationCount(DsonDocumentHandle handle);
 DSONPARSER_API const char* DsonDocument_GetSceneAnimationUrl(DsonDocumentHandle handle, int animIndex);
@@ -697,6 +706,23 @@ DSONPARSER_API double      DsonDocument_GetSceneAnimationColorR(DsonDocumentHand
 DSONPARSER_API double      DsonDocument_GetSceneAnimationColorG(DsonDocumentHandle handle, int animIndex);
 // @since 1.2.0
 DSONPARSER_API double      DsonDocument_GetSceneAnimationColorB(DsonDocumentHandle handle, int animIndex);
+// Per-key access to the same channel (2.16.0). KeyCount is the shape
+// signal that distinguishes an animated channel (> 1) from a static
+// one (1). KeyTime is populated for all value kinds — DAZ times are
+// always numeric. KeyFloat returns the per-key numeric value only
+// when GetSceneAnimationValueKind == 1 (number); for other kinds it
+// returns 0.0 (call the 1.2.0 kind-typed accessor above for key 0's
+// bool/string/color value; multi-key non-numeric channels are not
+// covered by this family). Sentinels follow the R1 family contract:
+// count → 0, numeric → 0.0. 0.0 is also a legitimate value (the first
+// key is authored at t=0; a dial holds value 0), so bound-check on
+// KeyCount and gate KeyFloat on ValueKind.
+// @since 2.16.0
+DSONPARSER_API int         DsonDocument_GetSceneAnimationKeyCount(DsonDocumentHandle handle, int animIndex);
+// @since 2.16.0
+DSONPARSER_API double      DsonDocument_GetSceneAnimationKeyTime(DsonDocumentHandle handle, int animIndex, int keyIndex);
+// @since 2.16.0
+DSONPARSER_API double      DsonDocument_GetSceneAnimationKeyFloat(DsonDocumentHandle handle, int animIndex, int keyIndex);
 
 // ---- F. Morph Targets ----
 // morphIndex is an index into the filtered list of modifiers where type == "morph"
