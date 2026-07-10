@@ -59,6 +59,12 @@ across 4 audit passes with zero remaining gaps.
 - `Node::geometries` (`NodeGeometryRef`: id + url) for scene nodes
 - Per-node `presentation` content type + label: `GetNodePresentation{Type,Label}`
   (DAZ "Content Type" / display name; `""` if absent) (1.5.0)
+- Per-node authored conform-target base figure: `GetNodePresentationPreferredBase` —
+  `presentation.preferred_base` string, e.g. `"/Genesis 8/Female"` (the authored
+  base-figure a follower/geograft targets; names the conform-target body, not the
+  product's styling, so a Female-named product may declare a Male target); `""` if
+  absent. Faithful passthrough (R6.4); no content-path resolution or catalog inference
+  (2.15.0)
 - Scene-instance parent and complete local translation/rotation/scale,
   `general_scale`, and `rotation_order` through `GetSceneNode*` (2.4.0)
 - Raw authored scene-instance `center_point` and `orientation` XYZ values with

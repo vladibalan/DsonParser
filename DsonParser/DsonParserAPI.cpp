@@ -691,6 +691,12 @@ const char* DsonDocument_GetNodePresentationLabel(DsonDocumentHandle handle, int
     return node ? node->presentation_label.c_str() : "";
 }
 
+const char* DsonDocument_GetNodePresentationPreferredBase(DsonDocumentHandle handle, int index) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Node* node = doc ? At(doc->nodes, index) : nullptr;
+    return node ? node->presentation_preferred_base.c_str() : "";
+}
+
 double DsonDocument_GetNodeCenterPointX(DsonDocumentHandle handle, int index) {
     return GetNodeVector3Component(handle, index, &Dson::Node::center_point, 0);
 }

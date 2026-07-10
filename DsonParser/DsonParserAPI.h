@@ -12,6 +12,8 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.15.0: DsonDocument_GetNodePresentationPreferredBase - authored
+//   presentation.preferred_base conform-target base-figure string, faithful passthrough.
 // What's new in 2.14.0: DsonDocument_GetUVSetName/GetUVSetLabel - authored
 //   uv_set_library "name" / "label" strings, exposed verbatim.
 // What's new in 2.13.0: DsonDocument_GetSceneNodeShellMaterialUVAssignment* -
@@ -149,6 +151,10 @@ DSONPARSER_API const char* DsonDocument_GetNodeType(DsonDocumentHandle handle, i
 DSONPARSER_API const char* DsonDocument_GetNodePresentationType(DsonDocumentHandle handle, int index);
 // @since 1.5.0
 DSONPARSER_API const char* DsonDocument_GetNodePresentationLabel(DsonDocumentHandle handle, int index);
+// presentation.preferred_base (authored conform-target base figure,
+// e.g. "/Genesis 8/Female"); "" when absent or index invalid.
+// @since 2.15.0
+DSONPARSER_API const char* DsonDocument_GetNodePresentationPreferredBase(DsonDocumentHandle handle, int index);
 // Node center_point (joint origin) components
 DSONPARSER_API double DsonDocument_GetNodeCenterPointX(DsonDocumentHandle handle, int index);
 DSONPARSER_API double DsonDocument_GetNodeCenterPointY(DsonDocumentHandle handle, int index);

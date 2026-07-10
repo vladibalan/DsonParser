@@ -92,8 +92,12 @@ struct Node {
     std::vector<NodeGeometryRef> geometries; // only populated on scene figure nodes
     // Rows from studio/node/shell extra entries, in authored extra/row order.
     std::vector<MaterialUVAssignment> shell_material_uv_assignments;
-    std::string presentation_type;   // presentation.type  (DAZ "Content Type"; "" if absent)
-    std::string presentation_label;  // presentation.label (declared display name; "" if absent)
+    std::string presentation_type;             // presentation.type  (DAZ "Content Type"; "" if absent)
+    std::string presentation_label;            // presentation.label (declared display name; "" if absent)
+    std::string presentation_preferred_base;   // presentation.preferred_base
+                                               // (authored conform-target base
+                                               // figure, e.g. "/Genesis 8/Female";
+                                               // "" if absent)
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };

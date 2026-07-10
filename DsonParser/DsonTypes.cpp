@@ -384,8 +384,9 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
 
     const rapidjson::Value* presObj = nullptr;
     if (JsonHelper::GetObject(json, "presentation", presObj)) {
-        presentation_type  = JsonHelper::GetStringOrDefault(*presObj, "type");
-        presentation_label = JsonHelper::GetStringOrDefault(*presObj, "label");
+        presentation_type             = JsonHelper::GetStringOrDefault(*presObj, "type");
+        presentation_label            = JsonHelper::GetStringOrDefault(*presObj, "label");
+        presentation_preferred_base   = JsonHelper::GetStringOrDefault(*presObj, "preferred_base");
     }
 
     // Walk node extras once for the typed payloads exposed by the model.

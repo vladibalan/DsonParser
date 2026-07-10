@@ -11,6 +11,31 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.15.0 — 2026-07-10 · MINOR (added)
+
+Exposes each `node_library` entry's `presentation.preferred_base` string
+verbatim — the authored declaration of which base figure a follower/geograft
+conforms to (e.g. `"/Genesis 8/Female"`). This joins the 1.5.0 node
+presentation family (`GetNodePresentation{Type,Label}`) as a sibling read of
+the same `presentation` block. Motivating consumer use: a standalone geograft
+importer needs to resolve which base figure a graft targets (G8F vs G8M vs
+G3F …). The wearable DUF itself carries no identity (its `conform_target` is
+always the `name://@selection:` placeholder), and node/geometry names lie —
+the official G8F genitalia is internally `Genesis3FemaleGenitalia`. The 2.9.0
+declared graft base vertex/poly counts split G8 Female (16556/16368) from
+G8 Male (16384/16196) but cannot split same-topology bases, so the authored
+`preferred_base` is the decisive signal. The string names the CONFORM-TARGET
+body, not the product's styling: an official *Female*-named product may
+declare a *Male* target (`Genesis8FemaleGenitalia.dsf` →
+`"/Genesis 8/Male"`). Faithful single-file exposure (R6.4): the parser does
+no content-path resolution, catalog inference, or cross-section merge — the
+consumer maps the string to its content taxonomy. No knownKeys change (nested
+inside the already-known `presentation` object; nested keys inside
+`presentation` are not audited). Purely additive: all existing symbols and
+behavior are unchanged. Returns `""` when the field is absent or the
+handle/index is invalid.
++ DsonDocument_GetNodePresentationPreferredBase — one node_library item's authored presentation.preferred_base string (conform-target base figure, e.g. "/Genesis 8/Female"); "" when absent or invalid
+
 ## 2.14.0 — 2026-07-09 · MINOR (added)
 
 Exposes each `uv_set_library` entry's authored `name` and `label` verbatim.

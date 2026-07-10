@@ -192,6 +192,22 @@ resolution (R6.4); the consumer maps and selects.
     (e.g. `"Modifier/Shape"`).
   - A preset (`.duf`) with no `presentation` returns `""` — the consumer treats `""` as
     "unknown".
+- **Node conform-target base figure** — a follower/attachment `node_library` item's
+  `presentation` block may also carry a `preferred_base` string naming the base figure
+  the item conforms to (e.g. `"/Genesis 8/Female"`). Exposed via
+  `DsonDocument_GetNodePresentationPreferredBase` on the same node index space as the
+  presentation type/label above. Read from `node_library` only; modifiers do not carry it.
+  Use case: a standalone geograft importer disambiguates which base a graft targets — the
+  wearable DUF itself carries no identity (its `conform_target` is the
+  `name://@selection:` placeholder) and node/geometry names lie (the official G8F
+  genitalia is internally `Genesis3FemaleGenitalia`); the 2.9.0 declared graft base
+  vertex/poly counts split G8 Female (16556/16368) from G8 Male (16384/16196) but cannot
+  split same-topology bases, so this authored string is the decisive signal. The string
+  names the CONFORM-TARGET body, not the product's styling — a Female-named product may
+  declare a Male target (`Genesis8FemaleGenitalia.dsf` → `"/Genesis 8/Male"`). Raw
+  passthrough (R6.4): the parser does no content-path resolution, catalog inference, or
+  cross-section merge; `""` when the field is absent or the handle/index is invalid.
+  Since 2.15.0.
 - **Geograft signal** — `DsonDocument_GetGeometryIsGraft` returns `true` only when the
   geometry declares a **populated** `graft` (a non-empty `vertex_pairs`). DAZ writes an
   empty `"graft": {}` on non-graft meshes (base figures, and Genesis 9 Eyes — which uses
