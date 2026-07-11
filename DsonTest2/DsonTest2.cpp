@@ -2156,6 +2156,88 @@ static bool RunGeometryRigidityTest()
     return allPass;
 }
 
+// Verifies the three new 2.17.0 scene-manifest accessors:
+//   A. GetSceneNodeConformTarget / GetSceneNodeParent on a fitted node root vs. child bone.
+//   B. GetSceneModifierParent on a scene modifier.
+//   C. GetSceneModifierChannelValueKind / GetSceneModifierChannelValueString /
+//      GetSceneModifierChannelValue for both number and string channel values.
+static bool RunSceneManifestAccessorsTest() {
+    std::cout << "=================================\n";
+    std::cout << "SCENE MANIFEST ACCESSORS TEST (2.17.0)\n";
+    std::cout << "=================================\n\n";
+
+    static const char kJson[] = R"({
+      "file_version":"0.6.0.0",
+      "asset_info":{"id":"/T.duf","type":"scene"},
+      "scene":{
+        "nodes":[
+          {"id":"Genesis9Eyelashes-1","url":"#N","conform_target":"#Genesis9"},
+          {"id":"hip-1","url":"#H","parent":"#Genesis9Eyelashes"}
+        ],
+        "modifiers":[
+          {"id":"AudreyCharacter","url":"#M1","parent":"#Genesis9",
+           "channel":{"id":"value","type":"float","current_value":1.0}},
+          {"id":"Loader","url":"#M2","parent":"#Genesis9",
+           "channel":{"id":"path","type":"file",
+                      "current_value":"/data/G9 UV Prep Pose.duf"}}
+        ]
+      }
+    })";
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc || DsonDocument_LoadFromString(doc, kJson) != 0) {
+        std::cout << "Scene manifest fixture load: FAIL\n\n";
+        if (doc) DsonDocument_Destroy(doc);
+        return false;
+    }
+
+    bool allPass = true;
+    auto chk = [&](const char* label, bool cond) {
+        std::cout << "  " << label << ": " << (cond ? "PASS" : "FAIL") << "\n";
+        allPass = allPass && cond;
+    };
+
+    // A. Node conform_target / parent
+    const char* ct0 = DsonDocument_GetSceneNodeConformTarget(doc, 0);
+    const char* p0  = DsonDocument_GetSceneNodeParent(doc, 0);
+    const char* ct1 = DsonDocument_GetSceneNodeConformTarget(doc, 1);
+    const char* p1  = DsonDocument_GetSceneNodeParent(doc, 1);
+    chk("GetSceneNodeConformTarget(0)==\"#Genesis9\"",   std::strcmp(ct0, "#Genesis9") == 0);
+    chk("GetSceneNodeParent(0)==\"\"",                   std::strcmp(p0,  "") == 0);
+    chk("GetSceneNodeConformTarget(1)==\"\"",            std::strcmp(ct1, "") == 0);
+    chk("GetSceneNodeParent(1)==\"#Genesis9Eyelashes\"", std::strcmp(p1,  "#Genesis9Eyelashes") == 0);
+
+    // B / C. Modifier parent + channel kind/value
+    const char* mp0 = DsonDocument_GetSceneModifierParent(doc, 0);
+    int   kind0 = DsonDocument_GetSceneModifierChannelValueKind(doc, 0);
+    double val0 = DsonDocument_GetSceneModifierChannelValue(doc, 0);
+    const char* str0 = DsonDocument_GetSceneModifierChannelValueString(doc, 0);
+    chk("GetSceneModifierParent(0)==\"#Genesis9\"",  std::strcmp(mp0, "#Genesis9") == 0);
+    chk("GetSceneModifierChannelValueKind(0)==1",    kind0 == 1);
+    chk("GetSceneModifierChannelValue(0)==1.0",      std::fabs(val0 - 1.0) < 1e-9);
+    chk("GetSceneModifierChannelValueString(0)==\"\"", std::strcmp(str0, "") == 0);
+
+    const char* mp1  = DsonDocument_GetSceneModifierParent(doc, 1);
+    int   kind1  = DsonDocument_GetSceneModifierChannelValueKind(doc, 1);
+    double val1  = DsonDocument_GetSceneModifierChannelValue(doc, 1);
+    const char* str1 = DsonDocument_GetSceneModifierChannelValueString(doc, 1);
+    chk("GetSceneModifierParent(1)==\"#Genesis9\"",           std::strcmp(mp1, "#Genesis9") == 0);
+    chk("GetSceneModifierChannelValueKind(1)==3",             kind1 == 3);
+    chk("GetSceneModifierChannelValue(1)==0.0",               val1 == 0.0);
+    chk("GetSceneModifierChannelValueString(1)==expected path",
+        std::strcmp(str1, "/data/G9 UV Prep Pose.duf") == 0);
+
+    // Sentinel checks: invalid index
+    chk("GetSceneNodeConformTarget(-1)==\"\"",          std::strcmp(DsonDocument_GetSceneNodeConformTarget(doc, -1), "") == 0);
+    chk("GetSceneModifierParent(99)==\"\"",             std::strcmp(DsonDocument_GetSceneModifierParent(doc, 99), "") == 0);
+    chk("GetSceneModifierChannelValueKind(99)==-1",     DsonDocument_GetSceneModifierChannelValueKind(doc, 99) == -1);
+    chk("GetSceneModifierChannelValueString(99)==\"\"", std::strcmp(DsonDocument_GetSceneModifierChannelValueString(doc, 99), "") == 0);
+
+    std::cout << "\nScene manifest accessors overall: " << (allPass ? "ALL PASS" : "SOME FAILED") << "\n\n";
+    DsonDocument_Destroy(doc);
+    return allPass;
+}
+
 int main(int argc, char* argv[])
 {
     if (argc == 2 && std::strcmp(argv[1], "--modifier-parent-regression") == 0) {
@@ -2202,6 +2284,7 @@ int main(int argc, char* argv[])
     RunGeometryMaterialUVAssignmentTest();
     RunSceneNodeShellMaterialUVAssignmentTest();
     RunUVSetNameLabelTest();
+    RunSceneManifestAccessorsTest();
 
     // Create a DSON document
     DsonDocumentHandle doc = DsonDocument_Create();

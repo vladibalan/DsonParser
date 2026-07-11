@@ -311,7 +311,7 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
     }
     
     static const std::set<std::string> knownKeys = {
-        "id", "name", "label", "type", "parent", "url", "translation", "rotation", "scale",
+        "id", "name", "label", "type", "parent", "conform_target", "url", "translation", "rotation", "scale",
         "general_scale", "center_point", "end_point", "orientation", "rotation_order",
         "inherits_scale", "geometries", "presentation", "preview", "extra"
     };
@@ -321,6 +321,7 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
     ParseMember(json, "label", label);
     ParseMember(json, "type", type);
     ParseMember(json, "parent", parent);
+    ParseMember(json, "conform_target", conform_target);
     ParseMember(json, "url", url);
 
     const rapidjson::Value* transArray = nullptr;
@@ -904,11 +905,20 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
         {
             const char* valKey = channelObj->HasMember("current_value") ? "current_value" : "value";
             if (channelObj->HasMember(valKey)) {
-                double tmp = 0.0;
-                if (JsonHelper::GetNumberOrBool((*channelObj)[valKey], tmp)) {
-                    channel_value = tmp;
+                const rapidjson::Value& v = (*channelObj)[valKey];
+                if (v.IsNumber()) {
+                    channel_value = v.GetDouble();
+                    channel_value_kind = KindNumber;
+                } else if (v.IsBool()) {
+                    channel_value = v.GetBool() ? 1.0 : 0.0;
+                    channel_value_kind = KindBool;
+                } else if (v.IsString()) {
+                    channel_value_string = v.GetString();
+                    channel_value_kind = KindString;
+                    TrackChannelTypeMismatch(unknownKeys, channel.value, valKey, v);
+                    // channel_value stays 0.0
                 } else {
-                    TrackChannelTypeMismatch(unknownKeys, channel.value, valKey, (*channelObj)[valKey]);
+                    TrackChannelTypeMismatch(unknownKeys, channel.value, valKey, v);
                     // channel_value stays its default (0.0)
                 }
             }

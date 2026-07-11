@@ -11,6 +11,66 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.17.0 — 2026-07-11 · MINOR (added)
+
+Exposes three raw scene-instance fields the parser was already reading (or is
+now reading additively) but no accessor surfaced. Motivates a downstream
+scene-manifest importer that attributes every dial to its owning node from
+`scene.*` alone (as-composed DAZ scene → bake) — an FR the DsonToUnreal
+importer relayed while building that path. All three are single-file
+passthroughs of DSON strings already present in the opened `.duf`, none
+derivable by joining currently-exposed sections and none needing a second
+file, so this is warranted parser surface (per the AgentWorkflow
+derivability check).
+
+- **A. `scene.nodes[].conform_target`** — a fitted node root's DAZ "Fit To"
+  target as a string node reference (e.g. `"#Genesis9"`). Distinct from the
+  existing `GetSceneNodeParent` (2.4.0): a fitted figure ROOT carries
+  `conform_target` and has NO `parent`; its child bones carry `parent` and
+  no `conform_target`. `conform_target` joins the Node parser's `knownKeys`
+  set — previously appearing in the `scene` unknown-key audit trail for
+  every fitted scene-node root.
+- **B. `scene.modifiers[].parent`** — the string node reference naming
+  which node a dial applies to (e.g. `"#Genesis9-1"`,
+  `"#Genesis9_JewelBikini._Bottom"`). Already parsed onto
+  `Dson::Modifier::parent` (the 2.11.0 `GetModifierParent` reads that field
+  from the library family); this exposes the scene family for the first
+  time. Without it a flat `scene.modifiers` list of figure-character morph,
+  HD morphs, and wearable adjustment is undifferentiated.
+- **C. `scene.modifiers[].channel.current_value` when it is a string** —
+  some channels are `"type":"file"` with a string `current_value` (DAZ
+  script / template loaders such as
+  `"/data/… Load Projection Templates.dse"` or
+  `"/People/Genesis 9/Developer Kit/G9 UV Prep Pose.duf"`). The existing
+  double `GetSceneModifierChannelValue` silently returned `0.0` for these
+  and its contract is UNCHANGED (`0.0` is still the return, bool still
+  coerces to `1.0`/`0.0` per 2.2.1). A **kind discriminator + string
+  getter** now expose the value faithfully — mirroring the 1.2.0
+  scene-animation precedent (`GetSceneAnimationValueKind` +
+  `GetSceneAnimationString`) so the double getter's return contract stays
+  untouched. Kind values follow the same numeric legend as
+  `GetSceneAnimationValueKind` (`0` null · `1` number · `2` bool · `3`
+  string; `-1` invalid); a color kind is defined in the shared legend but
+  not applicable to modifier channels (materials carry colors, not
+  modifiers). A string still trips `TrackChannelTypeMismatch` — the "used
+  default" audit-trail entry (`GetUnknownKey*`, 2.2.2) is unchanged, and
+  correctly signals that the NUMERIC read defaulted; consumers who want
+  the string call the new kind/string getters. Parse behavior for
+  `modifier_library` items is co-populated (shared struct), but the
+  library-family kind/string are intentionally NOT exposed at this release
+  — the FR was scene-scoped; a library-side pair can follow if a
+  consumer needs it.
+
+Faithful/unevaluated passthrough (R6.4): the parser stores each field
+verbatim and performs no cross-section merge, evaluation, script
+execution, or reference resolution. Purely additive: all existing symbols
+and behavior are unchanged. Sentinels follow the R1 family contract:
+string → `""`, kind (`int`) → `-1` on invalid handle/index.
++ DsonDocument_GetSceneNodeConformTarget — one scene node's authored `conform_target` string (DAZ "Fit To" target URL, e.g. `"#Genesis9"`); `""` when absent or invalid
++ DsonDocument_GetSceneModifierParent — one scene modifier's authored target-node reference (e.g. `"#Genesis9-1"`); `""` when absent or invalid
++ DsonDocument_GetSceneModifierChannelValueKind — kind of the scene modifier's channel value: `0` null/absent · `1` number · `2` bool · `3` string; `-1` on invalid handle/index. Numeric legend matches `GetSceneAnimationValueKind` (color kind not applicable to modifier channels)
++ DsonDocument_GetSceneModifierChannelValueString — one scene modifier's channel `current_value` (or `value` fallback) string when `ValueKind == 3` (e.g. a `type:"file"` script/template path); `""` when kind isn't string or the handle/index is invalid
+
 ## 2.16.0 — 2026-07-10 · MINOR (added)
 
 Extends each `scene.animations` channel from key-0-only exposure (1.2.0) to

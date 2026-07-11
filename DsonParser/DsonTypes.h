@@ -64,6 +64,7 @@ struct Node {
     String label;
     String type;
     String parent;
+    String conform_target; // scene.nodes only: fitted node root's "Fit To" target URL (e.g. "#Genesis9"); "" when absent
     Url url;
     Vector3 translation;
     unsigned int translation_presence = 0; // authored numeric components: X=1, Y=2, Z=4
@@ -272,6 +273,9 @@ struct Modifier {
     double channel_min = 0.0;
     double channel_max = 1.0;
     bool channel_clamped = false;
+    enum ChannelValueKind { KindNull = 0, KindNumber = 1, KindBool = 2, KindString = 3 };
+    int channel_value_kind = 0;          // 0=absent, 1=number, 2=bool, 3=string
+    std::string channel_value_string;    // populated only when channel_value_kind == KindString
 
     // Geometry-shell "Mesh Offset" push modifier (studio/modifier/push nested
     // in extra[]). The push marker and the offset channel are NOT at the

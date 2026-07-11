@@ -12,6 +12,11 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.17.0: DsonDocument_GetSceneNodeConformTarget (scene.nodes conform_target —
+//   fitted figure root's "Fit To" target URL, distinct from parent); GetSceneModifierParent
+//   (scene.modifiers parent URL); GetSceneModifierChannelValueKind /
+//   GetSceneModifierChannelValueString (kind discriminator + string value for file-type
+//   channels; existing double getter unchanged).
 // What's new in 2.16.0: DsonDocument_GetSceneAnimationKey{Count,Time,Float}
 //   - per-key access to scene.animations channels (authored key count +
 //   time in seconds + numeric value at DSON precision); the 1.2.0
@@ -190,6 +195,11 @@ DSONPARSER_API const char* DsonDocument_GetSceneNodeType(DsonDocumentHandle hand
 DSONPARSER_API const char* DsonDocument_GetSceneNodeUrl(DsonDocumentHandle handle, int index);
 // @since 2.4.0
 DSONPARSER_API const char* DsonDocument_GetSceneNodeParent(DsonDocumentHandle handle, int index);
+// Raw scene.nodes conform_target for a fitted node root's "Fit To" target URL (e.g. "#Genesis9").
+// Distinct from parent: a fitted figure root carries conform_target and no parent; its child
+// bones carry parent and no conform_target. Returns "" when absent or handle/index invalid.
+// @since 2.17.0
+DSONPARSER_API const char* DsonDocument_GetSceneNodeConformTarget(DsonDocumentHandle handle, int sceneNodeIndex);
 // @since 2.4.0
 DSONPARSER_API double DsonDocument_GetSceneNodeTranslationX(DsonDocumentHandle handle, int index);
 // @since 2.4.0
@@ -263,6 +273,20 @@ DSONPARSER_API const char* DsonDocument_GetSceneNodeGeometryUrl(DsonDocumentHand
 DSONPARSER_API int DsonDocument_GetSceneModifierCount(DsonDocumentHandle handle);
 DSONPARSER_API const char* DsonDocument_GetSceneModifierId(DsonDocumentHandle handle, int index);
 DSONPARSER_API const char* DsonDocument_GetSceneModifierUrl(DsonDocumentHandle handle, int index);
+// Raw/verbatim scene.modifiers parent URL for a scene modifier index (e.g. "#Genesis9-1").
+// Returns "" when absent or handle/index invalid.
+// @since 2.17.0
+DSONPARSER_API const char* DsonDocument_GetSceneModifierParent(DsonDocumentHandle handle, int sceneModifierIndex);
+// ChannelValueKind of scene.modifiers[sceneModifierIndex].channel.current_value:
+// 0=null/absent, 1=number, 2=bool, 3=string; -1 when handle invalid or index out of range
+// (value/index family per R1). Gate GetSceneModifierChannelValueString on kind==3.
+// @since 2.17.0
+DSONPARSER_API int         DsonDocument_GetSceneModifierChannelValueKind(DsonDocumentHandle handle, int sceneModifierIndex);
+// String current_value for scene.modifiers[sceneModifierIndex].channel when kind==3 (e.g. a
+// "file"-type channel carrying a .duf path). Returns "" when kind != 3 or index invalid.
+// The existing GetSceneModifierChannelValue always returns 0.0 for kind==3 (unchanged per R2).
+// @since 2.17.0
+DSONPARSER_API const char* DsonDocument_GetSceneModifierChannelValueString(DsonDocumentHandle handle, int sceneModifierIndex);
 DSONPARSER_API double      DsonDocument_GetSceneModifierChannelValue(DsonDocumentHandle handle, int sceneModifierIndex);
 DSONPARSER_API double      DsonDocument_GetSceneModifierChannelMin(DsonDocumentHandle handle, int sceneModifierIndex);
 DSONPARSER_API double      DsonDocument_GetSceneModifierChannelMax(DsonDocumentHandle handle, int sceneModifierIndex);

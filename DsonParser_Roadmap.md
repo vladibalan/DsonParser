@@ -79,6 +79,11 @@ across 4 audit passes with zero remaining gaps.
   `[material-group, uv-set-name]` rows from exact `studio/node/shell` extras,
   retained verbatim and kept separate from geometry-library assignments, with
   external UV-set resolution left to the importer (2.13.0).
+- Per-scene-node fit-parent: `GetSceneNodeConformTarget` returns each
+  `scene.nodes` entry's raw `conform_target` string (the DAZ "Fit To" target
+  URL, e.g. `"#Genesis9"`). Distinct from `parent` — a fitted figure root
+  carries `conform_target` and no `parent`; child bones carry `parent` and no
+  `conform_target`. Faithful passthrough (R6.4); no reference resolution (2.17.0).
 
 **Skin Binding (C)**
 - `node_weights` primary + `local_weights` fallback
@@ -142,6 +147,16 @@ across 4 audit passes with zero remaining gaps.
   complete authored `parent` URL verbatim, including its fragment. This lets a
   consumer associate multiple push modifiers with their individual geometry-shell
   targets; fragment matching and URL resolution remain consumer work (2.11.0).
+- Scene-modifier target + value-kind: `GetSceneModifierParent` returns each
+  `scene.modifiers` entry's authored `parent` URL (the sibling of 2.11.0's
+  library-family accessor) — the fit/dial-attribution link a scene-manifest
+  importer uses to route each dial to its owning node. `GetSceneModifierChannelValueKind`
+  (`0` null · `1` number · `2` bool · `3` string; `-1` invalid — matches the
+  1.2.0 `SceneAnimation::ValueKind` legend) and `GetSceneModifierChannelValueString`
+  expose the string carrier of a `"type":"file"` channel (DAZ script/template
+  loaders) alongside the unchanged double `GetSceneModifierChannelValue`, which
+  still returns `0.0` for a string and coerces bool per 2.2.1. Faithful
+  passthrough (R6.4) (2.17.0).
 
 ### Known Limitations (v1)
 - **Formulas not evaluated** — as shipped in v1, formula keys were suppressed in

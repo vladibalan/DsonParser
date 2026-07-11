@@ -264,10 +264,33 @@ The C API keeps these separate:
 
 - `DsonDocument_GetNode*` reads `node_library`.
 - `DsonDocument_GetSceneNode*` reads `scene.nodes`, including each instance's
-  verbatim parent pointer and local translation/rotation/scale, general scale,
-  rotation order, raw `center_point` / `orientation`, and raw `inherits_scale`.
+  verbatim parent pointer, its fit-parent pointer (a fitted figure root's
+  `conform_target`, the DAZ "Fit To" target URL — `GetSceneNodeConformTarget`,
+  2.17.0), and local translation/rotation/scale, general scale, rotation order,
+  raw `center_point` / `orientation`, and raw `inherits_scale`. `parent` and
+  `conform_target` are distinct: a fitted figure root carries `conform_target`
+  and has no `parent`; its child bones carry `parent` and no `conform_target`.
+  Both are faithful raw string reads (R6.4).
 - `DsonDocument_GetMaterial*` reads `material_library`.
 - `DsonDocument_GetSceneMaterial*` reads `scene.materials`.
+- `DsonDocument_GetSceneModifier*` reads `scene.modifiers`, including each
+  entry's authored `parent` URL naming the target node (e.g. `"#Genesis9-1"`
+  or `"#Genesis9_JewelBikini._Bottom"`) — `GetSceneModifierParent` (2.17.0),
+  the sibling of the 2.11.0 library-family `GetModifierParent`. The channel
+  value family exposes both the numeric read (`GetSceneModifierChannelValue`)
+  and a **value-kind discriminator + string getter** for channels whose
+  `current_value` (or `value` fallback) is a string — `"type":"file"` DAZ
+  script / template loaders. `GetSceneModifierChannelValueKind` returns
+  `0` null/absent · `1` number · `2` bool · `3` string; `-1` invalid — the
+  same numeric legend as `GetSceneAnimationValueKind` (a color kind is
+  defined but not applicable to modifier channels, which are scalar).
+  `GetSceneModifierChannelValueString` returns the raw string when kind
+  is `3`; `""` otherwise. The existing double
+  `GetSceneModifierChannelValue` is unchanged — it still returns `0.0` for
+  a string (and `1.0`/`0.0` for a bool per 2.2.1) — so consumers only
+  reading the numeric side see byte-identical behavior; a string still
+  trips the `TrackChannelTypeMismatch` audit entry (2.2.2) because the
+  numeric read still defaults. Since 2.17.0.
 
 A geometry shell may author its per-surface UV selection on the placed scene
 node rather than on any `geometry_library` definition. For each exact

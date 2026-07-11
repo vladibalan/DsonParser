@@ -791,6 +791,11 @@ const char* DsonDocument_GetSceneNodeParent(DsonDocumentHandle handle, int index
     return node ? node->parent.c_str() : "";
 }
 
+const char* DsonDocument_GetSceneNodeConformTarget(DsonDocumentHandle handle, int index) {
+    const Dson::Node* node = GetSceneNode(handle, index);
+    return node ? node->conform_target.c_str() : "";
+}
+
 double DsonDocument_GetSceneNodeTranslationX(DsonDocumentHandle handle, int index) {
     return GetSceneNodeVector3Component(handle, index, &Dson::Node::translation, 0);
 }
@@ -1087,6 +1092,22 @@ const char* DsonDocument_GetSceneModifierId(DsonDocumentHandle handle, int index
 const char* DsonDocument_GetSceneModifierUrl(DsonDocumentHandle handle, int index) {
     const Dson::Modifier* mod = GetSceneModifier(handle, index);
     return mod ? mod->url.c_str() : "";
+}
+
+const char* DsonDocument_GetSceneModifierParent(DsonDocumentHandle handle, int sceneModifierIndex) {
+    const Dson::Modifier* mod = GetSceneModifier(handle, sceneModifierIndex);
+    return mod ? mod->parent.c_str() : "";
+}
+
+int DsonDocument_GetSceneModifierChannelValueKind(DsonDocumentHandle handle, int sceneModifierIndex) {
+    const Dson::Modifier* mod = GetSceneModifier(handle, sceneModifierIndex);
+    return mod ? mod->channel_value_kind : -1;
+}
+
+const char* DsonDocument_GetSceneModifierChannelValueString(DsonDocumentHandle handle, int sceneModifierIndex) {
+    const Dson::Modifier* mod = GetSceneModifier(handle, sceneModifierIndex);
+    return (mod && mod->channel_value_kind == Dson::Modifier::KindString)
+        ? mod->channel_value_string.c_str() : "";
 }
 
 double DsonDocument_GetSceneModifierChannelValue(DsonDocumentHandle handle, int sceneModifierIndex) {
