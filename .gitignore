@@ -71,3 +71,8 @@ DsonTest2/TestFiles/
 # tracked, kept out of the git diff the Director verifies against, and out of
 # agent discovery (see CLAUDE.md "Do NOT read" and docs/agent-workflow.md).
 .handoff/
+
+# ---- Memory-store maintenance (shared Claude memory prune manifest + routing) ----
+# Local-only working docs for pruning the shared Claude memory store; not part of
+# the library. See memory-maintenance/memory-prune-manifest.md.
+memory-maintenance/
