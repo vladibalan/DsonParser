@@ -394,9 +394,8 @@ A runtime evaluator that:
   the delta leaves, evaluate the RPN seeded by the scene modifier's
   `current_value`, and compose the result (bake into base vertices and/or emit a
   combined morph target). It reuses the existing external-morph loader.
-- The plugin-side design for this lives in the importer repo:
-  `Plugins/DsonToUnreal/Docs/FormulaMorphsV2.md`. It depends only on the
-  per-morph formula API (items 1–3 above).
+- The plugin-side design for this lives in the importer's own repo, not
+  here. It depends only on the per-morph formula API (items 1–3 above).
 
 ### Audit Prompt for v2
 When ready to begin v2, rerun the audit prompt from pass 4 with one

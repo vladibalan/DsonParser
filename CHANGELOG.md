@@ -16,7 +16,7 @@ Nothing yet — new C-ABI changes land here, then move under a version heading o
 Exposes three raw scene-instance fields the parser was already reading (or is
 now reading additively) but no accessor surfaced. Motivates a downstream
 scene-manifest importer that attributes every dial to its owning node from
-`scene.*` alone (as-composed DAZ scene → bake) — an FR the DsonToUnreal
+`scene.*` alone (as-composed DAZ scene → bake) — an FR a consuming
 importer relayed while building that path. All three are single-file
 passthroughs of DSON strings already present in the opened `.duf`, none
 derivable by joining currently-exposed sections and none needing a second
@@ -212,7 +212,7 @@ was found in the targeted asset search.
 Exposes the raw geograft **weld correspondence** from a geometry's `graft` block —
 the two arrays `GetGeometryIsGraft` (1.5.0) already keys on but that reached no
 consumer, plus the block's declared base counts. This is the parser side of the
-DsonToUnreal composed-figure geograft weld: `vertex_pairs` gives the boundary weld
+composed-figure geograft weld: `vertex_pairs` gives the boundary weld
 pairs as `[graft-local vertex, base-figure vertex]`, `hidden_polys` gives the
 base-figure polygons the graft hides on weld (empty for an additive graft), and
 `GraftBaseVertexCount`/`GraftBasePolyCount` give the graft block's declared
