@@ -19,10 +19,10 @@ actually did. If a needed file is missing from the project folder, ask the user
 to upload it rather than guessing its contents.
 
 **Builds:** the **Implementer** builds and verifies its own changes
-(`msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64`) and reports the
-real result; the **Director** re-runs that build itself to verify the returned
-change (it confirms the result rather than trusting a self-report). See "Build &
-test" below.
+(`msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64` — note `msbuild`
+is not on `PATH`; resolve it first) and reports the real result; the **Director**
+re-runs that build itself to verify the returned change (it confirms the result
+rather than trusting a self-report). See "Build & test" below.
 
 **Read [`docs/agent-workflow.md`](docs/agent-workflow.md)** for the full role
 definitions, the file-based handoff sequence, and the task-file / feedback-file
@@ -111,7 +111,26 @@ Boilerplate (rarely relevant): `pch.{h,cpp}`, `framework.h`, `dllmain.cpp`.
   `DsonTest2` = console test exe linking `DsonParser.lib`, `DsonLoadTest` = console
   exe that dynamic-loads the DLL — no `.lib` link — to test the threading contract
   under the consumer's real load model).
-- Typical build: `msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64`.
+- Typical build — the logical command every task-file names:
+  `msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64`.
+- **`msbuild` is NOT on `PATH` in a plain shell.** That bare command fails with
+  "not recognized" unless you are inside a *Developer PowerShell for VS*. Agents
+  run non-interactive shells, so resolve it first — from **any** shell — with
+  `vswhere`, which lives at a fixed location and works across every VS edition
+  (Community / Professional / Enterprise / BuildTools). Prefer this over a
+  hardcoded `...\2022\Community\...` path, which breaks on other editions:
+
+  ```powershell
+  $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+  $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+  & $msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64
+  ```
+
+  Add `/t:Rebuild` to force a full recompile. Needed when an incremental build
+  trips over a stale `pch` left by a different toolset version (observed during the
+  2.19.0 handoff), and it is also the strongest way to verify a change compiles
+  from scratch — an incremental build over an already-built tree can report success
+  without recompiling anything.
 - The test exes build to `x64\Release\` beside `DsonParser.dll`; run them from there
   (so `DsonLoadTest` resolves the DLL). A still-running test exe holds
   `DsonParser.dll` open and will break a later `/t:Rebuild` with `LNK1104` — close

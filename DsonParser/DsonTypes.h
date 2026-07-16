@@ -149,6 +149,27 @@ struct GeometryRigidityGroup {
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
 };
 
+// One authored studio_geometry_channels channel: an element of a geometry's
+// extra[] "/General/Mesh Resolution" block. Raw, unevaluated passthrough (R6.4)
+// - a value is NOT resolved against its enum_values, and nothing is reconciled
+// against the sibling edge_interpolation_mode / subd_normal_smoothing_mode
+// strings. DAZ authors min/max/clamped/step_size on the int channels only and
+// never on the enums, and value 0 is legitimate ("Catmark", "Smoothed"), so
+// presence is the only signal that separates an authored field from a default.
+struct GeometryChannel {
+    std::string id;                   // channel "id" ("SubDIALevel"), verbatim
+    std::string type;                 // channel "type" ("int"/"enum"), verbatim
+    std::string label;                // channel "label"; "" if absent
+    std::string group;                // wrapper "group" (sibling of "channel"); "" if absent
+    double value = 0.0;               // "value"; meaningful only when the VALUE bit is set
+    double min = 0.0;                 // "min"; meaningful only when the MIN bit is set
+    double max = 0.0;                 // "max"; meaningful only when the MAX bit is set
+    bool clamped = false;             // "clamped"; meaningful only when the CLAMPED bit is set
+    double step_size = 0.0;           // "step_size"; meaningful only when the STEP_SIZE bit is set
+    std::vector<std::string> enum_values; // "enum_values", source order; empty for a non-enum
+    unsigned int field_presence = 0;  // VALUE=0x10, MIN=0x1, MAX=0x2, CLAMPED=0x4, STEP_SIZE=0x8
+};
+
 // Geometry data
 struct Geometry {
     String id;
@@ -164,6 +185,9 @@ struct Geometry {
     std::vector<std::string> polygon_groups;          // face group names
     std::vector<std::string> polygon_material_groups; // material group names
     std::string default_uv_set_id;                    // primary UV channel URL (e.g. "/data/.../Base.dsf#Base Multi UDIM")
+    std::string edge_interpolation_mode;              // verbatim; "" if absent
+    std::string subd_normal_smoothing_mode;           // verbatim; "" if absent
+    std::vector<GeometryChannel> channels;            // extra[] studio_geometry_channels, source order
     std::vector<MaterialUVAssignment> material_uv_assignments; // authored source-order pairs
     bool is_graft = false; // true iff a populated graft (vertex_pairs) is present;
                            // an empty "graft": {} (base figures, G9 eyes/eyelashes) stays false.

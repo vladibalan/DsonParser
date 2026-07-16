@@ -11,6 +11,85 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.19.0 — 2026-07-16 · MINOR (added)
+
+Exposes, per `geometry_library` geometry, the asset's own **subdivision
+declaration**: the declared `type`, the sibling `edge_interpolation_mode` /
+`subd_normal_smoothing_mode` strings, and every `extra[]`
+`studio_geometry_channels` channel (DAZ's `/General/Mesh Resolution` block) —
+verbatim, in source order, with a field-presence mask. DAZ authors Genesis
+geometry as a **subdivision surface**: a low-res quad cage that DAZ Studio
+refines at display and render time. The cage itself already ships
+(`GetPolylistFaceVertex*` et al.), but the declaration that says *whether* and
+*how* to refine it reached no accessor. Motivated by a consuming importer adding
+in-engine Catmull-Clark refinement, which must gate on what the geometry declares
+rather than guess: a rigid prop or gem authored `polygon_mesh` must never be
+smoothed.
+
+**These were dropped in three different ways, none visible as a single signal.**
+`type` was already parsed onto the model but reached no accessor.
+`edge_interpolation_mode` was in the parser's `knownKeys` — *recognized and
+deliberately never stored*, so it left no audit trace at all.
+`subd_normal_smoothing_mode` and the whole geometry `extra` array were live
+entries in the `geometry_library` unknown-key trail; both are retired by this
+change (`geometry_library` on the G9 base now reports only `root_region`). This
+is the first geometry `extra` walk in the parser — `Node`, `Material`,
+`Modifier`, and `Scene` already walked theirs; `Geometry` did not.
+
+**Presence is load-bearing.** DAZ authors `min`/`max`/`clamped`/`step_size` on
+the **int** channels only and never on the **enums**, while `value` is
+legitimately `0` — `SubDAlgorithmControl` `0` *is* `"Catmark"` and
+`SubDNormalSmoothing` `0` *is* `"Smoothed"`. On the G9 base the two int channels
+report mask `0x1f` (all five bits) and the three enums report `0x10` (VALUE
+only), so a `0.0`-for-absent return would be indistinguishable from a real
+authored reading. Query the mask before interpreting
+`value`/`min`/`max`/`clamped`/`step_size`.
+
+Faithful/unevaluated passthrough (R6.4), with three deliberate non-decisions: an
+enum's `value` is **not** resolved against its `enum_values` (both ship raw); an
+absent `type` is **not** defaulted to the DSON spec's `polygon_mesh` (that rule
+is the consumer's to apply); and the `B` strings are **not** reconciled against
+the look-alike `C` channels (`SubDEdgeInterpolateLevel` beside
+`edge_interpolation_mode`, `SubDNormalSmoothing` beside
+`subd_normal_smoothing_mode`) — that mapping is unconfirmed, and settling
+which is authoritative is a consumer decision, not a parsing one. Every matching
+`studio_geometry_channels` block appends in authored order (nothing is dropped if
+DAZ ever ships two); the block is matched on its `type` string, never on its
+index, because it sits at `extra[1]` on the G9 base and `extra[0]` on the graft.
+Other geometry extras (`material_selection_sets`) stay unmodeled. `knownKeys`
+gains `subd_normal_smoothing_mode` and `extra` (R6.2). Purely additive: all
+existing symbols and behavior are unchanged, and the 2.18.0 mask bits keep their
+values. Sentinels follow the R1 family contract: count → `0`, string → `""`,
+numeric → `0.0`, bool → `false`, mask → `0`.
+
+Verified against the installed Genesis 9 base and the Female-genitalia graft
+through the built DLL: `geometry[0]` reads `type` `"subdivision_surface"`,
+`edge_interpolation_mode` `"edges_only"`, `subd_normal_smoothing_mode`
+`"smooth_all_normals"`, and 5 channels — `SubDIALevel` (int, `1`, mask `0x1f`),
+`SubDRenderLevel` (int, `2`, mask `0x1f`), `SubDAlgorithmControl` (enum, `0`,
+mask `0x10`, 4 enum values, `[0]` `"Catmark"`), `SubDEdgeInterpolateLevel` (enum,
+`2`, 3 values), `SubDNormalSmoothing` (enum, `0`, 2 values) — each carrying
+`group` `"/General/Mesh Resolution"`. The base and graft author the identical
+shape, so the read is per-geometry and uniform, not figure-only.
+
++ DSONPARSER_CHANNEL_FIELD_STEP_SIZE / _VALUE — new field-presence mask bits (`0x8u` / `0x10u`). The mask is now **shared across channel families**, each setting only the bits it models: node transform channels (2.18.0) set MIN/MAX/CLAMPED only and never these two; geometry channels may set all five
++ DsonDocument_GetGeometryType — the geometry's declared kind verbatim (`"subdivision_surface"`, `"polygon_mesh"`); `""` when absent or invalid. **Not** defaulted to `polygon_mesh` — apply that spec rule yourself
++ DsonDocument_GetGeometryEdgeInterpolationMode — the authored boundary subdivision rule verbatim (e.g. `"edges_only"`); `""` when absent or invalid
++ DsonDocument_GetGeometrySubDNormalSmoothingMode — the authored normal subdivision rule verbatim (e.g. `"smooth_all_normals"`); `""` when absent or invalid
++ DsonDocument_GetGeometryChannelCount — number of `studio_geometry_channels` channels on one geometry, appended across every matching `extra[]` block in authored order; `0` on invalid handle/index or no block
++ DsonDocument_GetGeometryChannelId — one channel's authored `id` verbatim (e.g. `"SubDAlgorithmControl"`); `""` when absent or invalid. This is the discriminator — filter on it rather than assuming a fixed channel order
++ DsonDocument_GetGeometryChannelType — one channel's authored `type` verbatim (`"int"`, `"enum"`); `""` when absent or invalid. Distinct from `GetGeometryType`, which is the *geometry's* kind, not a channel's
++ DsonDocument_GetGeometryChannelLabel — one channel's authored `label` (e.g. `"View SubD Level"`); `""` when absent or invalid
++ DsonDocument_GetGeometryChannelGroup — the channel wrapper's authored `group` (e.g. `"/General/Mesh Resolution"`), a sibling of the channel object, not a key inside it; `""` when absent or invalid
++ DsonDocument_GetGeometryChannelValue — one channel's authored `value`; for an enum this is an **index into `enum_values`**, unresolved. `0.0` on invalid and also a legitimate value (`"Catmark"`, `"Smoothed"`) — gate on the VALUE mask bit
++ DsonDocument_GetGeometryChannelMin — one channel's authored `min`; `0.0` on invalid and also a legitimate value — gate on the MIN mask bit. Not authored on enum channels
++ DsonDocument_GetGeometryChannelMax — one channel's authored `max`; `0.0` on invalid and also a legitimate value — gate on the MAX mask bit. Not authored on enum channels
++ DsonDocument_GetGeometryChannelClamped — one channel's authored `clamped`; `false` on invalid or absent — gate on the CLAMPED mask bit. Not authored on enum channels
++ DsonDocument_GetGeometryChannelStepSize — one channel's authored `step_size`; `0.0` on invalid and also a legitimate value — gate on the STEP_SIZE mask bit. Not authored on enum channels
++ DsonDocument_GetGeometryChannelFieldPresenceMask — which of value/min/max/clamped/step_size the channel authored; `0` on invalid or nothing authored
++ DsonDocument_GetGeometryChannelEnumValueCount — number of authored `enum_values` on one channel; `0` on invalid or a non-enum channel. `> 0` is the reliable "this is an enum" signal alongside `GetGeometryChannelType`
++ DsonDocument_GetGeometryChannelEnumValue — one `enum_values` entry verbatim (e.g. `"Catmark"`, `"Catmull-Clark (Legacy)"`); `""` when absent or invalid
+
 ## 2.18.0 — 2026-07-16 · MINOR (added)
 
 Exposes, per `node_library` node, each authored transform channel's `id`, `label`,

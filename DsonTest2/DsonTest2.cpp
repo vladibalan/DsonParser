@@ -2156,6 +2156,92 @@ static bool RunGeometryRigidityTest()
     return allPass;
 }
 
+static bool RunGeometrySubdivisionBlockTest()
+{
+    std::cout << "=================================\n";
+    std::cout << "GEOMETRY SUBDIVISION BLOCK TEST (2.19.0)\n";
+    std::cout << "=================================\n\n";
+
+    const std::string path = ResolveTestFile(
+        "D:/Daz_content/data/DAZ 3D/Genesis 9/Base/Genesis9.dsf");
+    if (path.empty()) {
+        std::cout << "Genesis9.dsf not installed; skipping geometry subdivision proof.\n\n";
+        return true;
+    }
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    bool allPass = false;
+    if (DsonDocument_LoadFromFile(doc, path.c_str()) == 0) {
+        const char* geomType = DsonDocument_GetGeometryType(doc, 0);
+        const char* edgeMode = DsonDocument_GetGeometryEdgeInterpolationMode(doc, 0);
+        const char* normalMode = DsonDocument_GetGeometrySubDNormalSmoothingMode(doc, 0);
+        const int channelCount = DsonDocument_GetGeometryChannelCount(doc, 0);
+
+        std::cout << "Genesis9 geometry[0] type: \"" << geomType
+                  << "\"  [expect subdivision_surface]\n";
+        std::cout << "Genesis9 geometry[0] edge_interpolation_mode: \"" << edgeMode
+                  << "\"  [expect edges_only]\n";
+        std::cout << "Genesis9 geometry[0] subd_normal_smoothing_mode: \"" << normalMode
+                  << "\"  [expect smooth_all_normals]\n";
+        std::cout << "Genesis9 geometry[0] channels (" << channelCount << "):\n";
+
+        bool algorithmPass = false;
+        for (int i = 0; i < channelCount; i++) {
+            const char* id = DsonDocument_GetGeometryChannelId(doc, 0, i);
+            const int enumCount = DsonDocument_GetGeometryChannelEnumValueCount(doc, 0, i);
+            const int mask = DsonDocument_GetGeometryChannelFieldPresenceMask(doc, 0, i);
+            std::cout << "  [" << i << "] id=\"" << id
+                      << "\" type=\"" << DsonDocument_GetGeometryChannelType(doc, 0, i)
+                      << "\" label=\"" << DsonDocument_GetGeometryChannelLabel(doc, 0, i)
+                      << "\" group=\"" << DsonDocument_GetGeometryChannelGroup(doc, 0, i)
+                      << "\" value=" << DsonDocument_GetGeometryChannelValue(doc, 0, i)
+                      << " mask=0x" << std::hex << mask << std::dec
+                      << " enum_count=" << enumCount;
+            if (enumCount > 0) {
+                std::cout << " first_enum=\""
+                          << DsonDocument_GetGeometryChannelEnumValue(doc, 0, i, 0)
+                          << "\"";
+            }
+            std::cout << "\n";
+
+            if (std::strcmp(id, "SubDAlgorithmControl") == 0) {
+                algorithmPass =
+                    std::strcmp(DsonDocument_GetGeometryChannelGroup(doc, 0, i),
+                                "/General/Mesh Resolution") == 0
+                    && (mask & DSONPARSER_CHANNEL_FIELD_VALUE) != 0
+                    && DsonDocument_GetGeometryChannelValue(doc, 0, i) == 0.0
+                    && enumCount == 4
+                    && std::strcmp(DsonDocument_GetGeometryChannelEnumValue(doc, 0, i, 0),
+                                   "Catmark") == 0;
+            }
+        }
+
+        const bool headerPass =
+            std::strcmp(geomType, "subdivision_surface") == 0
+            && std::strcmp(edgeMode, "edges_only") == 0
+            && std::strcmp(normalMode, "smooth_all_normals") == 0;
+        const bool sentinelPass =
+            std::strcmp(DsonDocument_GetGeometryType(doc, -1), "") == 0
+            && DsonDocument_GetGeometryChannelCount(doc, -1) == 0
+            && DsonDocument_GetGeometryChannelFieldPresenceMask(doc, 0, -1) == 0
+            && std::strcmp(DsonDocument_GetGeometryChannelEnumValue(doc, 0, 0, -1), "") == 0;
+
+        allPass = headerPass && channelCount == 5 && algorithmPass && sentinelPass;
+        std::cout << "Genesis9 subdivision header values: "
+                  << (headerPass ? "PASS" : "FAIL") << "\n";
+        std::cout << "Genesis9 SubDAlgorithmControl value/enums/group: "
+                  << (algorithmPass ? "PASS" : "FAIL") << "\n";
+        std::cout << "Geometry subdivision sentinels: "
+                  << (sentinelPass ? "PASS" : "FAIL") << "\n";
+        std::cout << "Geometry subdivision block test: "
+                  << (allPass ? "ALL PASS" : "SOME FAILED") << "\n\n";
+    } else {
+        std::cout << "Genesis9.dsf load error: " << DsonParser_GetLastError() << "\n\n";
+    }
+    DsonDocument_Destroy(doc);
+    return allPass;
+}
+
 // Verifies the three new 2.17.0 scene-manifest accessors:
 //   A. GetSceneNodeConformTarget / GetSceneNodeParent on a fitted node root vs. child bone.
 //   B. GetSceneModifierParent on a scene modifier.
@@ -2260,6 +2346,10 @@ int main(int argc, char* argv[])
         return RunUVSetNameLabelTest() ? 0 : 1;
     }
 
+    if (argc == 2 && std::strcmp(argv[1], "--geometry-subdivision-regression") == 0) {
+        return RunGeometrySubdivisionBlockTest() ? 0 : 1;
+    }
+
     std::cout << "DSON Parser Test\n";
     std::cout << "================\n\n";
 
@@ -2281,6 +2371,7 @@ int main(int argc, char* argv[])
     RunSceneNodePlacementTest();
     RunRigidFollowRigidityTest();
     RunGeometryRigidityTest();
+    RunGeometrySubdivisionBlockTest();
     RunGeometryMaterialUVAssignmentTest();
     RunSceneNodeShellMaterialUVAssignmentTest();
     RunUVSetNameLabelTest();

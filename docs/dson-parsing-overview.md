@@ -153,7 +153,11 @@ current loader scope.
   `hidden_polys` / declared base counts; see Asset Catalog Metadata below), plus
   the complete authored `rigidity` block: sparse vertex weights and source-order
   groups with rotation/scale modes, reference/mask vertices, reference and
-  transform-node strings, and the authored transform-bones-for-scale flag.
+  transform-node strings, and the authored transform-bones-for-scale flag, plus
+  the geometry's **subdivision declaration** — the declared `type`, the sibling
+  `edge_interpolation_mode` / `subd_normal_smoothing_mode` strings, and the
+  `extra[]` `studio_geometry_channels` block (see Geometry Subdivision
+  Declaration below; since 2.19.0).
 
 `material_library`
 : Parsed into `Material`. Captures source-order material channels, shader type
@@ -488,6 +492,54 @@ faithfully through `DsonDocument_GetGeometryMaterialUVAssignmentCount`,
 returned verbatim. The parser does not resolve the UV-set name to a sibling DSF,
 join it to a scene/library material, or replace the geometry's
 `default_uv_set`; those are importer decisions (R6.4).
+
+### Geometry Subdivision Declaration
+
+DAZ authors Genesis geometry as a **subdivision surface**: the `polylist` above is
+a low-res quad cage that DAZ Studio refines at display and render time. The cage
+is only half the story — the geometry also declares *whether* and *how* it should
+be refined, and that declaration is exposed per geometry (since 2.19.0):
+
+- `DsonDocument_GetGeometryType` — the declared kind, verbatim: `"subdivision_surface"`
+  or the DSON spec's other value `"polygon_mesh"`. This is the **gate**: a consumer
+  refines only a geometry that declares itself a subdivision surface. The parser does
+  **not** default an absent value to `polygon_mesh` — it returns `""`, and applying
+  the spec default is the consumer's rule (R6.4).
+- `DsonDocument_GetGeometryEdgeInterpolationMode` /
+  `DsonDocument_GetGeometrySubDNormalSmoothingMode` — the authored boundary and
+  normal subdivision rules as plain sibling strings of `type` (e.g. `"edges_only"`,
+  `"smooth_all_normals"`); `""` when absent.
+- `DsonDocument_GetGeometryChannel{Count,Id,Type,Label,Group,Value,Min,Max,Clamped,StepSize,FieldPresenceMask,EnumValue{Count,}}`
+  — the geometry's `extra[]` `studio_geometry_channels` block, DAZ's
+  `/General/Mesh Resolution` channels (`SubDIALevel`, `SubDRenderLevel`,
+  `SubDAlgorithmControl`, `SubDEdgeInterpolateLevel`, `SubDNormalSmoothing`).
+
+This is the **first and only geometry `extra` walk** in the parser (`Node`,
+`Material`, `Modifier`, and `Scene` have their own). Shape notes that drive the
+API: each `channels[]` element is a **wrapper** whose `group` is a *sibling* of
+the nested `channel` object, not a key inside it; and the block is matched on its
+`type` string, never on its index — it sits at `extra[1]` on the Genesis 9 base
+(after a `material_selection_sets` entry) and at `extra[0]` on the graft. Every
+matching block appends in authored order. Other geometry extras, including
+`material_selection_sets`, remain unmodeled.
+
+**Presence is the contract**, as for the 2.18.0 node transform channels. DAZ
+authors `min`/`max`/`clamped`/`step_size` on the **int** channels only and never
+on the **enums**, while `value` is legitimately `0` (`SubDAlgorithmControl` `0` is
+`"Catmark"`; `SubDNormalSmoothing` `0` is `"Smoothed"`). On the G9 base the ints
+report mask `0x1f` and the enums `0x10`. Since `0.0`/`false` are each both a valid
+reading and the invalid sentinel, bound-check `…ChannelCount`, then query
+`…ChannelFieldPresenceMask` (`DSONPARSER_CHANNEL_FIELD_{VALUE,MIN,MAX,CLAMPED,STEP_SIZE}`)
+before interpreting any of them. That mask is shared across channel families and
+each family sets only the bits it models — node transform channels never set
+VALUE or STEP_SIZE.
+
+Faithful/unevaluated (R6.4). An enum's `value` is an **index into `enum_values`**
+and is not resolved; both ship raw. The parser performs no subdivision, and does
+**not** reconcile the two `edge_interpolation_mode` / `subd_normal_smoothing_mode`
+strings against the look-alike `SubDEdgeInterpolateLevel` / `SubDNormalSmoothing`
+channels — that mapping is unconfirmed, and deciding which is authoritative is a
+consumer call, not a parsing one. Both surfaces are relayed independently.
 
 ## UV Sets
 

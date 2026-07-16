@@ -12,6 +12,10 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.19.0: DsonDocument_GetGeometryType,
+//   GetGeometryEdgeInterpolationMode, GetGeometrySubDNormalSmoothingMode, and
+//   GetGeometryChannel* expose geometry subdivision declarations and mesh
+//   resolution channels faithfully in source order.
 // What's new in 2.18.0: DsonDocument_GetNode{Translation,Rotation,Scale}Channel*
 //   expose node_library transform channel id/label/min/max/clamped plus field
 //   presence masks, faithfully in source order.
@@ -122,13 +126,21 @@ typedef void* DsonDocumentHandle;
 #define DSONPARSER_VECTOR_COMPONENT_Y 0x2u
 #define DSONPARSER_VECTOR_COMPONENT_Z 0x4u
 
-// Bits returned by node transform channel field-presence masks. Min/max zero
-// and clamped false are legitimate authored values; use the mask to distinguish
-// authored fields from absence or invalid input.
+// Bits returned by channel field-presence masks. The mask is shared across
+// channel families, and each family sets only the bits it models: node transform
+// channels set MIN/MAX/CLAMPED only, while geometry channels may set all five.
+// Zero numeric values and clamped false are legitimate authored values; use the
+// mask to distinguish authored fields from absence or invalid input.
 // @since 2.18.0
 #define DSONPARSER_CHANNEL_FIELD_MIN     0x1u
+// @since 2.18.0
 #define DSONPARSER_CHANNEL_FIELD_MAX     0x2u
+// @since 2.18.0
 #define DSONPARSER_CHANNEL_FIELD_CLAMPED 0x4u
+// @since 2.19.0
+#define DSONPARSER_CHANNEL_FIELD_STEP_SIZE 0x8u
+// @since 2.19.0
+#define DSONPARSER_CHANNEL_FIELD_VALUE     0x10u
 
 // Create a new DSON document
 DSONPARSER_API DsonDocumentHandle DsonDocument_Create();
@@ -331,6 +343,48 @@ DSONPARSER_API const char* DsonDocument_GetGeometryName(DsonDocumentHandle handl
 DSONPARSER_API int DsonDocument_GetGeometryVertexCount(DsonDocumentHandle handle, int index);
 DSONPARSER_API int DsonDocument_GetGeometryPolygonCount(DsonDocumentHandle handle, int index);
 DSONPARSER_API const char* DsonDocument_GetGeometryDefaultUVSetId(DsonDocumentHandle handle, int geomIndex);
+// The geometry's declared kind. Verbatim; "" when absent or invalid. The parser
+// does NOT default an absent value to "polygon_mesh"; consumers apply that spec
+// rule when desired.
+// @since 2.19.0
+DSONPARSER_API const char* DsonDocument_GetGeometryType(DsonDocumentHandle handle, int geomIndex);
+// Authored boundary / normal subdivision rules. Verbatim; "" when absent or invalid.
+// @since 2.19.0
+DSONPARSER_API const char* DsonDocument_GetGeometryEdgeInterpolationMode(DsonDocumentHandle handle, int geomIndex);
+// @since 2.19.0
+DSONPARSER_API const char* DsonDocument_GetGeometrySubDNormalSmoothingMode(DsonDocumentHandle handle, int geomIndex);
+// Geometry extra[].studio_geometry_channels entries in source order. Count and
+// field-mask accessors return 0 on invalid input; string getters return "";
+// numeric getters return 0.0; bool getters return false. Bound-check
+// GetGeometryChannelCount and query GetGeometryChannelFieldPresenceMask before
+// interpreting value/min/max/clamped/step_size because 0.0/false are legitimate
+// authored readings as well as invalid sentinels.
+// @since 2.19.0
+DSONPARSER_API int         DsonDocument_GetGeometryChannelCount(DsonDocumentHandle handle, int geomIndex);
+// @since 2.19.0
+DSONPARSER_API const char* DsonDocument_GetGeometryChannelId(DsonDocumentHandle handle, int geomIndex, int channelIndex);
+// @since 2.19.0
+DSONPARSER_API const char* DsonDocument_GetGeometryChannelType(DsonDocumentHandle handle, int geomIndex, int channelIndex);
+// @since 2.19.0
+DSONPARSER_API const char* DsonDocument_GetGeometryChannelLabel(DsonDocumentHandle handle, int geomIndex, int channelIndex);
+// @since 2.19.0
+DSONPARSER_API const char* DsonDocument_GetGeometryChannelGroup(DsonDocumentHandle handle, int geomIndex, int channelIndex);
+// @since 2.19.0
+DSONPARSER_API double      DsonDocument_GetGeometryChannelValue(DsonDocumentHandle handle, int geomIndex, int channelIndex);
+// @since 2.19.0
+DSONPARSER_API double      DsonDocument_GetGeometryChannelMin(DsonDocumentHandle handle, int geomIndex, int channelIndex);
+// @since 2.19.0
+DSONPARSER_API double      DsonDocument_GetGeometryChannelMax(DsonDocumentHandle handle, int geomIndex, int channelIndex);
+// @since 2.19.0
+DSONPARSER_API bool        DsonDocument_GetGeometryChannelClamped(DsonDocumentHandle handle, int geomIndex, int channelIndex);
+// @since 2.19.0
+DSONPARSER_API double      DsonDocument_GetGeometryChannelStepSize(DsonDocumentHandle handle, int geomIndex, int channelIndex);
+// @since 2.19.0
+DSONPARSER_API int         DsonDocument_GetGeometryChannelFieldPresenceMask(DsonDocumentHandle handle, int geomIndex, int channelIndex);
+// @since 2.19.0
+DSONPARSER_API int         DsonDocument_GetGeometryChannelEnumValueCount(DsonDocumentHandle handle, int geomIndex, int channelIndex);
+// @since 2.19.0
+DSONPARSER_API const char* DsonDocument_GetGeometryChannelEnumValue(DsonDocumentHandle handle, int geomIndex, int channelIndex, int enumIndex);
 // Authored geometry.material_uvs pairs in source order. The parser performs no
 // material/UV lookup or cross-file resolution. Count -> 0 and strings -> "" on
 // invalid input.

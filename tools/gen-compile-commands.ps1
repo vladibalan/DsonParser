@@ -5,9 +5,10 @@ Generates a clangd-compatible compile_commands.json at the repo root for the
 DsonParser (DLL) and DsonTest2 (console) targets.
 
 The solution is MSBuild-only, and MSVC's cl.exe does not emit a compilation
-database. Rather than depend on a build run (builds are user-run here), this
-script reconstructs the per-target compile flags that the .vcxproj files pin
-for the Release|x64 configuration -- the documented "typical build":
+database. Rather than depend on a build run, this script reconstructs the
+per-target compile flags that the .vcxproj files pin for the Release|x64
+configuration -- the documented "typical build" (see CLAUDE.md "Build & test";
+note msbuild is not on PATH and needs resolving via vswhere to actually run):
 
     msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64
 

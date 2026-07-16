@@ -490,12 +490,72 @@ bool GeometryRigidityGroup::ParseFromJson(const rapidjson::Value& json, std::set
     return true;
 }
 
+static bool ParseGeometryChannel(const rapidjson::Value& wrapper, GeometryChannel& out) {
+    if (!wrapper.IsObject()) {
+        return false;
+    }
+
+    const rapidjson::Value* channelObj = nullptr;
+    if (!JsonHelper::GetObject(wrapper, "channel", channelObj)) {
+        return false;
+    }
+
+    out.group = JsonHelper::GetStringOrDefault(wrapper, "group");
+    out.id = JsonHelper::GetStringOrDefault(*channelObj, "id");
+    out.type = JsonHelper::GetStringOrDefault(*channelObj, "type");
+    out.label = JsonHelper::GetStringOrDefault(*channelObj, "label");
+
+    auto valueIt = channelObj->FindMember("value");
+    if (valueIt != channelObj->MemberEnd() && valueIt->value.IsNumber()) {
+        out.value = valueIt->value.GetDouble();
+        out.field_presence |= 0x10u;
+    }
+
+    auto minIt = channelObj->FindMember("min");
+    if (minIt != channelObj->MemberEnd() && minIt->value.IsNumber()) {
+        out.min = minIt->value.GetDouble();
+        out.field_presence |= 0x1u;
+    }
+
+    auto maxIt = channelObj->FindMember("max");
+    if (maxIt != channelObj->MemberEnd() && maxIt->value.IsNumber()) {
+        out.max = maxIt->value.GetDouble();
+        out.field_presence |= 0x2u;
+    }
+
+    auto clampedIt = channelObj->FindMember("clamped");
+    if (clampedIt != channelObj->MemberEnd() && clampedIt->value.IsBool()) {
+        out.clamped = clampedIt->value.GetBool();
+        out.field_presence |= 0x4u;
+    }
+
+    auto stepIt = channelObj->FindMember("step_size");
+    if (stepIt != channelObj->MemberEnd() && stepIt->value.IsNumber()) {
+        out.step_size = stepIt->value.GetDouble();
+        out.field_presence |= 0x8u;
+    }
+
+    const rapidjson::Value* enumValues = nullptr;
+    if (JsonHelper::GetArray(*channelObj, "enum_values", enumValues)) {
+        out.enum_values.reserve(enumValues->Size());
+        for (rapidjson::SizeType i = 0; i < enumValues->Size(); i++) {
+            if ((*enumValues)[i].IsString()) {
+                out.enum_values.push_back((*enumValues)[i].GetString());
+            }
+        }
+    }
+
+    return true;
+}
+
 // Geometry parser:
 // Captures mesh topology exactly enough for downstream importers to rebuild the
 // surface: vertex positions, face lists, polygon groups, material groups, and
 // the geometry's default UV-set reference and authored per-material UV-set
-// names. DSON commonly wraps arrays as {count, values:[...]}; legacy flat
-// arrays are accepted where practical.
+// names. Also retains the geometry's subdivision declaration: the declared type,
+// sibling edge/normal subdivision strings, and every extra[].studio_geometry_channels
+// "/General/Mesh Resolution" channel in source order. DSON commonly wraps arrays
+// as {count, values:[...]}; legacy flat arrays are accepted where practical.
 // Polylist faces are kept flattened, with a per-face offset table, because DSON
 // faces may vary in length and include leading group/material indices.
 bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
@@ -505,8 +565,9 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     
     static const std::set<std::string> knownKeys = {
         "id", "name", "type", "url", "vertices", "polygons", "polylist",
-        "vertex_count", "polygon_count", "edge_interpolation_mode", "default_uv_set",
-        "polygon_groups", "polygon_material_groups", "material_uvs", "graft", "rigidity"
+        "vertex_count", "polygon_count", "edge_interpolation_mode",
+        "subd_normal_smoothing_mode", "default_uv_set", "polygon_groups",
+        "polygon_material_groups", "material_uvs", "extra", "graft", "rigidity"
     };
     
     ParseMember(json, "id", id);
@@ -585,10 +646,37 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     ParseStringValuedArray(json, "polygon_material_groups", polygon_material_groups);
 
     JsonHelper::GetString(json, "default_uv_set", default_uv_set_id);
+    edge_interpolation_mode =
+        JsonHelper::GetStringOrDefault(json, "edge_interpolation_mode");
+    subd_normal_smoothing_mode =
+        JsonHelper::GetStringOrDefault(json, "subd_normal_smoothing_mode");
 
     // Authored per-surface UV selection, retained byte-for-byte in valid-row
     // source order. The wrapper's declared count is not authoritative.
     ParseMaterialUVAssignments(json, "material_uvs", material_uv_assignments);
+
+    // Geometry extra[] may contain multiple payload families. Only expose the
+    // authored studio_geometry_channels blocks here; material_selection_sets and
+    // other extras are recognized only as "extra" and remain out of scope.
+    const rapidjson::Value* extraArr = nullptr;
+    if (JsonHelper::GetArray(json, "extra", extraArr)) {
+        for (rapidjson::SizeType i = 0; i < extraArr->Size(); i++) {
+            const rapidjson::Value& extraItem = (*extraArr)[i];
+            if (!extraItem.IsObject()) continue;
+            if (JsonHelper::GetStringOrDefault(extraItem, "type") != "studio_geometry_channels") continue;
+
+            const rapidjson::Value* channelArr = nullptr;
+            if (!JsonHelper::GetArray(extraItem, "channels", channelArr)) continue;
+
+            channels.reserve(channels.size() + channelArr->Size());
+            for (rapidjson::SizeType j = 0; j < channelArr->Size(); j++) {
+                GeometryChannel channel;
+                if (ParseGeometryChannel((*channelArr)[j], channel)) {
+                    channels.push_back(channel);
+                }
+            }
+        }
+    }
 
     // Geograft weld correspondence. A populated graft (non-empty vertex_pairs)
     // marks a geograft; an empty "graft": {} (base figures, G9 eyes/eyelashes)

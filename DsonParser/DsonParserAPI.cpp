@@ -25,6 +25,8 @@
 //   always return 0 on error (never -1); -1 is reserved for value/index
 //   accessors reporting "no such element".
 // - Expose raw stored formula RPN payloads without evaluating them.
+// - Expose authored geometry subdivision declarations and mesh-resolution
+//   channels without resolving enum values or reconciling sibling strings.
 // - Expose authored geometry rigidity weights/groups without remapping or
 //   interpreting their geometry-local indices and node references.
 // - Expose authored geometry and scene-node shell material-to-UV names without
@@ -509,6 +511,14 @@ static int GetSceneNodePresenceMask(
 static const Dson::Geometry* GetGeometry(DsonDocumentHandle handle, int geomIndex) {
     Dson::DsonDocument* doc = Doc(handle);
     return doc ? At(doc->geometries, geomIndex) : nullptr;
+}
+
+static const Dson::GeometryChannel* GetGeometryChannel(
+    DsonDocumentHandle handle,
+    int geomIndex,
+    int channelIndex) {
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    return geom ? At(geom->channels, channelIndex) : nullptr;
 }
 
 static double GetGeometryVertexComponent(
@@ -1336,6 +1346,91 @@ const char* DsonDocument_GetGeometryDefaultUVSetId(DsonDocumentHandle handle, in
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
     return geom ? geom->default_uv_set_id.c_str() : "";
+}
+
+const char* DsonDocument_GetGeometryType(DsonDocumentHandle handle, int geomIndex) {
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    return geom ? geom->type.c_str() : "";
+}
+
+const char* DsonDocument_GetGeometryEdgeInterpolationMode(DsonDocumentHandle handle, int geomIndex) {
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    return geom ? geom->edge_interpolation_mode.c_str() : "";
+}
+
+const char* DsonDocument_GetGeometrySubDNormalSmoothingMode(DsonDocumentHandle handle, int geomIndex) {
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    return geom ? geom->subd_normal_smoothing_mode.c_str() : "";
+}
+
+int DsonDocument_GetGeometryChannelCount(DsonDocumentHandle handle, int geomIndex) {
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    return geom ? static_cast<int>(geom->channels.size()) : 0;
+}
+
+const char* DsonDocument_GetGeometryChannelId(DsonDocumentHandle handle, int geomIndex, int channelIndex) {
+    const Dson::GeometryChannel* channel = GetGeometryChannel(handle, geomIndex, channelIndex);
+    return channel ? channel->id.c_str() : "";
+}
+
+const char* DsonDocument_GetGeometryChannelType(DsonDocumentHandle handle, int geomIndex, int channelIndex) {
+    const Dson::GeometryChannel* channel = GetGeometryChannel(handle, geomIndex, channelIndex);
+    return channel ? channel->type.c_str() : "";
+}
+
+const char* DsonDocument_GetGeometryChannelLabel(DsonDocumentHandle handle, int geomIndex, int channelIndex) {
+    const Dson::GeometryChannel* channel = GetGeometryChannel(handle, geomIndex, channelIndex);
+    return channel ? channel->label.c_str() : "";
+}
+
+const char* DsonDocument_GetGeometryChannelGroup(DsonDocumentHandle handle, int geomIndex, int channelIndex) {
+    const Dson::GeometryChannel* channel = GetGeometryChannel(handle, geomIndex, channelIndex);
+    return channel ? channel->group.c_str() : "";
+}
+
+double DsonDocument_GetGeometryChannelValue(DsonDocumentHandle handle, int geomIndex, int channelIndex) {
+    const Dson::GeometryChannel* channel = GetGeometryChannel(handle, geomIndex, channelIndex);
+    return channel ? channel->value : 0.0;
+}
+
+double DsonDocument_GetGeometryChannelMin(DsonDocumentHandle handle, int geomIndex, int channelIndex) {
+    const Dson::GeometryChannel* channel = GetGeometryChannel(handle, geomIndex, channelIndex);
+    return channel ? channel->min : 0.0;
+}
+
+double DsonDocument_GetGeometryChannelMax(DsonDocumentHandle handle, int geomIndex, int channelIndex) {
+    const Dson::GeometryChannel* channel = GetGeometryChannel(handle, geomIndex, channelIndex);
+    return channel ? channel->max : 0.0;
+}
+
+bool DsonDocument_GetGeometryChannelClamped(DsonDocumentHandle handle, int geomIndex, int channelIndex) {
+    const Dson::GeometryChannel* channel = GetGeometryChannel(handle, geomIndex, channelIndex);
+    return channel ? channel->clamped : false;
+}
+
+double DsonDocument_GetGeometryChannelStepSize(DsonDocumentHandle handle, int geomIndex, int channelIndex) {
+    const Dson::GeometryChannel* channel = GetGeometryChannel(handle, geomIndex, channelIndex);
+    return channel ? channel->step_size : 0.0;
+}
+
+int DsonDocument_GetGeometryChannelFieldPresenceMask(DsonDocumentHandle handle, int geomIndex, int channelIndex) {
+    const Dson::GeometryChannel* channel = GetGeometryChannel(handle, geomIndex, channelIndex);
+    return channel ? static_cast<int>(channel->field_presence) : 0;
+}
+
+int DsonDocument_GetGeometryChannelEnumValueCount(DsonDocumentHandle handle, int geomIndex, int channelIndex) {
+    const Dson::GeometryChannel* channel = GetGeometryChannel(handle, geomIndex, channelIndex);
+    return channel ? static_cast<int>(channel->enum_values.size()) : 0;
+}
+
+const char* DsonDocument_GetGeometryChannelEnumValue(
+    DsonDocumentHandle handle,
+    int geomIndex,
+    int channelIndex,
+    int enumIndex) {
+    const Dson::GeometryChannel* channel = GetGeometryChannel(handle, geomIndex, channelIndex);
+    const std::string* value = channel ? At(channel->enum_values, enumIndex) : nullptr;
+    return value ? value->c_str() : "";
 }
 
 int DsonDocument_GetGeometryMaterialUVAssignmentCount(DsonDocumentHandle handle, int geomIndex) {

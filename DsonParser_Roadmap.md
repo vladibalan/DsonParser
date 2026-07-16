@@ -49,6 +49,14 @@ across 4 audit passes with zero remaining gaps.
 - Geometry rigidity: `GetGeometryHasRigidity` plus
   `GetGeometryRigidity{Weight*,Group*}` — complete raw `geometry.rigidity`
   sparse weights and groups, geometry-local and unevaluated (2.10.0)
+- Subdivision declaration: `GetGeometryType` (the `subdivision_surface` /
+  `polygon_mesh` gate, never defaulted), `GetGeometryEdgeInterpolationMode` /
+  `GetGeometrySubDNormalSmoothingMode`, and `GetGeometryChannel*` — the `extra[]`
+  `studio_geometry_channels` `/General/Mesh Resolution` block (view/render SubD
+  levels, algorithm, edge/normal enums) with a field-presence mask. Raw and
+  unevaluated: no subdivision performed, enum `value` not resolved against
+  `enum_values`, sibling mode strings not reconciled against the look-alike
+  channels (2.19.0)
 
 **Skeleton / Nodes (B)**
 - Full `node_library`: id, name, type, parent

@@ -52,7 +52,10 @@ file* — so it holds for Claude Code, Codex, Cline, or anything else:
 - Performs the code change described.
 - **Builds and verifies** (`msbuild DsonTest2.sln /p:Configuration=Release
   /p:Platform=x64`, plus a `DsonTest2` run where useful) so it can iterate to a
-  clean state. (The Director re-builds independently to confirm.)
+  clean state. (The Director re-builds independently to confirm.) `msbuild` is
+  **not** on `PATH` in a plain shell — resolve it via `vswhere` first; the
+  task-file template below carries the snippet, and [`../CLAUDE.md`](../CLAUDE.md)
+  "Build & test" is the canonical copy.
 - **Self-audits** each edit against `docs/code-review-rules.md` (the Quick
   checklist), per [`../CLAUDE.md`](../CLAUDE.md) "Before editing source".
 - **Writes its report to the feedback-file** using the template below.
@@ -198,6 +201,15 @@ Constraints: follow docs/code-review-rules.md (R1 return-value contract,
 Build & verify: msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64
                 (run the DsonTest2 harness where useful). Iterate to a clean
                 build before reporting.
+                NOTE: `msbuild` is NOT on PATH in a plain shell — it only works
+                inside a "Developer PowerShell for VS". From any shell, resolve it
+                with vswhere (fixed path, any VS edition) and invoke that:
+                  $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+                  $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+                  & $msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64
+                Add /t:Rebuild to clear a stale PCH from a different toolset.
+                Close any running DsonTest2.exe/DsonLoadTest.exe first — a live
+                test exe holds DsonParser.dll open and breaks a rebuild (LNK1104).
 
 Report: write your results to .handoff/feedback-<id>.md using the feedback
         template in docs/agent-workflow.md. On any block — build failure,

@@ -19,3 +19,5 @@ essentials, repeated here so they're never missed:
    /p:Platform=x64`) and report the real result; the Director re-runs that build itself
    to verify the returned change, and the user handles git commits. Report build/run
    results faithfully — never claim a clean build you didn't run.
+   **`msbuild` is not on `PATH`** in a plain shell — resolve it via `vswhere` first;
+   see `CLAUDE.md` "Build & test" for the exact snippet.

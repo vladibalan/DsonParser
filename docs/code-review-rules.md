@@ -139,17 +139,22 @@ In `DsonTypes.cpp`:
 
 ## 7. Build & verification
 
-- **R7.1 — Build and verify.** The Implementer builds its own changes
-  (`msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64`) and reports the
-  real result — errors, warnings, and a `DsonTest2` harness run where useful — in the
-  handoff. Never claim a clean build you didn't actually run; if a build can't be run
-  in your environment, say so and fall back to static review + grep. The Director does
-  not build.
+- **R7.1 — Build and verify (both roles, in sequence).** The **Implementer** builds
+  its own changes (`msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64`;
+  `msbuild` is not on `PATH` — resolve it via `vswhere` first, see
+  [`../CLAUDE.md`](../CLAUDE.md) "Build & test") and reports the real result — errors,
+  warnings, and a `DsonTest2` harness run where useful — in the feedback-file. Never
+  claim a clean build you didn't actually run; if a build can't be run in your
+  environment, say so and fall back to static review + grep. The **Director then re-runs that same build itself** to verify the returned
+  change, alongside `git diff` and this review pass: it confirms the result rather than
+  trusting a self-report. The repo is ground truth and the feedback-file is advisory,
+  so an unsubstantiated "success" is treated as a block. Neither role commits — the
+  user does. See [`agent-workflow.md`](agent-workflow.md).
 - **R7.2 — Build even small changes.** Comment-only or literal-only edits still get
   compiled before handoff — a stray edit can still break the build — and the result is
   stated explicitly.
 - **R7.3** — Files > 500 lines: confirm before reading in full. The two large files
-  are `DsonParserAPI.cpp` (~2.0k) and `DsonTypes.cpp` (~1.2k).
+  are `DsonParserAPI.cpp` (~2.3k) and `DsonTypes.cpp` (~1.4k).
 
 ## 8. How to conduct & report the review
 
@@ -249,7 +254,7 @@ R9.6 requires listing these syncs in the change summary.
 - [ ] Unused value types left in place. (R5.2)
 - [ ] Permissive parsing preserved; new known keys added to `knownKeys`. (R6)
 - [ ] No cross-section merge/override; each section exposed faithfully, consumer interprets. (R6.4)
-- [ ] Did not build; reported for user to compile. (R7)
+- [ ] Build actually run and the real result reported, never claimed unrun — Implementer builds, Director re-builds to confirm. (R7)
 - [ ] Findings enumerate exact functions; completeness grep run family-wide. (R8)
 - [ ] Orientation docs synced with the code change: overview file map, CLAUDE.md table, `orientation:` blocks, this ruleset, roadmap. (R9)
 - [ ] C-ABI surface change: SemVer classified, `DsonParserVersion.h` macros bumped, `@since` + banner updated, `CHANGELOG.md` entry added. (R10)
