@@ -115,23 +115,75 @@ DsonParserAPI.cpp, DsonTypes.h, and CHANGELOG.md. Do not implement; report
 findings + a verdict.
 
 Measure (countable):
-1. Accessor/field ratio. Count exported DsonDocument_* functions in
-   DsonParserAPI.h vs the data-carrying members across the DsonTypes.h structs.
-   Flag if the function count is growing faster than the model (super-linear
-   fan-out). Reference point: ImageLayer is one struct exposed via 14 accessors.
+1. Accessor/field ratio. Numerator = exported DsonDocument_* functions in
+   DsonParserAPI.h. Denominator = data-carrying members across the DsonTypes.h
+   structs. Flag only SUPER-LINEAR growth -- the function count outpacing the
+   model. Reference point: ImageLayer is one struct exposed via 14 accessors.
+   Two traps live in this metric; follow the method rather than improvising.
+   a. Rebuild the whole series from git. Do NOT diff today's ratio against a
+      ratio quoted in a past run. For each commit touching DsonParserVersion.h,
+      read that revision's version string and count BOTH sides at that same
+      revision. The trend is the finding; a lone ratio is not.
+   b. Numerator: count lines matching ^DSONPARSER_API.*\bDsonDocument_ .
+   c. Denominator: count field lines in DsonTypes.h -- but STRIP // comments
+      BEFORE excluding lines containing "(". Many field lines carry comments with
+      parens, so filtering the raw line silently drops them, and the bias GROWS
+      over time (newer fields have wordier comments) -- manufacturing a rising
+      ratio out of nothing. Also exclude enum lines and method declarations.
+      Hand-enumerate a struct or two to cross-check before trusting the series.
+   Known-good anchors (corrected 2026-07-16; these SUPERSEDE any earlier recorded
+   figure): 1.0.0 = 182/119 = 1.53, 1.4.0 = 227/143 = 1.59, 2.5.0 = 1.65 (peak),
+   2.17.0 = 317/200 = 1.58. Since 1.4.0: exports +39.6%, model +39.9% -- linear.
+   If your 2.17.0 denominator is not 200, your field count is wrong; fix it
+   before reading the trend.
+   Trap to know about: the 2026-06-11 run recorded "~229 functions vs ~200 model
+   leaves -> ~1.1:1". The model at 1.4.0 was actually 143, so the true ratio then
+   was 1.59 and the recorded 1.1 is not a valid baseline. ~200 is TODAY's field
+   count, so checking a correct 1.58 against that stale 1.1 shows a fake 45% jump
+   and a false RED. This metric has never trended badly.
 2. Mirrored families. Find leaf-struct accessor families re-emitted under more
    than one parent path for the SAME physically-shared data -- e.g. the per-layer
    compositing family exposed both as DsonDocument_GetSceneMaterialChannelLayer*
    and DsonDocument_GetImageLayer* (both read the one Image::layers stack).
-   EXCLUDE the deliberate library-vs-scene instance pairs (GetMaterial* /
-   GetSceneMaterial*, GetMaterialChannel* / GetSceneMaterialChannel*,
-   GetModifierFormula* / GetSceneModifierFormula*, the Modifier channel-dial
-   pair, the material-groups pair): those mirror the DSON library/instance
-   duality over DIFFERENT data populations and are mandated by the Scene-vs-
-   Library design, not fan-out. Count only genuine same-data mirrors, and list
-   how many surfaces reach each. Baseline 2026-06-11: 1 (ImageLayer).
-3. Max index arity. Find the highest number of index parameters on any accessor
-   (today: 3 -- material, channel, layer). Flag any accessor at 4+.
+   EXCLUDE families that mirror a SCHEMA over DIFFERENT data populations: those
+   are mandated by the Scene-vs-Library design (R6.3) and the no-cross-section-
+   merge rule (R6.4), not symptoms of fan-out. Excluded, do not re-litigate:
+     - The library-vs-scene instance pairs: GetMaterial* / GetSceneMaterial*,
+       GetMaterialChannel* / GetSceneMaterialChannel*, GetModifierFormula* /
+       GetSceneModifierFormula*, the Modifier channel-dial pair, the
+       material-groups pair, and GetModifierParent / GetSceneModifierParent
+       (2.11.0 / 2.17.0).
+     - GetGeometryMaterialUVAssignment* (geometry_library) vs
+       GetSceneNodeShellMaterialUVAssignment* (2.13.0, scene.nodes shell extra):
+       one MaterialUVAssignment leaf, but two independent vectors sourced from
+       two different sections. R6.4 FORBIDS combining them, so two families are
+       required rather than duplicated.
+     - The DSON rigidity_group schema, modeled twice: flattened onto Node as
+       rigid_follow_* (2.8.0, from node extra[]) and as GeometryRigidityGroup
+       (2.10.0, from geometry.rigidity). Same schema, different populations ->
+       not a same-data mirror. Worth NOTING as schema duplication if a third
+       copy ever appears, but it does not count toward this metric.
+   Count only genuine same-data mirrors, and list how many surfaces reach each.
+   Baseline 2026-06-11: 1 (ImageLayer). Re-confirmed 2026-07-16 @ 2.17.0: still
+   1 -- no library-side GetMaterialChannelLayer* exists.
+3. Index arity vs data depth. Fan-out shows up as an index the DATA does not
+   justify -- not as depth the DSON genuinely has. For the highest-arity
+   accessors, compare each one's index count against the nesting depth of the
+   DSON structure it reads, and flag only an accessor whose arity EXCEEDS that
+   depth (an extra index existing because the flat ABI re-emits a leaf under an
+   additional parent path). Count index parameters only: an int that configures
+   rather than indexes does not count -- GetVertexBoneInfluenceCapped's
+   maxInfluences makes it 3 indices, not 4.
+   SANCTIONED, do not re-flag: Get{Modifier,SceneModifier}FormulaOperationVal-
+   ArrayElement sits at 4 (modifier -> formula -> operation -> val_array element,
+   @since 2.1.0) because the DSON is genuinely 4 deep. No ABI shape removes an
+   index there, and a POD return cannot carry the variable-length val_array, so
+   the struct remedy does NOT apply -- a bulk accessor is the shape if it ever
+   hurts. (This criterion previously read "flag any accessor at 4+", which fired
+   on that irreducible nesting from 2.1.0 onward and could never be actioned.)
+   Baseline 2026-07-16 @ 2.17.0: max sanctioned arity 4; ZERO accessors exceed
+   their data's depth. A 5-index accessor degrades caller ergonomics regardless
+   of nesting, so it stays a backstop trigger in the verdict below.
 
 Judge (qualitative):
 4. R1 slips on the newest accessors. For the most recently added families, check
@@ -146,10 +198,13 @@ Judge (qualitative):
    CHANGELOG.md and the source.)
 
 Verdict (recurrence, not magnitude, is the trigger):
-- GREEN: no mirrored family beyond the one known (layer compositing), max arity
-  <= 3, no R1-slip cluster on new accessors.
-- YELLOW: a SECOND leaf family gets hand-mirrored across surfaces, OR an accessor
-  reaches 4 indices, OR R1 slips recur on new accessors.
+- GREEN: no mirrored family beyond the one known (layer compositing), no accessor
+  whose index arity exceeds the depth of the DSON it reads, no R1-slip cluster on
+  new accessors.
+- YELLOW: a SECOND leaf family gets hand-mirrored across surfaces, OR an
+  accessor's index arity exceeds the depth of the DSON it reads, OR any accessor
+  reaches 5 indices (backstop -- sanctioned nesting or not), OR R1 slips recur on
+  new accessors.
 - RED: multiple newly mirrored families / pervasive fan-out across the surface.
 
 If YELLOW/RED and the cause is leaf-heavy structs reached from multiple paths,

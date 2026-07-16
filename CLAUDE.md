@@ -90,10 +90,10 @@ breaking-change rules are most often broken by "minor" tweaks.
 | --- | --- |
 | `DsonParser/DsonDataTypes.{h,cpp}` | Primitive JSON-backed value wrappers (`String`, `Vector3`, `FloatArray`, `IntArray`, `Url`, sparse `IndexedArray<T>`). |
 | `DsonParser/DsonTypes.h` | Typed DSON model structs (assets, nodes, geometry, materials, skin, modifiers, images, UV sets, scene, root document). |
-| `DsonParser/DsonTypes.cpp` | Main parser: RapidJSON → `Dson::*` model + post-parse image linkage. (~1525 lines) |
+| `DsonParser/DsonTypes.cpp` | Main parser: RapidJSON → `Dson::*` model + post-parse image linkage. (~1395 lines) |
 | `DsonParser/DsonHelpers.{h,cpp}` | Safe RapidJSON accessor helpers (`JsonHelper`). Declarations in `.h`, implementations in `.cpp`. |
 | `DsonParser/DsonInflate.{h,cpp}` | Internal dependency-free gzip/DEFLATE inflater used by the loader; verifies CRC32 and ISIZE before JSON parsing (a blank all-zero trailer is accepted on a clean inflate — DAZ-compat). |
-| `DsonParser/DsonParserAPI.{h,cpp}` | Flat `extern "C"` C ABI: opaque handles, parser-owned string returns, bounds-checked accessors, lazy query caches. (`.cpp` ~2565 lines) |
+| `DsonParser/DsonParserAPI.{h,cpp}` | Flat `extern "C"` C ABI: opaque handles, parser-owned string returns, bounds-checked accessors, lazy query caches. (`.cpp` ~2320 lines) |
 | `DsonParser/DsonParserVersion.h` | Canonical single-source-of-truth library version macros (`DSONPARSER_VERSION_*`); published with and included by `DsonParserAPI.h`. Backs `DsonParser_GetVersion()`. |
 | `DsonTest2/DsonTest2.cpp` | Console test harness that exercises the C API (load-time-links `DsonParser.lib`). |
 | `DsonLoadTest/DsonLoadTest.cpp` | Standalone dynamic-load regression test: loads `DsonParser.dll` at runtime via `LoadLibrary`/`GetProcAddress` (no `.lib` link), with worker threads started *before* the load, to verify the 1.6.0 per-thread last-error contract under the consumer's real (dynamic) load model. |

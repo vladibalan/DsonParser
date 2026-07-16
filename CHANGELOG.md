@@ -11,6 +11,73 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.18.0 — 2026-07-16 · MINOR (added)
+
+Exposes, per `node_library` node, each authored transform channel's `id`, `label`,
+`min`, `max`, and `clamped` — for **translation, rotation, and scale** — verbatim
+and in source order, plus a field-presence mask. Every node authors its
+`translation[]`/`rotation[]`/`scale[]` as arrays of channel objects, but the parser
+read only the *value* off each one: the limits reached no accessor, were not
+derivable from any exposed section, and were invisible even to the unknown-key
+audit trail (which walks only an object's top-level keys, so per-channel keys
+inside array elements never surfaced) — a clean audit report could not have caught
+the gap. Motivated by a consuming importer that publishes DAZ-authored joint limits
+onto its rig recipe; a `USkeleton` has nowhere to hold them and nothing else on the
+published surface implies them.
+
+**Presence is load-bearing, not a nicety.** Measured across the installed Genesis 9
+base (139 nodes, 1251 channels): `clamped` is authored `false` **zero** times — 800
+authored `true`, 451 absent — and scale never authors it at all (0 of 417). A getter
+defaulting absent → `false` would therefore fabricate a value DAZ never writes, on
+36% of all channels. `min`/`max` are authored on 100% of channels, but `0.0` is a
+legitimate reading (103 rotation channels are genuinely locked `0..0`), so a
+`0.0`-for-absent return would be indistinguishable from a real locked joint. Query
+the mask before interpreting any of the three.
+
+Faithful/unevaluated passthrough (R6.4): no clamping applied, no axis or engine
+resolution, no cross-section merge, and **no filtering** — locked (`0..0`) and
+unbounded channels are reported as authored, because classifying a range as a "real"
+constraint is the consumer's judgment. Scale on the G9 base is uniformly
+`-10000..10000` with `clamped` absent (a DAZ placeholder carrying no information);
+it ships reported-as-authored rather than suppressed, since deciding otherwise would
+be interpretation. Scope: `node_library` only — the shared `Dson::Node` parse
+co-populates `scene.nodes` instances, but no scene-family accessor ships (no need
+landed). No per-channel `value` accessor: `GetNodeTranslation|Rotation|Scale{X,Y,Z}`
+already publish that same data. The channels' `name`/`type`/`step_size`/`visible`
+are not exposed. No `knownKeys` change (`translation`/`rotation`/`scale` were
+already known). Purely additive: all existing symbols and behavior are unchanged.
+Sentinels follow the R1 family contract: count → `0`, string → `""`, numeric →
+`0.0`, bool → `false`, mask → `0`.
+
+Verified against the installed Genesis 9 base through the built DLL: the per-mask
+census reproduces an independent JSON walk exactly (rotation 414 authored / 3
+absent, translation 386 / 31, scale 0 / 417); `l_thigh` reads `Bend -115..35`,
+`Twist -75..75`, `Side-Side -24..90`, all clamped; the `type=figure` root and every
+scale channel report mask `3` (min|max authored, clamped absent).
+
++ DSONPARSER_CHANNEL_FIELD_MIN / _MAX / _CLAMPED — field-presence mask bits (`0x1u` / `0x2u` / `0x4u`) OR-ed by the `…ChannelFieldPresenceMask` family
++ DsonDocument_GetNodeTranslationChannelCount — number of authored translation channel objects on one node; `0` on invalid handle/index (a plain `[x,y,z]` numeric array authors no channels)
++ DsonDocument_GetNodeTranslationChannelId — one channel's authored `id` verbatim (e.g. `"x"`); `""` when absent or invalid
++ DsonDocument_GetNodeTranslationChannelLabel — one channel's authored `label` (e.g. `"X Translate"`); `""` when absent or invalid
++ DsonDocument_GetNodeTranslationChannelMin — one channel's authored `min`; `0.0` on invalid and also a legitimate value — gate on the MIN mask bit
++ DsonDocument_GetNodeTranslationChannelMax — one channel's authored `max`; `0.0` on invalid and also a legitimate value — gate on the MAX mask bit
++ DsonDocument_GetNodeTranslationChannelClamped — one channel's authored `clamped`; `false` on invalid or absent — gate on the CLAMPED mask bit
++ DsonDocument_GetNodeTranslationChannelFieldPresenceMask — which of min/max/clamped the channel authored; `0` on invalid or nothing authored
++ DsonDocument_GetNodeRotationChannelCount — number of authored rotation channel objects on one node; `0` on invalid handle/index
++ DsonDocument_GetNodeRotationChannelId — one channel's authored `id` verbatim; `""` when absent or invalid
++ DsonDocument_GetNodeRotationChannelLabel — one channel's authored `label` (e.g. `"Bend"`, `"Twist"`); `""` when absent or invalid. Authored labels are semantic and open-ended — the G9 base alone uses 8 distinct values, so treat this as a verbatim string, never an enum
++ DsonDocument_GetNodeRotationChannelMin — one channel's authored `min`; `0.0` on invalid and also a legitimate value — gate on the MIN mask bit
++ DsonDocument_GetNodeRotationChannelMax — one channel's authored `max`; `0.0` on invalid and also a legitimate value — gate on the MAX mask bit
++ DsonDocument_GetNodeRotationChannelClamped — one channel's authored `clamped`; `false` on invalid or absent — gate on the CLAMPED mask bit
++ DsonDocument_GetNodeRotationChannelFieldPresenceMask — which of min/max/clamped the channel authored; `0` on invalid or nothing authored
++ DsonDocument_GetNodeScaleChannelCount — number of authored scale channel objects on one node; `0` on invalid handle/index
++ DsonDocument_GetNodeScaleChannelId — one channel's authored `id` verbatim; `""` when absent or invalid
++ DsonDocument_GetNodeScaleChannelLabel — one channel's authored `label` (e.g. `"X Scale"`); `""` when absent or invalid
++ DsonDocument_GetNodeScaleChannelMin — one channel's authored `min`; `0.0` on invalid and also a legitimate value — gate on the MIN mask bit
++ DsonDocument_GetNodeScaleChannelMax — one channel's authored `max`; `0.0` on invalid and also a legitimate value — gate on the MAX mask bit
++ DsonDocument_GetNodeScaleChannelClamped — one channel's authored `clamped`; `false` on invalid or absent — gate on the CLAMPED mask bit. Not authored anywhere on the G9 base, so this reads `false` for every scale channel there — the mask is the only way to know it was never authored
++ DsonDocument_GetNodeScaleChannelFieldPresenceMask — which of min/max/clamped the channel authored; `0` on invalid or nothing authored
+
 ## 2.17.0 — 2026-07-11 · MINOR (added)
 
 Exposes three raw scene-instance fields the parser was already reading (or is

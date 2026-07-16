@@ -11,8 +11,8 @@
 // Modifier, Image, UVSet, scene instances) and the root DsonDocument that owns
 // them. These compose the primitive wrappers from DsonDataTypes.h. Parsing
 // logic lives in DsonTypes.cpp; Node and Geometry retain their own authored
-// material-to-UV assignments, while Geometry also includes raw graft and
-// rigidity data.
+// material-to-UV assignments and authored transform-channel metadata, while
+// Geometry also includes raw graft and rigidity data.
 // The C ABI over this model is in DsonParserAPI.
 //
 // Internal header — NOT part of the public surface. Consumers use the C ABI in
@@ -57,6 +57,20 @@ struct MaterialUVAssignment {
     std::string uv_set_name;
 };
 
+// One authored transform channel: an element of a node's translation[]/
+// rotation[]/scale[] array. Raw, unevaluated passthrough (R6.4) - no clamping
+// applied, no axis resolution, no judgment about whether a range is "real".
+// DAZ authors id/label/min/max on every channel; `clamped` only sometimes, and
+// never as false in measured files - so presence is the only signal it carries.
+struct NodeTransformChannel {
+    std::string id;                   // channel "id" ("x"/"y"/"z"), verbatim
+    std::string label;                // channel "label" ("Bend", "X Scale"); "" if absent
+    double min = 0.0;                 // "min"; meaningful only when the MIN bit is set
+    double max = 0.0;                 // "max"; meaningful only when the MAX bit is set
+    bool clamped = false;             // "clamped"; meaningful only when the CLAMPED bit is set
+    unsigned int field_presence = 0;  // authored fields: MIN=0x1, MAX=0x2, CLAMPED=0x4
+};
+
 // Node in scene hierarchy
 struct Node {
     String id;
@@ -70,6 +84,9 @@ struct Node {
     unsigned int translation_presence = 0; // authored numeric components: X=1, Y=2, Z=4
     Vector3 rotation;
     unsigned int rotation_presence = 0;    // authored numeric components: X=1, Y=2, Z=4
+    std::vector<NodeTransformChannel> translation_channels; // source order
+    std::vector<NodeTransformChannel> rotation_channels;    // source order
+    std::vector<NodeTransformChannel> scale_channels;       // source order
     Vector3 scale;
     unsigned int scale_presence = 0;       // authored numeric components: X=1, Y=2, Z=4
     double general_scale = 1.0;

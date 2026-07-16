@@ -427,6 +427,77 @@ static double GetSceneNodeVector3Component(
     return GetVector3Component(node->*member, component);
 }
 
+static const Dson::NodeTransformChannel* GetNodeTransformChannel(
+    DsonDocumentHandle handle,
+    int nodeIndex,
+    const std::vector<Dson::NodeTransformChannel> Dson::Node::* member,
+    int channelIndex) {
+    const Dson::Node* node = GetLibraryNode(handle, nodeIndex);
+    return node ? At(node->*member, channelIndex) : nullptr;
+}
+
+static int GetNodeTransformChannelCount(
+    DsonDocumentHandle handle,
+    int nodeIndex,
+    const std::vector<Dson::NodeTransformChannel> Dson::Node::* member) {
+    const Dson::Node* node = GetLibraryNode(handle, nodeIndex);
+    return node ? static_cast<int>((node->*member).size()) : 0;
+}
+
+static const char* GetNodeTransformChannelId(
+    DsonDocumentHandle handle,
+    int nodeIndex,
+    const std::vector<Dson::NodeTransformChannel> Dson::Node::* member,
+    int channelIndex) {
+    const Dson::NodeTransformChannel* channel = GetNodeTransformChannel(handle, nodeIndex, member, channelIndex);
+    return channel ? channel->id.c_str() : "";
+}
+
+static const char* GetNodeTransformChannelLabel(
+    DsonDocumentHandle handle,
+    int nodeIndex,
+    const std::vector<Dson::NodeTransformChannel> Dson::Node::* member,
+    int channelIndex) {
+    const Dson::NodeTransformChannel* channel = GetNodeTransformChannel(handle, nodeIndex, member, channelIndex);
+    return channel ? channel->label.c_str() : "";
+}
+
+static double GetNodeTransformChannelMin(
+    DsonDocumentHandle handle,
+    int nodeIndex,
+    const std::vector<Dson::NodeTransformChannel> Dson::Node::* member,
+    int channelIndex) {
+    const Dson::NodeTransformChannel* channel = GetNodeTransformChannel(handle, nodeIndex, member, channelIndex);
+    return channel ? channel->min : 0.0;
+}
+
+static double GetNodeTransformChannelMax(
+    DsonDocumentHandle handle,
+    int nodeIndex,
+    const std::vector<Dson::NodeTransformChannel> Dson::Node::* member,
+    int channelIndex) {
+    const Dson::NodeTransformChannel* channel = GetNodeTransformChannel(handle, nodeIndex, member, channelIndex);
+    return channel ? channel->max : 0.0;
+}
+
+static bool GetNodeTransformChannelClamped(
+    DsonDocumentHandle handle,
+    int nodeIndex,
+    const std::vector<Dson::NodeTransformChannel> Dson::Node::* member,
+    int channelIndex) {
+    const Dson::NodeTransformChannel* channel = GetNodeTransformChannel(handle, nodeIndex, member, channelIndex);
+    return channel ? channel->clamped : false;
+}
+
+static int GetNodeTransformChannelFieldPresenceMask(
+    DsonDocumentHandle handle,
+    int nodeIndex,
+    const std::vector<Dson::NodeTransformChannel> Dson::Node::* member,
+    int channelIndex) {
+    const Dson::NodeTransformChannel* channel = GetNodeTransformChannel(handle, nodeIndex, member, channelIndex);
+    return channel ? static_cast<int>(channel->field_presence) : 0;
+}
+
 static int GetSceneNodePresenceMask(
     DsonDocumentHandle handle,
     int sceneNodeIndex,
@@ -1968,6 +2039,90 @@ double DsonDocument_GetNodeGeneralScale(DsonDocumentHandle handle, int nodeIndex
     Dson::DsonDocument* doc = Doc(handle);
     const Dson::Node* node = doc ? At(doc->nodes, nodeIndex) : nullptr;
     return node ? node->general_scale : 1.0;
+}
+
+int DsonDocument_GetNodeTranslationChannelCount(DsonDocumentHandle handle, int nodeIndex) {
+    return GetNodeTransformChannelCount(handle, nodeIndex, &Dson::Node::translation_channels);
+}
+
+const char* DsonDocument_GetNodeTranslationChannelId(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelId(handle, nodeIndex, &Dson::Node::translation_channels, channelIndex);
+}
+
+const char* DsonDocument_GetNodeTranslationChannelLabel(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelLabel(handle, nodeIndex, &Dson::Node::translation_channels, channelIndex);
+}
+
+double DsonDocument_GetNodeTranslationChannelMin(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelMin(handle, nodeIndex, &Dson::Node::translation_channels, channelIndex);
+}
+
+double DsonDocument_GetNodeTranslationChannelMax(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelMax(handle, nodeIndex, &Dson::Node::translation_channels, channelIndex);
+}
+
+bool DsonDocument_GetNodeTranslationChannelClamped(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelClamped(handle, nodeIndex, &Dson::Node::translation_channels, channelIndex);
+}
+
+int DsonDocument_GetNodeTranslationChannelFieldPresenceMask(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelFieldPresenceMask(handle, nodeIndex, &Dson::Node::translation_channels, channelIndex);
+}
+
+int DsonDocument_GetNodeRotationChannelCount(DsonDocumentHandle handle, int nodeIndex) {
+    return GetNodeTransformChannelCount(handle, nodeIndex, &Dson::Node::rotation_channels);
+}
+
+const char* DsonDocument_GetNodeRotationChannelId(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelId(handle, nodeIndex, &Dson::Node::rotation_channels, channelIndex);
+}
+
+const char* DsonDocument_GetNodeRotationChannelLabel(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelLabel(handle, nodeIndex, &Dson::Node::rotation_channels, channelIndex);
+}
+
+double DsonDocument_GetNodeRotationChannelMin(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelMin(handle, nodeIndex, &Dson::Node::rotation_channels, channelIndex);
+}
+
+double DsonDocument_GetNodeRotationChannelMax(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelMax(handle, nodeIndex, &Dson::Node::rotation_channels, channelIndex);
+}
+
+bool DsonDocument_GetNodeRotationChannelClamped(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelClamped(handle, nodeIndex, &Dson::Node::rotation_channels, channelIndex);
+}
+
+int DsonDocument_GetNodeRotationChannelFieldPresenceMask(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelFieldPresenceMask(handle, nodeIndex, &Dson::Node::rotation_channels, channelIndex);
+}
+
+int DsonDocument_GetNodeScaleChannelCount(DsonDocumentHandle handle, int nodeIndex) {
+    return GetNodeTransformChannelCount(handle, nodeIndex, &Dson::Node::scale_channels);
+}
+
+const char* DsonDocument_GetNodeScaleChannelId(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelId(handle, nodeIndex, &Dson::Node::scale_channels, channelIndex);
+}
+
+const char* DsonDocument_GetNodeScaleChannelLabel(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelLabel(handle, nodeIndex, &Dson::Node::scale_channels, channelIndex);
+}
+
+double DsonDocument_GetNodeScaleChannelMin(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelMin(handle, nodeIndex, &Dson::Node::scale_channels, channelIndex);
+}
+
+double DsonDocument_GetNodeScaleChannelMax(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelMax(handle, nodeIndex, &Dson::Node::scale_channels, channelIndex);
+}
+
+bool DsonDocument_GetNodeScaleChannelClamped(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelClamped(handle, nodeIndex, &Dson::Node::scale_channels, channelIndex);
+}
+
+int DsonDocument_GetNodeScaleChannelFieldPresenceMask(DsonDocumentHandle handle, int nodeIndex, int channelIndex) {
+    return GetNodeTransformChannelFieldPresenceMask(handle, nodeIndex, &Dson::Node::scale_channels, channelIndex);
 }
 
 // ============================================================

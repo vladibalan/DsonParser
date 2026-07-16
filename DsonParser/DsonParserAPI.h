@@ -12,6 +12,9 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.18.0: DsonDocument_GetNode{Translation,Rotation,Scale}Channel*
+//   expose node_library transform channel id/label/min/max/clamped plus field
+//   presence masks, faithfully in source order.
 // What's new in 2.17.0: DsonDocument_GetSceneNodeConformTarget (scene.nodes conform_target —
 //   fitted figure root's "Fit To" target URL, distinct from parent); GetSceneModifierParent
 //   (scene.modifiers parent URL); GetSceneModifierChannelValueKind /
@@ -118,6 +121,14 @@ typedef void* DsonDocumentHandle;
 #define DSONPARSER_VECTOR_COMPONENT_X 0x1u
 #define DSONPARSER_VECTOR_COMPONENT_Y 0x2u
 #define DSONPARSER_VECTOR_COMPONENT_Z 0x4u
+
+// Bits returned by node transform channel field-presence masks. Min/max zero
+// and clamped false are legitimate authored values; use the mask to distinguish
+// authored fields from absence or invalid input.
+// @since 2.18.0
+#define DSONPARSER_CHANNEL_FIELD_MIN     0x1u
+#define DSONPARSER_CHANNEL_FIELD_MAX     0x2u
+#define DSONPARSER_CHANNEL_FIELD_CLAMPED 0x4u
 
 // Create a new DSON document
 DSONPARSER_API DsonDocumentHandle DsonDocument_Create();
@@ -542,6 +553,48 @@ DSONPARSER_API double      DsonDocument_GetNodeScaleX(DsonDocumentHandle handle,
 DSONPARSER_API double      DsonDocument_GetNodeScaleY(DsonDocumentHandle handle, int nodeIndex);
 DSONPARSER_API double      DsonDocument_GetNodeScaleZ(DsonDocumentHandle handle, int nodeIndex);
 DSONPARSER_API double      DsonDocument_GetNodeGeneralScale(DsonDocumentHandle handle, int nodeIndex);
+// @since 2.18.0
+DSONPARSER_API int         DsonDocument_GetNodeTranslationChannelCount(DsonDocumentHandle handle, int nodeIndex);
+// @since 2.18.0
+DSONPARSER_API const char* DsonDocument_GetNodeTranslationChannelId(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API const char* DsonDocument_GetNodeTranslationChannelLabel(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API double      DsonDocument_GetNodeTranslationChannelMin(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API double      DsonDocument_GetNodeTranslationChannelMax(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API bool        DsonDocument_GetNodeTranslationChannelClamped(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API int         DsonDocument_GetNodeTranslationChannelFieldPresenceMask(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API int         DsonDocument_GetNodeRotationChannelCount(DsonDocumentHandle handle, int nodeIndex);
+// @since 2.18.0
+DSONPARSER_API const char* DsonDocument_GetNodeRotationChannelId(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API const char* DsonDocument_GetNodeRotationChannelLabel(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API double      DsonDocument_GetNodeRotationChannelMin(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API double      DsonDocument_GetNodeRotationChannelMax(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API bool        DsonDocument_GetNodeRotationChannelClamped(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API int         DsonDocument_GetNodeRotationChannelFieldPresenceMask(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API int         DsonDocument_GetNodeScaleChannelCount(DsonDocumentHandle handle, int nodeIndex);
+// @since 2.18.0
+DSONPARSER_API const char* DsonDocument_GetNodeScaleChannelId(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API const char* DsonDocument_GetNodeScaleChannelLabel(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API double      DsonDocument_GetNodeScaleChannelMin(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API double      DsonDocument_GetNodeScaleChannelMax(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API bool        DsonDocument_GetNodeScaleChannelClamped(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
+// @since 2.18.0
+DSONPARSER_API int         DsonDocument_GetNodeScaleChannelFieldPresenceMask(DsonDocumentHandle handle, int nodeIndex, int channelIndex);
 
 // ---- C. Skin Weights ----
 // modifierIndex is an index into the full modifier library (same as GetModifierId etc.)

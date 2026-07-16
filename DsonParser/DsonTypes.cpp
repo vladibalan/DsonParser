@@ -153,28 +153,61 @@ static bool GetImageMapPath(const rapidjson::Value& mapVal, std::string& path) {
 // channel objects [{id:"x",value:..}, ...] (the DSF node format) into a Vector3.
 // When requested, retain which final components were authored numerically;
 // explicit zero is present, while a missing or non-numeric value is absent.
+// When requested, also retain object-channel metadata in source order. Plain
+// numeric arrays author no channels.
 static void ParseTransformVector3(const rapidjson::Value& arr, Vector3& out,
-                                  unsigned int* presenceMask = nullptr) {
+                                  unsigned int* presenceMask = nullptr,
+                                  std::vector<NodeTransformChannel>* outChannels = nullptr) {
     if (!arr.IsArray()) {
         return;
     }
     if (presenceMask) {
         *presenceMask = 0;
     }
+    if (outChannels) {
+        outChannels->reserve(outChannels->size() + arr.Size());
+    }
     for (rapidjson::SizeType i = 0; i < arr.Size(); i++) {
         const rapidjson::Value& el = arr[i];
         double val = 0.0;
         bool hasNumericValue = false;
         int component = -1;
+        std::string id;
         if (el.IsObject()) {
             const char* valKey = el.HasMember("current_value") ? "current_value" : "value";
             val = JsonHelper::GetDoubleOrDefault(el, valKey, 0.0);
             auto valIt = el.FindMember(valKey);
             hasNumericValue = valIt != el.MemberEnd() && valIt->value.IsNumber();
-            std::string id = JsonHelper::GetStringOrDefault(el, "id");
+            id = JsonHelper::GetStringOrDefault(el, "id");
             if (id == "x") component = 0;
             else if (id == "y") component = 1;
             else if (id == "z") component = 2;
+
+            if (outChannels) {
+                NodeTransformChannel channel;
+                channel.id = id;
+                channel.label = JsonHelper::GetStringOrDefault(el, "label");
+
+                auto minIt = el.FindMember("min");
+                if (minIt != el.MemberEnd() && minIt->value.IsNumber()) {
+                    channel.min = minIt->value.GetDouble();
+                    channel.field_presence |= 0x1u;
+                }
+
+                auto maxIt = el.FindMember("max");
+                if (maxIt != el.MemberEnd() && maxIt->value.IsNumber()) {
+                    channel.max = maxIt->value.GetDouble();
+                    channel.field_presence |= 0x2u;
+                }
+
+                auto clampedIt = el.FindMember("clamped");
+                if (clampedIt != el.MemberEnd() && clampedIt->value.IsBool()) {
+                    channel.clamped = clampedIt->value.GetBool();
+                    channel.field_presence |= 0x4u;
+                }
+
+                outChannels->push_back(channel);
+            }
         } else if (el.IsNumber()) {
             val = el.GetDouble();
             hasNumericValue = true;
@@ -326,18 +359,18 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
 
     const rapidjson::Value* transArray = nullptr;
     if (JsonHelper::GetArray(json, "translation", transArray)) {
-        ParseTransformVector3(*transArray, translation, &translation_presence);
+        ParseTransformVector3(*transArray, translation, &translation_presence, &translation_channels);
     }
 
     const rapidjson::Value* rotArray = nullptr;
     if (JsonHelper::GetArray(json, "rotation", rotArray)) {
-        ParseTransformVector3(*rotArray, rotation, &rotation_presence);
+        ParseTransformVector3(*rotArray, rotation, &rotation_presence, &rotation_channels);
     }
 
     scale.x = scale.y = scale.z = 1.0; // default to identity scale
     const rapidjson::Value* scaleArray = nullptr;
     if (JsonHelper::GetArray(json, "scale", scaleArray)) {
-        ParseTransformVector3(*scaleArray, scale, &scale_presence);
+        ParseTransformVector3(*scaleArray, scale, &scale_presence, &scale_channels);
     }
 
     const rapidjson::Value* gsObj = nullptr;

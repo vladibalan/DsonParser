@@ -101,7 +101,33 @@ current loader scope.
   parent, URL, translation, rotation, scale, general scale, center/end points,
   orientation, rotation order, and the item's `presentation` content type +
   label (`DsonDocument_GetNodePresentationType`/`…Label`; see Asset Catalog
-  Metadata below). For a **rigid-follow** node — a DAZ rigid-follow gem/attachment
+  Metadata below).
+
+  A node's `translation[]` / `rotation[]` / `scale[]` are additionally retained as
+  **authored transform channels** — per channel the verbatim `id`, `label`, `min`,
+  `max`, `clamped`, and a field-presence mask — exposed by
+  `DsonDocument_GetNode{Translation,Rotation,Scale}Channel{Count,Id,Label,Min,Max,Clamped,FieldPresenceMask}`
+  (since 2.18.0). These sit beside the existing
+  `GetNode{Translation,Rotation,Scale}{X,Y,Z}` value accessors, which are unchanged
+  and remain the only read of a channel's *value* — the channel family deliberately
+  does not re-expose it. **Presence is the contract:** DAZ authors `clamped` only
+  sometimes and never as `false` (Genesis 9 base: 800 authored `true`, 451 absent —
+  and scale never authors it at all), while `min`/`max` are always authored but
+  legitimately `0..0` on a locked joint. So `Min`/`Max`/`Clamped` are meaningful only
+  when the matching `DSONPARSER_CHANNEL_FIELD_{MIN,MAX,CLAMPED}` bit is set — `0.0`
+  and `false` are each both the invalid sentinel *and* a legitimate reading; query
+  the mask first. Faithful passthrough (R6.4): channels stay in source order, and
+  nothing is clamped, resolved onto engine axes, or filtered — a locked or unbounded
+  channel is reported as authored, because classifying a range as a "real" constraint
+  is the consumer's judgment. Read from `node_library`: the shared `Node` parse
+  co-populates `scene.nodes` instances, but no scene-family accessor is published. A
+  plain `[x,y,z]` numeric transform array authors no channels (`Count` → 0). Note the
+  per-channel keys (`min`/`max`/`clamped`/`label`, and the unmodeled
+  `name`/`type`/`step_size`/`visible`) live inside array elements, which
+  `TrackUnknownKeys` does not walk — they never appear in the unknown-key trail, so a
+  clean audit report says nothing about them either way.
+
+  For a **rigid-follow** node — a DAZ rigid-follow gem/attachment
   whose `extra[]` carries a `studio/node/rigid_follow` entry with an inline
   `rigidity_group` (a fixed reference-vertex patch on a followed mesh it rides
   rigidly) — the group's raw reference-vertex indices, `rotation_mode`, and
