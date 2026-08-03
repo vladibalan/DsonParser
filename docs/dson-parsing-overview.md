@@ -185,8 +185,28 @@ current loader scope.
   sentinel and a legitimate value, so gate on `IsPush`). `GetModifierParent`
   addresses that same raw modifier index and returns the parent URL verbatim, so
   a consumer can match each push to its target geometry by fragment; the parser
-  does not resolve or join the reference (R6.4). A modifier's `extra[]` is otherwise
-  unmodeled.
+  does not resolve or join the reference (R6.4). A modifier's `extra[]` block of
+  `"type":"studio_modifier_channels"` — every wrapped `channel` in source order —
+  is exposed by `DsonDocument_GetModifierExtraChannel{Count,Id,Type,Label,Group,
+  Value,Min,Max,Clamped,StepSize,FieldPresenceMask,EnumValueCount,EnumValue}`,
+  addressed by `(modifierIndex, channelIndex)` on the same raw `modifier_library`
+  index space as `GetModifierId` (since 2.21.0). It is the structural sibling of
+  the `GetGeometryChannel*` family (it reuses the same wrapper parser and carrier),
+  with **one deliberate divergence**: `…ExtraChannelValue` returns the channel's
+  **effective** value — `current_value`, falling back to `value` only when
+  `current_value` is absent — whereas `GetGeometryChannelValue` returns the raw
+  `value`. This is load-bearing for dForce Strand-Based-Hair generation settings
+  (the `DZ__SPS_<group>` modifiers), where `PreRender Hairs Per Guide` is authored
+  `value:0` / `current_value:24`: returning `value` would read a per-group density
+  of `0` and generate no hair. The shared field-presence mask is **unchanged** — it
+  still reports only `value`/`min`/`max`/`clamped`/`step_size` presence (there is no
+  `current_value` bit), so the 2.19.0 geometry-channel mask stays byte-identical.
+  Faithful passthrough (R6.4): blocks are matched on `type` and appended in authored
+  order, an enum's `value` is not resolved against `enum_values`, and each wrapper's
+  `presentation` and other siblings stay unmodeled. Every channel in the block is
+  exposed (the whole simulation channel list, not just the generation params).
+  Sentinels follow the R1 family contract: counts/mask → `0`, strings → `""`,
+  numerics → `0.0`, bool → `false`.
 
 `image_library`
 : Parsed into `Image`. Captures id, name, URL, map file/path, and the `map_size` pixel dimensions

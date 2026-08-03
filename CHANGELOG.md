@@ -11,6 +11,61 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.21.0 -- 2026-08-03 - MINOR (added)
+
+Exposes, per raw `modifier_library` modifier, every `extra[]`
+`studio_modifier_channels` channel in source order. This is the structural sibling
+of the 2.19.0 `GetGeometryChannel*` family, but it serves a different DAZ payload:
+dForce Strand-Based-Hair generation settings such as children-per-guide, scatter
+radius, tip separation, and generation mode. Those authored settings live only in
+the modifier's extra-channel block, not on the top-level modifier channel.
+
+The load-bearing semantic deliberately diverges from
+`DsonDocument_GetGeometryChannelValue`: modifier extra-channel `Value` returns
+`current_value` when authored, falling back to `value` only when `current_value`
+is absent. DAZ can author both with different values, and the effective
+`current_value` is the user's/product author's real setting. Geometry channels
+continue to return raw `value` byte-identically.
+
+Faithful/unevaluated passthrough (R6.4): blocks are matched by
+`"type":"studio_modifier_channels"`, every matching block appends in authored
+order, wrapper `group` is retained as a sibling of `channel`, enum `value` is not
+resolved against `enum_values`, and no presentation data or cross-section merge is
+performed. The shared channel field-presence mask is unchanged: it still reports
+only value/min/max/clamped/step_size bits, with no `current_value` bit, so the
+2.19.0 geometry mask contract remains byte-identical. Purely additive: all
+existing symbols, signatures, sentinels, and behavior are unchanged.
+
++ DsonDocument_GetModifierExtraChannelCount - number of `studio_modifier_channels`
+  entries on one raw `modifier_library` modifier, appended across every matching
+  `extra[]` block in authored order; `0` on invalid handle/index or no block
++ DsonDocument_GetModifierExtraChannelId - one channel's authored `id` verbatim;
+  `""` when absent or invalid
++ DsonDocument_GetModifierExtraChannelType - one channel's authored `type`
+  verbatim (`"int"`, `"float"`, `"enum"`, etc.); `""` when absent or invalid
++ DsonDocument_GetModifierExtraChannelLabel - one channel's authored `label`;
+  `""` when absent or invalid
++ DsonDocument_GetModifierExtraChannelGroup - the wrapper's authored `group`, a
+  sibling of the channel object; `""` when absent or invalid
++ DsonDocument_GetModifierExtraChannelValue - one channel's effective authored
+  numeric value: `current_value -> value`. This intentionally diverges from
+  `GetGeometryChannelValue`, which keeps returning raw `value`
++ DsonDocument_GetModifierExtraChannelMin - one channel's authored `min`; `0.0`
+  on invalid or absent, so gate on the MIN mask bit
++ DsonDocument_GetModifierExtraChannelMax - one channel's authored `max`; `0.0`
+  on invalid or absent, so gate on the MAX mask bit
++ DsonDocument_GetModifierExtraChannelClamped - one channel's authored `clamped`;
+  `false` on invalid or absent, so gate on the CLAMPED mask bit
++ DsonDocument_GetModifierExtraChannelStepSize - one channel's authored
+  `step_size`; `0.0` on invalid or absent, so gate on the STEP_SIZE mask bit
++ DsonDocument_GetModifierExtraChannelFieldPresenceMask - which of
+  value/min/max/clamped/step_size the channel authored; `0` on invalid or nothing
+  authored. `current_value` has no bit by design
++ DsonDocument_GetModifierExtraChannelEnumValueCount - number of authored
+  `enum_values` on one channel; `0` on invalid or a non-enum channel
++ DsonDocument_GetModifierExtraChannelEnumValue - one `enum_values` entry
+  verbatim; `""` when absent or invalid
+
 ## 2.20.0 — 2026-08-03 · MINOR (added)
 
 Exposes, per `geometry_library` geometry, the **`polyline_list`** block — the

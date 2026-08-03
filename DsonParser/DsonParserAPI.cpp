@@ -27,6 +27,8 @@
 // - Expose raw stored formula RPN payloads without evaluating them.
 // - Expose authored geometry subdivision declarations and mesh-resolution
 //   channels without resolving enum values or reconciling sibling strings.
+// - Expose authored modifier extra channels without resolving enum values; their
+//   Value accessor returns the effective current_value -> value reading.
 // - Expose authored geometry rigidity weights/groups without remapping or
 //   interpreting their geometry-local indices and node references.
 // - Expose authored geometry and scene-node shell material-to-UV names without
@@ -519,6 +521,14 @@ static const Dson::GeometryChannel* GetGeometryChannel(
     int channelIndex) {
     const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
     return geom ? At(geom->channels, channelIndex) : nullptr;
+}
+
+static const Dson::GeometryChannel* GetModifierExtraChannel(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex) {
+    const Dson::Modifier* mod = GetLibraryModifier(handle, modifierIndex);
+    return mod ? At(mod->extra_channels, channelIndex) : nullptr;
 }
 
 static double GetGeometryVertexComponent(
@@ -1665,6 +1675,122 @@ bool DsonDocument_GetModifierIsPush(DsonDocumentHandle handle, int modifierIndex
 double DsonDocument_GetModifierPushOffset(DsonDocumentHandle handle, int modifierIndex) {
     const Dson::Modifier* mod = GetLibraryModifier(handle, modifierIndex);
     return mod ? mod->push_offset_value : 0.0;
+}
+
+int DsonDocument_GetModifierExtraChannelCount(DsonDocumentHandle handle, int modifierIndex) {
+    const Dson::Modifier* mod = GetLibraryModifier(handle, modifierIndex);
+    return mod ? static_cast<int>(mod->extra_channels.size()) : 0;
+}
+
+const char* DsonDocument_GetModifierExtraChannelId(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetModifierExtraChannel(handle, modifierIndex, channelIndex);
+    return channel ? channel->id.c_str() : "";
+}
+
+const char* DsonDocument_GetModifierExtraChannelType(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetModifierExtraChannel(handle, modifierIndex, channelIndex);
+    return channel ? channel->type.c_str() : "";
+}
+
+const char* DsonDocument_GetModifierExtraChannelLabel(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetModifierExtraChannel(handle, modifierIndex, channelIndex);
+    return channel ? channel->label.c_str() : "";
+}
+
+const char* DsonDocument_GetModifierExtraChannelGroup(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetModifierExtraChannel(handle, modifierIndex, channelIndex);
+    return channel ? channel->group.c_str() : "";
+}
+
+double DsonDocument_GetModifierExtraChannelValue(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetModifierExtraChannel(handle, modifierIndex, channelIndex);
+    if (!channel) return 0.0;
+    return channel->has_current_value ? channel->current_value : channel->value;
+}
+
+double DsonDocument_GetModifierExtraChannelMin(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetModifierExtraChannel(handle, modifierIndex, channelIndex);
+    return channel ? channel->min : 0.0;
+}
+
+double DsonDocument_GetModifierExtraChannelMax(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetModifierExtraChannel(handle, modifierIndex, channelIndex);
+    return channel ? channel->max : 0.0;
+}
+
+bool DsonDocument_GetModifierExtraChannelClamped(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetModifierExtraChannel(handle, modifierIndex, channelIndex);
+    return channel ? channel->clamped : false;
+}
+
+double DsonDocument_GetModifierExtraChannelStepSize(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetModifierExtraChannel(handle, modifierIndex, channelIndex);
+    return channel ? channel->step_size : 0.0;
+}
+
+int DsonDocument_GetModifierExtraChannelFieldPresenceMask(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetModifierExtraChannel(handle, modifierIndex, channelIndex);
+    return channel ? static_cast<int>(channel->field_presence) : 0;
+}
+
+int DsonDocument_GetModifierExtraChannelEnumValueCount(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetModifierExtraChannel(handle, modifierIndex, channelIndex);
+    return channel ? static_cast<int>(channel->enum_values.size()) : 0;
+}
+
+const char* DsonDocument_GetModifierExtraChannelEnumValue(
+    DsonDocumentHandle handle,
+    int modifierIndex,
+    int channelIndex,
+    int enumIndex) {
+    const Dson::GeometryChannel* channel =
+        GetModifierExtraChannel(handle, modifierIndex, channelIndex);
+    const std::string* value = channel ? At(channel->enum_values, enumIndex) : nullptr;
+    return value ? value->c_str() : "";
 }
 
 const char* DsonDocument_GetModifierParent(DsonDocumentHandle handle, int modifierIndex) {

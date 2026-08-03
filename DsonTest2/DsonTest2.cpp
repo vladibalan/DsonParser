@@ -1108,6 +1108,164 @@ static bool RunModifierPushOffsetTest() {
     return allPass;
 }
 
+static bool RunModifierExtraChannelTest() {
+    std::cout << "=================================\n";
+    std::cout << "MODIFIER EXTRA CHANNEL TEST (2.21.0)\n";
+    std::cout << "=================================\n\n";
+
+    static const char kModifierExtraChannelJson[] = R"JSON(
+{
+  "modifier_library": [
+    {
+      "id": "DZ__SPS_L-HaIrFrontRS",
+      "extra": [
+        { "type": "unrelated_extra", "channels": [] },
+        {
+          "type": "studio_modifier_channels",
+          "channels": [
+            {
+              "channel": {
+                "id": "HairGenerationMode",
+                "type": "enum",
+                "label": "Hair Generation Mode",
+                "value": 0,
+                "enum_values": ["Root Radius", "Target Surfaces"]
+              },
+              "group": "/Simulation/Structure/Hair Generation"
+            },
+            {
+              "channel": {
+                "id": "PreRenderHairsPerGuide",
+                "type": "int",
+                "label": "PreRender Hairs Per Guide",
+                "value": 0,
+                "current_value": 24,
+                "min": 0,
+                "max": 100,
+                "clamped": true,
+                "step_size": 1
+              },
+              "group": "/Simulation/Structure/Hair Generation/Root Radius"
+            },
+            {
+              "channel": {
+                "id": "PreRenderHairDistributionRadius",
+                "type": "float",
+                "label": "PreRender Hair Distribution Radius",
+                "value": 0.1,
+                "current_value": 0.3
+              },
+              "group": "/Simulation/Structure/Hair Generation/Root Radius"
+            },
+            {
+              "channel": {
+                "id": "ValueOnlyDensity",
+                "type": "float",
+                "label": "Value Only Density",
+                "value": 7.5
+              },
+              "group": "/Simulation/Structure/Hair Generation/Fallback"
+            }
+          ]
+        },
+        {
+          "type": "studio_modifier_channels",
+          "channels": [
+            {
+              "channel": {
+                "id": "SecondBlock",
+                "type": "int",
+                "label": "Second Block",
+                "value": 5,
+                "current_value": 6
+              },
+              "group": "/Second"
+            }
+          ]
+        }
+      ]
+    },
+    { "id": "NoExtraChannels" }
+  ]
+}
+)JSON";
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    const int loadResult = DsonDocument_LoadFromString(doc, kModifierExtraChannelJson);
+    if (loadResult != 0) {
+        std::cout << "Modifier extra-channel fixture load: FAIL (result "
+                  << loadResult << ")\n\n";
+        DsonDocument_Destroy(doc);
+        return false;
+    }
+
+    bool allPass = true;
+    auto chk = [&](const char* label, bool cond) {
+        std::cout << "  " << label << ": " << (cond ? "PASS" : "FAIL") << "\n";
+        allPass = allPass && cond;
+    };
+
+    const int count0 = DsonDocument_GetModifierExtraChannelCount(doc, 0);
+    const int count1 = DsonDocument_GetModifierExtraChannelCount(doc, 1);
+    chk("Modifier[0] extra channel count == 5", count0 == 5);
+    chk("Modifier[1] extra channel count == 0", count1 == 0);
+
+    chk("Enum Type/Label/Group",
+        std::strcmp(DsonDocument_GetModifierExtraChannelType(doc, 0, 0), "enum") == 0 &&
+        std::strcmp(DsonDocument_GetModifierExtraChannelLabel(doc, 0, 0), "Hair Generation Mode") == 0 &&
+        std::strcmp(DsonDocument_GetModifierExtraChannelGroup(doc, 0, 0),
+                    "/Simulation/Structure/Hair Generation") == 0);
+    chk("Enum values",
+        DsonDocument_GetModifierExtraChannelEnumValueCount(doc, 0, 0) == 2 &&
+        std::strcmp(DsonDocument_GetModifierExtraChannelEnumValue(doc, 0, 0, 0),
+                    "Root Radius") == 0);
+    chk("Enum raw VALUE-only mask",
+        DsonDocument_GetModifierExtraChannelFieldPresenceMask(doc, 0, 0) ==
+        DSONPARSER_CHANNEL_FIELD_VALUE);
+
+    const int intMask =
+        DSONPARSER_CHANNEL_FIELD_VALUE |
+        DSONPARSER_CHANNEL_FIELD_MIN |
+        DSONPARSER_CHANNEL_FIELD_MAX |
+        DSONPARSER_CHANNEL_FIELD_CLAMPED |
+        DSONPARSER_CHANNEL_FIELD_STEP_SIZE;
+    chk("Int channel id/source order",
+        std::strcmp(DsonDocument_GetModifierExtraChannelId(doc, 0, 1),
+                    "PreRenderHairsPerGuide") == 0);
+    chk("Int current_value wins over value",
+        DsonDocument_GetModifierExtraChannelValue(doc, 0, 1) == 24.0);
+    chk("Int min/max/clamped/step/mask",
+        DsonDocument_GetModifierExtraChannelMin(doc, 0, 1) == 0.0 &&
+        DsonDocument_GetModifierExtraChannelMax(doc, 0, 1) == 100.0 &&
+        DsonDocument_GetModifierExtraChannelClamped(doc, 0, 1) &&
+        DsonDocument_GetModifierExtraChannelStepSize(doc, 0, 1) == 1.0 &&
+        DsonDocument_GetModifierExtraChannelFieldPresenceMask(doc, 0, 1) == intMask);
+    chk("Float current_value wins over value",
+        std::fabs(DsonDocument_GetModifierExtraChannelValue(doc, 0, 2) - 0.3) < 1e-9);
+    chk("Value-only channel falls back to value",
+        std::fabs(DsonDocument_GetModifierExtraChannelValue(doc, 0, 3) - 7.5) < 1e-9);
+    chk("Second matching block appends in source order",
+        std::strcmp(DsonDocument_GetModifierExtraChannelId(doc, 0, 4), "SecondBlock") == 0 &&
+        DsonDocument_GetModifierExtraChannelValue(doc, 0, 4) == 6.0);
+
+    chk("Invalid handle sentinels",
+        DsonDocument_GetModifierExtraChannelCount(nullptr, 0) == 0 &&
+        std::strcmp(DsonDocument_GetModifierExtraChannelId(nullptr, 0, 0), "") == 0 &&
+        DsonDocument_GetModifierExtraChannelValue(nullptr, 0, 0) == 0.0 &&
+        !DsonDocument_GetModifierExtraChannelClamped(nullptr, 0, 0));
+    chk("Invalid modifier/channel/enum sentinels",
+        DsonDocument_GetModifierExtraChannelCount(doc, -1) == 0 &&
+        std::strcmp(DsonDocument_GetModifierExtraChannelType(doc, 0, -1), "") == 0 &&
+        DsonDocument_GetModifierExtraChannelFieldPresenceMask(doc, 0, -1) == 0 &&
+        DsonDocument_GetModifierExtraChannelEnumValueCount(doc, 0, -1) == 0 &&
+        std::strcmp(DsonDocument_GetModifierExtraChannelEnumValue(doc, 0, 0, 99), "") == 0);
+
+    std::cout << "\nModifier extra-channel overall: "
+              << (allPass ? "PASS" : "FAIL") << "\n\n";
+    DsonDocument_Destroy(doc);
+    return allPass;
+}
+
 static const char* kSplineFixture = R"JSON(
 {
   "asset_info": { "id": "/data/test/spline_fixture.dsf", "type": "modifier" },
@@ -2330,6 +2488,10 @@ int main(int argc, char* argv[])
         return RunModifierPushOffsetTest() ? 0 : 1;
     }
 
+    if (argc == 2 && std::strcmp(argv[1], "--modifier-extra-channel-regression") == 0) {
+        return RunModifierExtraChannelTest() ? 0 : 1;
+    }
+
     if (argc == 2 && std::strcmp(argv[1], "--rigidity-regression") == 0) {
         return RunGeometryRigidityTest() ? 0 : 1;
     }
@@ -2366,6 +2528,7 @@ int main(int argc, char* argv[])
     RunCatalogPresentationTests();
     RunChannelTypeMismatchTests();
     RunModifierPushOffsetTest();
+    RunModifierExtraChannelTest();
     RunPerThreadLastErrorTest();
     RunSceneNodeAuthoredFieldsTest();
     RunSceneNodePlacementTest();

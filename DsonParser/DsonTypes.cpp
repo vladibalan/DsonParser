@@ -23,7 +23,7 @@
 //   import pipeline: geometry and scene-node shell material-UV assignments,
 //   geometry graft/rigidity blocks, skeleton
 //   nodes, skin weights, UVs, materials, images, morph deltas, formula payloads,
-//   and scene instances.
+//   modifier extra channels, and scene instances.
 // - A post-parse pass resolves material channel image references to image
 //   texture paths and, for identity-linked LIE images, their per-layer paths.
 //   Broader cross-file asset resolution is outside this parser.
@@ -509,6 +509,15 @@ static bool ParseGeometryChannel(const rapidjson::Value& wrapper, GeometryChanne
     if (valueIt != channelObj->MemberEnd() && valueIt->value.IsNumber()) {
         out.value = valueIt->value.GetDouble();
         out.field_presence |= 0x10u;
+    }
+
+    auto currentValueIt = channelObj->FindMember("current_value");
+    if (currentValueIt != channelObj->MemberEnd()) {
+        double currentValue = 0.0;
+        if (JsonHelper::GetNumberOrBool(currentValueIt->value, currentValue)) {
+            out.current_value = currentValue;
+            out.has_current_value = true;
+        }
     }
 
     auto minIt = channelObj->FindMember("min");
@@ -1048,8 +1057,9 @@ bool Formula::ParseFromJson(const rapidjson::Value& json, std::set<std::string>*
 
 // Modifier parser:
 // Handles morph deltas, normal deltas, channel metadata, skin_binding "skin"
-// data, and stored formula RPN payloads. Formula evaluation and referenced-file
-// loading remain importer responsibilities.
+// data, stored formula RPN payloads, and source-order extra[]
+// studio_modifier_channels. Formula evaluation and referenced-file loading
+// remain importer responsibilities.
 bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -1191,6 +1201,30 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
         }
         is_push = sawPush;
         if (is_push && sawOffset) push_offset_value = offset;
+    }
+
+    // Modifier extra[] can also carry arbitrary authored studio_modifier_channels
+    // blocks (for example dForce Strand-Based-Hair generation settings). Retain
+    // them independently from the push-offset read above so push behavior stays
+    // byte-identical.
+    if (JsonHelper::GetArray(json, "extra", extraArr)) {
+        for (rapidjson::SizeType i = 0; i < extraArr->Size(); i++) {
+            const rapidjson::Value& extraItem = (*extraArr)[i];
+            if (!extraItem.IsObject()) continue;
+            if (JsonHelper::GetStringOrDefault(extraItem, "type") !=
+                "studio_modifier_channels") continue;
+
+            const rapidjson::Value* channelArr = nullptr;
+            if (!JsonHelper::GetArray(extraItem, "channels", channelArr)) continue;
+
+            extra_channels.reserve(extra_channels.size() + channelArr->Size());
+            for (rapidjson::SizeType j = 0; j < channelArr->Size(); j++) {
+                GeometryChannel channel;
+                if (ParseGeometryChannel((*channelArr)[j], channel)) {
+                    extra_channels.push_back(channel);
+                }
+            }
+        }
     }
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);

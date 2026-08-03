@@ -12,6 +12,9 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.21.0: DsonDocument_GetModifierExtraChannel* expose
+//   modifier_library extra[] studio_modifier_channels in source order; Value is
+//   current_value -> value by design.
 // What's new in 2.20.0: DsonDocument_GetPolyline* expose
 //   geometry_library polyline_list strand/curve geometry (dForce SBH hair) —
 //   polyline count, segment_count, and per-polyline vertex/group/material
@@ -530,6 +533,37 @@ DSONPARSER_API bool        DsonDocument_GetModifierChannelClamped(DsonDocumentHa
 DSONPARSER_API bool        DsonDocument_GetModifierIsPush(DsonDocumentHandle handle, int modifierIndex);
 // @since 2.7.0
 DSONPARSER_API double      DsonDocument_GetModifierPushOffset(DsonDocumentHandle handle, int modifierIndex);
+// Modifier extra[].studio_modifier_channels entries in source order. This is the
+// structural sibling of GetGeometryChannel*, but Value returns the effective
+// authored value (current_value -> value), deliberately diverging from
+// GetGeometryChannelValue's raw value. R1 sentinels: Count and field mask -> 0,
+// strings -> "", doubles -> 0.0, bool -> false; bound-check Count first.
+// @since 2.21.0
+DSONPARSER_API int         DsonDocument_GetModifierExtraChannelCount(DsonDocumentHandle handle, int modifierIndex);
+// @since 2.21.0
+DSONPARSER_API const char* DsonDocument_GetModifierExtraChannelId(DsonDocumentHandle handle, int modifierIndex, int channelIndex);
+// @since 2.21.0
+DSONPARSER_API const char* DsonDocument_GetModifierExtraChannelType(DsonDocumentHandle handle, int modifierIndex, int channelIndex);
+// @since 2.21.0
+DSONPARSER_API const char* DsonDocument_GetModifierExtraChannelLabel(DsonDocumentHandle handle, int modifierIndex, int channelIndex);
+// @since 2.21.0
+DSONPARSER_API const char* DsonDocument_GetModifierExtraChannelGroup(DsonDocumentHandle handle, int modifierIndex, int channelIndex);
+// @since 2.21.0
+DSONPARSER_API double      DsonDocument_GetModifierExtraChannelValue(DsonDocumentHandle handle, int modifierIndex, int channelIndex);
+// @since 2.21.0
+DSONPARSER_API double      DsonDocument_GetModifierExtraChannelMin(DsonDocumentHandle handle, int modifierIndex, int channelIndex);
+// @since 2.21.0
+DSONPARSER_API double      DsonDocument_GetModifierExtraChannelMax(DsonDocumentHandle handle, int modifierIndex, int channelIndex);
+// @since 2.21.0
+DSONPARSER_API bool        DsonDocument_GetModifierExtraChannelClamped(DsonDocumentHandle handle, int modifierIndex, int channelIndex);
+// @since 2.21.0
+DSONPARSER_API double      DsonDocument_GetModifierExtraChannelStepSize(DsonDocumentHandle handle, int modifierIndex, int channelIndex);
+// @since 2.21.0
+DSONPARSER_API int         DsonDocument_GetModifierExtraChannelFieldPresenceMask(DsonDocumentHandle handle, int modifierIndex, int channelIndex);
+// @since 2.21.0
+DSONPARSER_API int         DsonDocument_GetModifierExtraChannelEnumValueCount(DsonDocumentHandle handle, int modifierIndex, int channelIndex);
+// @since 2.21.0
+DSONPARSER_API const char* DsonDocument_GetModifierExtraChannelEnumValue(DsonDocumentHandle handle, int modifierIndex, int channelIndex, int enumIndex);
 // Raw/verbatim modifier.parent for a raw modifier_library index: the complete authored URL,
 // including any #fragment. Returns "" when absent or the handle/index is invalid.
 // @since 2.11.0

@@ -12,7 +12,8 @@
 // them. These compose the primitive wrappers from DsonDataTypes.h. Parsing
 // logic lives in DsonTypes.cpp; Node and Geometry retain their own authored
 // material-to-UV assignments and authored transform-channel metadata, while
-// Geometry also includes raw graft and rigidity data.
+// Geometry also includes raw graft and rigidity data, and Modifier retains
+// source-order extra[] studio_modifier_channels.
 // The C ABI over this model is in DsonParserAPI.
 //
 // Internal header — NOT part of the public surface. Consumers use the C ABI in
@@ -162,6 +163,14 @@ struct GeometryChannel {
     std::string label;                // channel "label"; "" if absent
     std::string group;                // wrapper "group" (sibling of "channel"); "" if absent
     double value = 0.0;               // "value"; meaningful only when the VALUE bit is set
+    double current_value = 0.0;       // channel "current_value"; the effective
+                                      //   authored value. Captured for both
+                                      //   families; only the modifier extra-channel
+                                      //   accessor returns it (geometry keeps value).
+    bool has_current_value = false;   // true iff current_value was authored
+                                      //   (number or bool). NOT a mask bit --
+                                      //   the shared field_presence mask is
+                                      //   unchanged (R2).
     double min = 0.0;                 // "min"; meaningful only when the MIN bit is set
     double max = 0.0;                 // "max"; meaningful only when the MAX bit is set
     bool clamped = false;             // "clamped"; meaningful only when the CLAMPED bit is set
@@ -332,6 +341,9 @@ struct Modifier {
     // channel above. Faithful, unevaluated (R6.4).
     bool is_push = false;             // extra[].type == "studio/modifier/push" present
     double push_offset_value = 0.0;   // effective offset: current_value -> value -> 0.0 (only when is_push)
+    std::vector<GeometryChannel> extra_channels; // extra[] studio_modifier_channels,
+                                                 //   source order; effective
+                                                 //   value = current_value -> value
 
     // For morph modifiers - indexed deltas
     bool has_morph = false;
