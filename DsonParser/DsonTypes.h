@@ -180,6 +180,14 @@ struct Geometry {
     IntArray polygons;
     IntArray polylist;             // flattened face data (incl. leading group/material indices)
     std::vector<int> polylist_face_offsets; // start index in polylist.values for each face
+    // Strand / curve geometry (dForce Strand-Based Hair). Sibling of polylist on
+    // the same geometry object; a "polygon_mesh" may in fact be strand-based (the
+    // discriminator is polylist vs polyline_list, not the type label). Same entry
+    // layout as polylist: [polygon_group_idx, material_group_idx, v0..vN-1].
+    IntArray polyline_list;                 // flattened polyline data (incl. leading group/material indices)
+    std::vector<int> polyline_list_offsets; // start index in polyline_list.values for each polyline
+    int polyline_count = 0;                 // polyline_list.count (strand count); 0 for a polygon mesh
+    int polyline_segment_count = 0;         // polyline_list.segment_count (total segments; no polylist counterpart); 0 if absent
     Int vertex_count;
     Int polygon_count;
     std::vector<std::string> polygon_groups;          // face group names

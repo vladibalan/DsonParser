@@ -57,6 +57,13 @@ across 4 audit passes with zero remaining gaps.
   unevaluated: no subdivision performed, enum `value` not resolved against
   `enum_values`, sibling mode strings not reconciled against the look-alike
   channels (2.19.0)
+- Polyline list (strand/curve geometry — dForce Strand-Based Hair):
+  `GetPolyline{Count,SegmentCount,VertexCount,Vertex,GroupIndex,MaterialIndex}` —
+  the `polyline_list` sibling of `polylist` for a geometry whose curves, not
+  polygons, are the product. `polylist` vs `polyline_list` is the strand
+  discriminator, never the `type` label; `segment_count` is its own authored datum
+  (no `polylist` counterpart). Kept separate from `polygon_count`/`polylist` so the
+  two discriminators never bleed (R6.4) (2.20.0)
 
 **Skeleton / Nodes (B)**
 - Full `node_library`: id, name, type, parent
@@ -422,6 +429,40 @@ G. Formulas
 ---
 
 ## Recently completed (post-v1)
+
+### Polyline list — strand/curve geometry (`geometry_library[].polyline_list`) — ✅ implemented (Aug 2026)
+Library version **2.20.0** (6 **additive** accessors) exposes the `polyline_list`
+block — the strand/curve geometry of dForce Strand-Based Hair. A DAZ geometry with
+`"type":"polygon_mesh"` may in fact be strand-based; the discriminator is `polylist`
+vs `polyline_list`, never the type label. For a strand geometry `polylist.count` is
+`0` and every curve lives in `polyline_list`, which reached no accessor — so an
+entire content class (every dForce SBH hair product) was unimportable. Motivated by
+the DsonToUnreal strand/dForce hair arc (FR 2026-08-03).
+
+A faithful mirror of the polylist face family (identical entry layout
+`[polygon_group_idx, material_group_idx, v0..vN-1]`), flattened into
+`Geometry::polyline_list` + `polyline_list_offsets`:
+- `GetPolylineCount` / `GetPolylineSegmentCount` — strand count and the authored
+  `segment_count` (its own datum, no `polylist` counterpart; the open-polyline
+  segment total, exposed faithfully rather than derived).
+- `GetPolylineVertexCount` / `GetPolylineVertex` — per-polyline vertex count and
+  vertex indices (from entry offset `[2]`).
+- `GetPolylineGroupIndex` / `GetPolylineMaterialIndex` — the leading `[0]` / `[1]`
+  polygon-group and material-group indices.
+
+Faithful/non-interpretive (R6.4): polyline counts/data kept separate from
+`polygon_count`/`polylist` (strand → 0 polygons, mesh → 0 polylines; no bleed).
+Sentinels per the R1 family contract (counts → `0`, value/index → `-1`).
+`knownKeys` gains `polyline_list` (R6.2). Purely additive; all existing symbols
+unchanged. Verified by an independent Director build (Release|x64, clean, 0
+warnings) and a P/Invoke harness against the installed **Epona Wavy Hair** (G8F
+dForce SBH): `geometry[0]` polylist `0` / polyline `1963` / segment_count `186485`
+/ `188448` verts; polyline 0 `[group 28, mat 0, verts 0..95]`, polyline 1 spans
+verts `96..191`; Σ(per-polyline vertex counts) = `188448`, which minus `1963` =
+`186485`.
+
+**Consumer note (additive, non-breaking):** the six new functions are available to
+the UE plugin; existing calls are unaffected.
 
 ### Scene animations full-keyframe surface (count + per-key time + numeric value) — ✅ implemented (Jul 2026)
 The additive sibling of the 1.2.0 key-0 surface (library version **2.16.0**, 3

@@ -11,6 +11,55 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.20.0 — 2026-08-03 · MINOR (added)
+
+Exposes, per `geometry_library` geometry, the **`polyline_list`** block — the
+strand/curve geometry of dForce Strand-Based Hair. A DAZ geometry with
+`"type" : "polygon_mesh"` may in fact be strand-based: the discriminator is
+`polylist` vs `polyline_list`, never the type label. For a strand geometry
+`polylist.count` is `0` — so `GetPolylistCount` and the whole polylist face family
+return nothing — and every curve lives in `polyline_list` instead, which reached no
+accessor before this change. The consequence was total: an entire content class
+(every dForce SBH hair product) stayed outside the pipeline. Motivated by the
+DsonToUnreal strand/dForce hair arc, whose mesh builder read `GetPolylistCount`,
+got `0`, and could only reject the product.
+
+Six additive accessors, a faithful mirror of the polylist face family — each
+polyline entry has the identical layout `[polygon_group_idx, material_group_idx,
+v0, v1, … vN-1]`: two leading indices, vertex indices from offset `[2]`:
+
+- `+ DsonDocument_GetPolylineCount` — number of polylines (strands); `0` for a
+  polygon mesh. Paired with `GetPolylistCount` this is the strand discriminator (a
+  strand geometry reports `0` polygons and N polylines; a polygon mesh the reverse).
+- `+ DsonDocument_GetPolylineSegmentCount` — the authored `segment_count`, the total
+  segment count across all polylines. Its own datum with **no `polylist`
+  counterpart**, exposed faithfully rather than derived (it is the open-polyline
+  segment total — points − 1 per line — so a consumer must not assume closed loops).
+- `+ DsonDocument_GetPolylineVertexCount` — vertices in one polyline.
+- `+ DsonDocument_GetPolylineVertex` — one polyline's vertex index by position.
+- `+ DsonDocument_GetPolylineGroupIndex` — the polyline's leading `[0]`
+  polygon-group index.
+- `+ DsonDocument_GetPolylineMaterialIndex` — the polyline's leading `[1]`
+  material-group index.
+
+Faithful/non-interpretive (R6.4): `polyline_count` / `polyline_segment_count` and
+the flattened curve data are kept **separate** from `polygon_count` / `polylist`,
+so a strand geometry still reports `0` polygons and a polygon mesh still reports `0`
+polylines — the two discriminators never bleed. Everything else a strand geometry
+carries already ships (vertex positions via `GetVertex*`, UVs, polygon/material
+group names, styling morph deltas) and is unchanged. Purely additive: all existing
+symbols, signatures, sentinels, and behavior are byte-identical. Sentinels follow
+the R1 family contract — the two `*Count` accessors → `0` on invalid; the four
+value/index accessors → `-1`. `knownKeys` gains `polyline_list` (R6.2).
+
+Verified against the installed **Epona Wavy Hair** (Genesis 8 Female, dForce SBH)
+through the built DLL: `geometry[0]` reports `polylist` `0` / `polyline` `1963` /
+`segment_count` `186485` / `188448` vertices; polyline 0 = `[group 28, material 0,
+verts 0..95]` and polyline 1 spans verts `96..191` (the offset table partitions the
+vertex array exhaustively); the R1 sentinels return `-1` / `0`; and Σ(per-polyline
+vertex counts) = `188448` = the geometry's own vertex count, which minus `1963`
+polylines = `186485` = `segment_count`.
+
 ## 2.19.0 — 2026-07-16 · MINOR (added)
 
 Exposes, per `geometry_library` geometry, the asset's own **subdivision

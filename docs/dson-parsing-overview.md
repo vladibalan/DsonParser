@@ -144,8 +144,10 @@ current loader scope.
   index 0 is legitimate (mirrors `GetSkinJointWeightVertexIndex`). Since 2.8.0.
 
 `geometry_library`
-: Parsed into `Geometry`. Captures vertex positions, polygon/polylist data,
-  face offsets, polygon groups, material groups, vertex/polygon counts,
+: Parsed into `Geometry`. Captures vertex positions, polygon/polylist data
+  (plus, for strand geometry, the sibling `polyline_list` curves — see Polyline
+  List below; since 2.20.0), face offsets, polygon groups, material groups,
+  vertex/polygon counts,
   default UV-set reference, source-order `material_uvs` assignments from each
   material-group name to its authored UV-set name, a geograft signal — whether the geometry
   declares a populated `graft` block (`DsonDocument_GetGeometryIsGraft`) — and,
@@ -492,6 +494,38 @@ faithfully through `DsonDocument_GetGeometryMaterialUVAssignmentCount`,
 returned verbatim. The parser does not resolve the UV-set name to a sibling DSF,
 join it to a scene/library material, or replace the geometry's
 `default_uv_set`; those are importer decisions (R6.4).
+
+### Polyline List (Strand / Curve Geometry)
+
+A geometry with `"type" : "polygon_mesh"` may in fact be **strand-based hair**
+(dForce Strand-Based Hair) — the discriminator is `polylist` vs `polyline_list`,
+never the type label. For a strand geometry `polylist.count` is `0` (so the polylist
+face family above returns nothing) and every curve lives in a sibling
+`polyline_list` block, flattened the same way as `polylist` into
+`Geometry::polyline_list` + `polyline_list_offsets`. Each entry follows the polylist
+convention — `[polygon_group_idx, material_group_idx, v0, v1, … vN-1]`, two leading
+indices then variable-length vertex indices — exposed per geometry (since 2.20.0):
+
+- `DsonDocument_GetPolylineCount` — number of polylines (strands); `0` for a polygon
+  mesh. Paired with `GetPolylistCount`, this is the strand discriminator: a strand
+  geometry reports `0` polygons and N polylines, a polygon mesh the reverse.
+- `DsonDocument_GetPolylineSegmentCount` — the authored `segment_count`, the total
+  segment count across all polylines. This has **no `polylist` counterpart** and is
+  exposed faithfully rather than derived — it is the open-polyline segment total
+  (points − 1 per line), so a consumer must not assume closed loops.
+- `DsonDocument_GetPolylineVertexCount` / `…GetPolylineVertex` — the vertex count of
+  one polyline and its vertex indices by position (vertex indices start at entry
+  offset `[2]`, as in the polylist family).
+- `DsonDocument_GetPolylineGroupIndex` / `…GetPolylineMaterialIndex` — the leading
+  `[0]` polygon-group and `[1]` material-group indices.
+
+Faithful/non-interpretive (R6.4): the polyline count and curve data are kept
+separate from `polygon_count` / `polylist`, so the two discriminators never bleed.
+Sentinels follow the R1 family contract — the two `*Count` accessors → `0` on
+invalid; the vertex/group/material index accessors → `-1`. Everything else a strand
+geometry carries (vertex positions, UVs, polygon/material group names, styling morph
+deltas) already ships through its existing accessors; translating the curves into an
+engine groom is consumer work.
 
 ### Geometry Subdivision Declaration
 

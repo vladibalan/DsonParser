@@ -1994,6 +1994,92 @@ int DsonDocument_GetPolylistFaceGroupIndex(DsonDocumentHandle handle, int geomIn
     return GetPolylistFaceValue(*geom, faceIndex, 0);
 }
 
+// ---- Polyline list (strand / curve geometry — dForce SBH hair) ----
+// A "polygon_mesh" geometry may be strand-based: the discriminator is polylist
+// vs polyline_list, not the type label. For a strand geometry polylist.count is
+// 0 and every curve lives here; a polygon mesh reports 0 polylines. Each entry
+// mirrors the polylist layout: [polygon_group_idx, material_group_idx, v0, ...,
+// vN-1] — indices [0]/[1] are the two leading ints, vertex indices start at [2].
+// polyline_list_offsets[i] holds the start index in polyline_list.values for
+// polyline i, enabling variable-length indexing.
+
+static int GetPolylineStart(const Dson::Geometry& geom, int polylineIndex) {
+    if (polylineIndex < 0 || polylineIndex >= geom.polyline_count) return -1;
+    if (polylineIndex >= static_cast<int>(geom.polyline_list_offsets.size())) return -1;
+    return geom.polyline_list_offsets[polylineIndex];
+}
+
+static int GetPolylineEnd(const Dson::Geometry& geom, int polylineIndex) {
+    int start = GetPolylineStart(geom, polylineIndex);
+    if (start < 0) return -1;
+    if (polylineIndex + 1 < static_cast<int>(geom.polyline_list_offsets.size())) {
+        return geom.polyline_list_offsets[polylineIndex + 1];
+    }
+    return static_cast<int>(geom.polyline_list.values.size());
+}
+
+static int GetPolylineValue(const Dson::Geometry& geom, int polylineIndex, int offsetInLine) {
+    if (offsetInLine < 0) return -1;
+    int start = GetPolylineStart(geom, polylineIndex);
+    int end = GetPolylineEnd(geom, polylineIndex);
+    if (start < 0 || end < 0) return -1;
+    int index = start + offsetInLine;
+    if (index < start || index >= end || index >= static_cast<int>(geom.polyline_list.values.size())) return -1;
+    return geom.polyline_list.values[index];
+}
+
+int DsonDocument_GetPolylineCount(DsonDocumentHandle handle, int geomIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
+    return geom ? geom->polyline_count : 0;
+}
+
+int DsonDocument_GetPolylineSegmentCount(DsonDocumentHandle handle, int geomIndex) {
+    Dson::DsonDocument* doc = Doc(handle);
+    const Dson::Geometry* geom = doc ? At(doc->geometries, geomIndex) : nullptr;
+    return geom ? geom->polyline_segment_count : 0;
+}
+
+int DsonDocument_GetPolylineVertexCount(DsonDocumentHandle handle, int geomIndex, int polylineIndex) {
+    if (!handle) return 0;
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return 0;
+    int start = GetPolylineStart(*geom, polylineIndex);
+    int end = GetPolylineEnd(*geom, polylineIndex);
+    if (start < 0 || end < 0) return 0;
+    int len = end - start;
+    if (len < 2) return 0;
+    return len - 2;
+}
+
+int DsonDocument_GetPolylineVertex(DsonDocumentHandle handle, int geomIndex, int polylineIndex, int vertexIndex) {
+    if (!handle) return -1;
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return -1;
+    int start = GetPolylineStart(*geom, polylineIndex);
+    int end = GetPolylineEnd(*geom, polylineIndex);
+    if (start < 0 || end < 0) return -1;
+    int len = end - start;
+    if (len < 2) return -1;
+    int vertsPerLine = len - 2;
+    if (vertexIndex < 0 || vertexIndex >= vertsPerLine) return -1;
+    return GetPolylineValue(*geom, polylineIndex, vertexIndex + 2);
+}
+
+int DsonDocument_GetPolylineGroupIndex(DsonDocumentHandle handle, int geomIndex, int polylineIndex) {
+    if (!handle) return -1;
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return -1;
+    return GetPolylineValue(*geom, polylineIndex, 0);
+}
+
+int DsonDocument_GetPolylineMaterialIndex(DsonDocumentHandle handle, int geomIndex, int polylineIndex) {
+    if (!handle) return -1;
+    const Dson::Geometry* geom = GetGeometry(handle, geomIndex);
+    if (!geom) return -1;
+    return GetPolylineValue(*geom, polylineIndex, 1);
+}
+
 // ---- Polygon groups (bone region groups) ----
 
 int DsonDocument_GetPolygonGroupCount(DsonDocumentHandle handle, int geomIndex) {

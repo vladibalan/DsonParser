@@ -12,6 +12,10 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.20.0: DsonDocument_GetPolyline* expose
+//   geometry_library polyline_list strand/curve geometry (dForce SBH hair) —
+//   polyline count, segment_count, and per-polyline vertex/group/material
+//   indices, mirroring the polylist face family.
 // What's new in 2.19.0: DsonDocument_GetGeometryType,
 //   GetGeometryEdgeInterpolationMode, GetGeometrySubDNormalSmoothingMode, and
 //   GetGeometryChannel* expose geometry subdivision declarations and mesh
@@ -461,6 +465,26 @@ DSONPARSER_API int    DsonDocument_GetPolylistFaceVertexCount(DsonDocumentHandle
 DSONPARSER_API int    DsonDocument_GetPolylistFaceVertex(DsonDocumentHandle handle, int geomIndex, int faceIndex, int vertexIndex);
 DSONPARSER_API int    DsonDocument_GetPolylistFaceGroupIndex(DsonDocumentHandle handle, int geomIndex, int faceIndex);
 DSONPARSER_API int    DsonDocument_GetPolylistFaceMaterialIndex(DsonDocumentHandle handle, int geomIndex, int faceIndex);
+
+// Polyline list (strand / curve geometry — dForce Strand-Based Hair)
+// A "polygon_mesh" geometry may be strand-based: the discriminator is polylist
+// vs polyline_list, not the type label. A strand geometry reports 0 polylist
+// faces and N polylines here; a polygon mesh reports the reverse. Each polyline
+// mirrors the polylist entry layout ([group, material, v0..vN-1]); segment_count
+// is a faithful authored datum with no polylist counterpart. Counts -> 0 on
+// invalid; the vertex/group/material index accessors -> -1.
+// @since 2.20.0
+DSONPARSER_API int    DsonDocument_GetPolylineCount(DsonDocumentHandle handle, int geomIndex);
+// @since 2.20.0
+DSONPARSER_API int    DsonDocument_GetPolylineSegmentCount(DsonDocumentHandle handle, int geomIndex);
+// @since 2.20.0
+DSONPARSER_API int    DsonDocument_GetPolylineVertexCount(DsonDocumentHandle handle, int geomIndex, int polylineIndex);
+// @since 2.20.0
+DSONPARSER_API int    DsonDocument_GetPolylineVertex(DsonDocumentHandle handle, int geomIndex, int polylineIndex, int vertexIndex);
+// @since 2.20.0
+DSONPARSER_API int    DsonDocument_GetPolylineGroupIndex(DsonDocumentHandle handle, int geomIndex, int polylineIndex);
+// @since 2.20.0
+DSONPARSER_API int    DsonDocument_GetPolylineMaterialIndex(DsonDocumentHandle handle, int geomIndex, int polylineIndex);
 
 // Polygon groups (bone region groups, e.g. l_forearm, head, pelvis)
 DSONPARSER_API int         DsonDocument_GetPolygonGroupCount(DsonDocumentHandle handle, int geomIndex);

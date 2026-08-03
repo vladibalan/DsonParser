@@ -558,13 +558,15 @@ static bool ParseGeometryChannel(const rapidjson::Value& wrapper, GeometryChanne
 // as {count, values:[...]}; legacy flat arrays are accepted where practical.
 // Polylist faces are kept flattened, with a per-face offset table, because DSON
 // faces may vary in length and include leading group/material indices.
+// polyline_list (strand/curve geometry) is flattened the same way, into its
+// own polyline_list / polyline_list_offsets fields.
 bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
     }
     
     static const std::set<std::string> knownKeys = {
-        "id", "name", "type", "url", "vertices", "polygons", "polylist",
+        "id", "name", "type", "url", "vertices", "polygons", "polylist", "polyline_list",
         "vertex_count", "polygon_count", "edge_interpolation_mode",
         "subd_normal_smoothing_mode", "default_uv_set", "polygon_groups",
         "polygon_material_groups", "material_uvs", "extra", "graft", "rigidity"
@@ -638,6 +640,54 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
             }
             if (polygon_count.value == 0) {
                 polygon_count.value = static_cast<int>(faces->Size());
+            }
+        }
+    }
+
+    // Polyline list: strand / curve geometry (dForce Strand-Based Hair). A sibling
+    // of polylist on the same geometry object; a "polygon_mesh" geometry may in
+    // fact be strand-based (the discriminator is polylist vs polyline_list, not the
+    // type label). For a strand geometry polylist.count is 0 and every curve lives
+    // here. Each entry mirrors the polylist convention:
+    // [polygon_group_idx, material_group_idx, v0, v1, ..., vN-1], variable length.
+    // count / segment_count are faithful authored scalars kept SEPARATE from
+    // polygon_count (R6.4). segment_count has no polylist counterpart.
+    if (JsonHelper::HasMember(json, "polyline_list")) {
+        const rapidjson::Value& pll = json["polyline_list"];
+        const rapidjson::Value* lines = nullptr;
+        if (pll.IsObject()) {
+            if (pll.HasMember("count") && pll["count"].IsInt()) {
+                polyline_count = pll["count"].GetInt();
+            }
+            if (pll.HasMember("segment_count") && pll["segment_count"].IsInt()) {
+                polyline_segment_count = pll["segment_count"].GetInt();
+            }
+            JsonHelper::GetArray(pll, "values", lines);
+        } else if (pll.IsArray()) {
+            lines = &pll;
+        }
+        if (lines) {
+            polyline_list_offsets.reserve(lines->Size());
+            // Exact for open polylines (points = segment_count + count) plus the
+            // two leading indices per line; a harmless slight over-reserve if a
+            // future asset ever closes a loop.
+            if (polyline_count > 0 && polyline_segment_count > 0) {
+                polyline_list.values.reserve(
+                    static_cast<size_t>(polyline_segment_count) + 3u * static_cast<size_t>(polyline_count));
+            }
+            for (rapidjson::SizeType i = 0; i < lines->Size(); i++) {
+                if ((*lines)[i].IsArray()) {
+                    const auto& line = (*lines)[i];
+                    polyline_list_offsets.push_back(static_cast<int>(polyline_list.values.size()));
+                    for (rapidjson::SizeType j = 0; j < line.Size(); j++) {
+                        if (line[j].IsInt()) {
+                            polyline_list.values.push_back(line[j].GetInt());
+                        }
+                    }
+                }
+            }
+            if (polyline_count == 0) {
+                polyline_count = static_cast<int>(lines->Size());
             }
         }
     }
