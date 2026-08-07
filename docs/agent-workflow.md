@@ -27,6 +27,9 @@ user launches it:
 - **After the run, verifies against the repo** — `git diff` for what changed, its
   own `msbuild` build, and a `docs/code-review-rules.md` pass — then reports (see
   Reporting). The repo is ground truth; the feedback-file is advisory.
+- **Owns git** — commits the verified change and tags releases (doc/config to
+  `main`; source via a `task/<id>` branch + squash-merge; a lightweight `vX.Y.Z`
+  tag on every version bump). See "Git & release tagging." The user pushes.
 - Answers the user's questions directly when no code change is required.
 
 The Director does **not** edit C/C++ source, and does **not** launch the
@@ -108,8 +111,10 @@ All Director↔Implementer traffic for a change travels through two files:
    builds, and writes `.handoff/feedback-<id>.md`.
 5. **User → Director:** "done, `<id>`."
 6. **Director:** reads the feedback-file (advisory), **verifies against the repo**
-   (`git diff` + `msbuild` + review pass), and **reports** two-tier.
-7. **User:** reviews and commits — git stays with the user.
+   (`git diff` + `msbuild` + review pass). On a clean verify it **commits and
+   tags** the change (see "Git & release tagging"); a blocked task is **not**
+   committed. Then it **reports** two-tier.
+7. **User:** reviews the committed change and pushes on their own cadence.
 8. **Director:** on task-close, moves the pair to `.handoff/history/` and prunes
    old history (see History & cleanup).
 
@@ -141,9 +146,9 @@ follow-up task-file:
 - **Smooth → short after-action report.** "Smooth" = completed as written, build
   clean (Release|x64), review clean, no ambiguity or assumption hit. A few lines:
   what changed and which files; the **real** build line + harness result (a
-  summary, not an unverified "looks good"); "in your working tree, uncommitted,
-  ready to review/commit"; any **new** compiler warnings; "Director review:
-  clean."
+  summary, not an unverified "looks good"); the **commit it landed** (branch +
+  short sha, plus the `vX.Y.Z` tag when the version bumped); any **new** compiler
+  warnings; "Director review: clean."
 - **Block → full details, the user decides.** A "block" is anything that isn't
   clean completion: build failure, an ambiguity or missing input, an assumption
   the Implementer had to make, a rule conflict (e.g. the change implies a breaking
@@ -152,6 +157,40 @@ follow-up task-file:
   what the Implementer did (files / diff, how far it got); the raw `msbuild` /
   harness output; the agent's reasoning or proposed options; and the working-tree
   state — so the user can decide the resolution. The Director does not pick it.
+
+## Git & release tagging
+
+Git is the **Director's**; the **Implementer never runs it**, and the user pushes
+on their own cadence.
+
+- **Doc/config-only changes** (docs, `CLAUDE.md`, tooling, `.handoff` templates —
+  anything the Director authors) commit **straight to `main`**.
+- **Source changes** (C/C++ under `DsonParser/` or `DsonTest2/DsonTest2.cpp`) land
+  on a **`task/<id>` branch** — reusing the handoff `<id>` — and **squash-merge to
+  `main`** once the Director's verify (build + review) is clean. One squashed
+  commit per task keeps `main` linear.
+- Commit **as verified work lands**, not batched. A **blocked** task is not
+  committed — it goes back to the user (see Reporting).
+
+### Release tag (Director close-gate)
+
+Every **release** — any commit that bumps `DSONPARSER_VERSION_STRING` — gets a
+**lightweight** `vX.Y.Z` tag on the release commit, `X.Y.Z` = the new version
+string:
+
+```
+git tag v2.22.0 <release-commit>   # lightweight, no -a
+git tag --list v2.22.0             # confirm
+```
+
+The tag is **the one release carrier not in the tree** — invisible to `git diff`,
+the build, and the review that catch the version bump + `@since` + CHANGELOG entry
+(R10) — so it is the easiest release step to miss, and it crosses the
+Implementer→Director seam. Make it part of the squash-merge close checklist.
+`tools/Check-ReleaseTag.ps1` mechanizes the gate: it exits non-zero if the current
+`DSONPARSER_VERSION_STRING` has no matching tag and prints the exact `git tag`
+command; `-Audit` cross-checks every released `CHANGELOG.md` heading. Run it before
+reporting any surface-touching task done. The user pushes commit + tag.
 
 ## History & cleanup
 
@@ -168,8 +207,9 @@ follow-up task-file:
 - **Build honesty.** Never claim a build or run you didn't do; report the real
   result. The Director confirms with an actual `msbuild` rather than trusting a
   self-report.
-- **The user handles git commits and pushes.** Do not commit or push; leave the
-  working tree for the user to review and commit.
+- **Git is the Director's.** The **Implementer never runs git** — it leaves the
+  working tree for the Director to verify and commit. The **Director** owns commits
+  and release tags (see "Git & release tagging"); the user pushes.
 - **Missing inputs:** if a file needed for the task is not in the project folder,
   **ask the user to upload it** rather than fabricating or guessing its contents.
 - The **C++14-only / UE-agnostic / breaking-change** constraints in

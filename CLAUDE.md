@@ -13,10 +13,15 @@ rules and writes back a feedback-file). The handoff is file-based via `.handoff/
 the user launches each run by hand. At session start the user states which role
 this session plays; if unstated, ask.
 
-**Both roles:** the user handles git commits/pushes — never commit. Report build
-and run results faithfully — never claim something compiled or ran unless you
-actually did. If a needed file is missing from the project folder, ask the user
-to upload it rather than guessing its contents.
+**Git:** the **Director** owns commits and release tags — doc/config straight to
+`main`, verified source via a `task/<id>` branch squash-merged to `main`, and a
+lightweight `vX.Y.Z` tag on every version bump. The **Implementer never runs
+git**; the user pushes. Full policy:
+[`docs/agent-workflow.md`](docs/agent-workflow.md) "Git & release tagging."
+
+**Both roles:** report build and run results faithfully — never claim something
+compiled or ran unless you actually did. If a needed file is missing from the
+project folder, ask the user to upload it rather than guessing its contents.
 
 **Builds:** the **Implementer** builds and verifies its own changes
 (`msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64` — note `msbuild`
@@ -141,8 +146,9 @@ Boilerplate (rarely relevant): `pch.{h,cpp}`, `framework.h`, `dllmain.cpp`.
   warnings, pass/fail — in the feedback-file. Never claim something compiled or
   ran unless you actually did; if a build can't be run, say so and fall back to
   static review + grep. **The Director re-runs the build itself to verify the
-  returned change** (repo as ground truth, feedback-file as advisory); the user
-  still handles commits.
+  returned change** (repo as ground truth, feedback-file as advisory), then
+  **commits** it (doc/config to `main`; source via a `task/<id>` branch +
+  squash-merge). The user pushes.
 
 ## Conventions
 

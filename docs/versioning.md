@@ -63,8 +63,10 @@ declares, illustrated here at the `1.0.0` baseline):
 
 `DsonParser_GetVersion()` returns `DSONPARSER_VERSION_STRING`; the `CHANGELOG.md`
 top heading leads with it; the header banner states the same string. On every
-release, the macros and the CHANGELOG heading are the two human-touched points —
-keep the heading's leading version equal to the macros.
+release there are **three** release-touched points — the macros, the CHANGELOG
+heading, and the `vX.Y.Z` git tag — of which the first two must stay equal (keep
+the heading's leading version equal to the macros). The tag is the Director's, at
+commit time (see below).
 
 ### Naming note
 
@@ -97,11 +99,17 @@ Any change to the published surface (`DsonParserAPI.h`) must, in the same change
    removed-or-deprecated / `!` fixed). Lean format — no empty subsection
    scaffolding; the CHANGELOG is the only doc carrier that ships, so the repo's
    token-economy principle applies.
+5. **Tag the release** — once the bump lands on `main`, the **Director** creates
+   the lightweight `vX.Y.Z` git tag on the release commit (`X.Y.Z` =
+   `DSONPARSER_VERSION_STRING`) and confirms it. A Director close-gate at commit
+   time, mechanized by `tools/Check-ReleaseTag.ps1`; the tag is invisible to
+   `git diff` / build / review, so it is the easiest release step to miss. See
+   [`agent-workflow.md`](agent-workflow.md) "Git & release tagging."
 
-This is enforced as **R10** in [`code-review-rules.md`](code-review-rules.md). Per
-the two-agent workflow the Director authors the CHANGELOG/policy text and the
-Implementer makes the `DsonParserVersion.h` / `@since` source edits; the change
-is not complete until both land.
+Steps 1-4 are enforced as **R10** in [`code-review-rules.md`](code-review-rules.md).
+Per the two-agent workflow the Director authors the CHANGELOG/policy text and the
+Implementer makes the `DsonParserVersion.h` / `@since` source edits; step 5 (the
+tag) is the Director's, at commit time. The change is not complete until all land.
 
 ## How an upstream agent consumes this
 
