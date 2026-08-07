@@ -707,7 +707,7 @@ existing accessors report:
 
 ## 2.2.1 — 2026-06-21 · PATCH (fix)
 
-Boolean-typed channel values now coerce to numeric (true->1.0, false->0.0) in the
+Boolean-typed channel values now coerce to numeric (true→1.0, false→0.0) in the
 numeric channel-value reads, instead of silently dropping to the 0.0 default. A DSON
 channel can be `type:"bool"` with a JSON-boolean `value` (e.g. the G8/G8.1 "JCMs On"
 base-joint-corrective master gate, on-by-default); the number-only read could not
@@ -731,8 +731,8 @@ GetModifierPresentation{Type,Label}. group/region were already in the modifier k
 so the unknown-key audit is unchanged. Verified against TestFiles
 (body_bs_NipplesFeminine_HD3.dsf modifier[0]: group="/Feminine", region="Chest",
 icon="/data/Daz%203D/Genesis%209/Base/Morphs/Daz%203D/Base/body_bs_NipplesFeminine_HD3.png";
-BaseJointCorrectives.dsf modifier[0] "JCMs On": group="/General/Misc", region absent -> "",
-icon present-but-empty -> "").
+BaseJointCorrectives.dsf modifier[0] "JCMs On": group="/General/Misc", region absent → "",
+icon present-but-empty → "").
 + DsonDocument_GetModifierGroup — modifier_library item modifier-level "group" (DAZ Parameter Settings "Path"; "" = none/invalid)
 + DsonDocument_GetModifierRegion — modifier_library item modifier-level "region" (DAZ Parameter Settings "Region"; "" = none/invalid)
 + DsonDocument_GetModifierPresentationIcon — modifier_library item presentation.icon_large thumbnail path, raw/verbatim ("" = none/invalid)
