@@ -14,27 +14,27 @@ Nothing yet — new C-ABI changes land here, then move under a version heading o
 ## 2.22.0 — 2026-08-07 · MINOR (added)
 
 Exposes, per `scene.nodes` scene node, every `extra[]` `studio_node_channels`
-channel in source order -- the node-side sibling of the 2.19.0
+channel in source order — the node-side sibling of the 2.19.0
 `GetGeometryChannel*` and 2.21.0 `GetModifierExtraChannel*` families (same shared
 `GeometryChannel` wrapper and `ParseGeometryChannel`). The motivating payload is
 **node visibility**: the DAZ Scene-pane eye-icon state is a
 `{ "id":"Visible", "type":"bool", "current_value":<bool> }` channel in that block,
-and it reached no accessor -- so a node authored hidden (the dForce Bodacious Bob
+and it reached no accessor — so a node authored hidden (the dForce Bodacious Bob
 Hair scalp/growth cap) imported visible, as a solid opaque-white shell over the
 head.
 
-`Value` returns the **effective** authored value (`current_value` -> `value`),
+`Value` returns the **effective** authored value (`current_value` → `value`),
 matching the modifier family and diverging from `GetGeometryChannelValue`'s raw
 `value`: a bool channel authors `current_value` with no numeric `value`, so
 `Visible: current_value=false` reads `0.0` and `true` reads `1.0`. Read `Value`
 directly; do not gate on the field-presence `VALUE` bit (a bool channel sets no
-mask bit -- the shared mask contract stays byte-identical to 2.19.0/2.21.0).
+mask bit — the shared mask contract stays byte-identical to 2.19.0/2.21.0).
 
 Faithful / no cross-section merge (R6.4): channels are matched by
 `"type":"studio_node_channels"` and appended in authored order, empty channel
 lists are tolerated (Count `0`), and the parser does **not** perform the
-scene->`node_library`->core `visible` effective-visibility resolution, nor bake
-the DSON "unauthored => visible" default -- an absent `Visible` channel is simply
+scene → `node_library` → core `visible` effective-visibility resolution, nor bake
+the DSON "unauthored ⇒ visible" default — an absent `Visible` channel is simply
 a Count with no `Visible` id, never a `false`. Applying visibility, resolving the
 default, and any library/core fallback stay with the consumer. Read from
 `scene.nodes` only; the shared node parse also captures the `node_library` side
@@ -55,7 +55,7 @@ and behavior are unchanged.
 + DsonDocument_GetSceneNodeExtraChannelGroup - the wrapper's authored `group`
   (sibling of `channel`); `""` when absent or invalid
 + DsonDocument_GetSceneNodeExtraChannelValue - effective value, `current_value`
-  falling back to `value` (bool -> `1.0`/`0.0`); `0.0` on invalid
+  falling back to `value` (bool → `1.0`/`0.0`); `0.0` on invalid
 + DsonDocument_GetSceneNodeExtraChannelMin - channel `min`; `0.0` on invalid or
   unauthored (query the field-presence mask first)
 + DsonDocument_GetSceneNodeExtraChannelMax - channel `max`; `0.0` on invalid or
@@ -109,7 +109,7 @@ existing symbols, signatures, sentinels, and behavior are unchanged.
 + DsonDocument_GetModifierExtraChannelGroup - the wrapper's authored `group`, a
   sibling of the channel object; `""` when absent or invalid
 + DsonDocument_GetModifierExtraChannelValue - one channel's effective authored
-  numeric value: `current_value -> value`. This intentionally diverges from
+  numeric value: `current_value → value`. This intentionally diverges from
   `GetGeometryChannelValue`, which keeps returning raw `value`
 + DsonDocument_GetModifierExtraChannelMin - one channel's authored `min`; `0.0`
   on invalid or absent, so gate on the MIN mask bit
@@ -682,13 +682,13 @@ inflated cleanly. A real shipped DAZ product (3D Universe "Pose Architect P1", G
 validate the trailer, so our strict check was stricter than DAZ and silently dropped
 legitimately-shipped, DAZ-loadable assets from a catalog. The internal inflater only
 returns success on a final-block DEFLATE termination, so a clean inflate already proves the
-payload is whole -- a blank trailer is therefore accepted and the comparison skipped.
+payload is whole — a blank trailer is therefore accepted and the comparison skipped.
 Genuine truncation/corruption still fails inside inflate (before the trailer is read), and
 any present, non-zero, mismatched trailer is still fully enforced; both trailer fields must
 be zero to skip, so a coincidentally-zero CRC with a non-zero ISIZE still takes the strict
 path. `DsonParserAPI.h` is byte-identical (no signature change); this changes only the
 internal gzip loader behavior, observable through the existing loaders:
-! DsonDocument_LoadFromBuffer / DsonDocument_LoadFromFile -- a gzip DSON with an all-zero trailer + clean DEFLATE now loads (was: rejected "gzip CRC32 mismatch")
+! DsonDocument_LoadFromBuffer / DsonDocument_LoadFromFile — a gzip DSON with an all-zero trailer + clean DEFLATE now loads (was: rejected "gzip CRC32 mismatch")
 
 ## 2.2.2 — 2026-06-21 · PATCH (changed)
 
@@ -711,11 +711,11 @@ Boolean-typed channel values now coerce to numeric (true->1.0, false->0.0) in th
 numeric channel-value reads, instead of silently dropping to the 0.0 default. A DSON
 channel can be `type:"bool"` with a JSON-boolean `value` (e.g. the G8/G8.1 "JCMs On"
 base-joint-corrective master gate, on-by-default); the number-only read could not
-represent it, so a present `value:true` collapsed to 0.0 -- zeroing every corrective
+represent it, so a present `value:true` collapsed to 0.0 — zeroing every corrective
 that gate multiplies. The value is read faithfully now. `DsonParserAPI.h` is
 byte-identical (no signature change); this corrects the behavior of existing accessors:
-! DsonDocument_GetModifierChannelValue / DsonDocument_GetSceneModifierChannelValue -- bool channel value now 1.0/0.0 (was 0.0)
-! DsonDocument_GetMaterialChannelValue / DsonDocument_GetSceneMaterialChannelValue -- bool channel value now 1.0/0.0 (was 0.0)
+! DsonDocument_GetModifierChannelValue / DsonDocument_GetSceneModifierChannelValue — bool channel value now 1.0/0.0 (was 0.0)
+! DsonDocument_GetMaterialChannelValue / DsonDocument_GetSceneMaterialChannelValue — bool channel value now 1.0/0.0 (was 0.0)
 
 ## 2.2.0 — 2026-06-20 · MINOR (additive)
 
