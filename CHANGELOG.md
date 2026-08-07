@@ -11,7 +11,7 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
-## 2.22.0 -- 2026-08-07 - MINOR (added)
+## 2.22.0 — 2026-08-07 · MINOR (added)
 
 Exposes, per `scene.nodes` scene node, every `extra[]` `studio_node_channels`
 channel in source order -- the node-side sibling of the 2.19.0
@@ -72,7 +72,7 @@ and behavior are unchanged.
 + DsonDocument_GetSceneNodeExtraChannelEnumValue - one `enum_values` entry by
   index, verbatim; `""` when absent or invalid
 
-## 2.21.0 -- 2026-08-03 - MINOR (added)
+## 2.21.0 — 2026-08-03 · MINOR (added)
 
 Exposes, per raw `modifier_library` modifier, every `extra[]`
 `studio_modifier_channels` channel in source order. This is the structural sibling

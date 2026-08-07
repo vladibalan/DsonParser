@@ -13,8 +13,10 @@ essentials, repeated here so they're never missed:
 3. Each real source file opens with an `orientation:` comment block. Read that block
    before reading the full body.
 4. Real source surface is small: `DsonDataTypes`, `DsonTypes`, `DsonHelpers`,
-   `DsonParserAPI` (in `DsonParser/`) and `DsonTest2/DsonTest2.cpp`. Everything
-   else is boilerplate or vendored. See `CLAUDE.md` for the per-file table.
+   `DsonInflate`, `DsonParserAPI`, `DsonParserVersion.h` (in `DsonParser/`), plus
+   the test harnesses `DsonTest2/DsonTest2.cpp` and `DsonLoadTest/DsonLoadTest.cpp`.
+   Everything else is boilerplate or vendored. See `CLAUDE.md` for the per-file
+   table.
 5. **Implementers build and verify** (`msbuild DsonTest2.sln /p:Configuration=Release
    /p:Platform=x64`) and report the real result; the Director re-runs that build itself
    to verify the returned change, and the user handles git commits. Report build/run

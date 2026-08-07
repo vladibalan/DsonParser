@@ -154,7 +154,7 @@ In `DsonTypes.cpp`:
   compiled before handoff — a stray edit can still break the build — and the result is
   stated explicitly.
 - **R7.3** — Files > 500 lines: confirm before reading in full. The two large files
-  are `DsonParserAPI.cpp` (~2.3k) and `DsonTypes.cpp` (~1.4k).
+  are `DsonParserAPI.cpp` (~3.2k) and `DsonTypes.cpp` (~1.7k).
 
 ## 8. How to conduct & report the review
 
@@ -186,7 +186,7 @@ contract table actively misdirects the next agent, which is worse than no doc.
   matching edit to the overview's file map / pipeline / coverage. CLAUDE.md
   defers to it, so the two must agree.
 - **R9.2 — Update CLAUDE.md's "Real source surface" table** on the same file-map
-  triggers as R9.1. The approximate line counts there (e.g. "~1160 lines") are
+  triggers as R9.1. The approximate line counts there (e.g. "~1750 lines") are
   intentionally rough — refresh them only on large size changes, not every edit.
 - **R9.3 — Refresh the file's `orientation:` comment block.** If an edit changes
   a file's purpose or responsibilities, update its top-of-file orientation block
