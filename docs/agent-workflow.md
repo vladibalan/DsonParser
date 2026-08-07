@@ -29,7 +29,9 @@ user launches it:
   Reporting). The repo is ground truth; the feedback-file is advisory.
 - **Owns git** — commits the verified change and tags releases (doc/config to
   `main`; source via a `task/<id>` branch + squash-merge; a lightweight `vX.Y.Z`
-  tag on every version bump). See "Git & release tagging." The user pushes.
+  tag on every version bump). **The user decides *when* to bump the version;
+  the Director does not bump on its own initiative** — see "Git & release
+  tagging." The user pushes.
 - Answers the user's questions directly when no code change is required.
 
 The Director does **not** edit C/C++ source, and does **not** launch the
@@ -173,6 +175,13 @@ on their own cadence.
   committed — it goes back to the user (see Reporting).
 
 ### Release tag (Director close-gate)
+
+**The user decides when a version bump ships.** The Director never initiates a
+bump on its own — neither by writing a surface-touching task-file that would
+force one under R10, nor by approving one an Implementer proposes — and waits
+for the user's explicit call before handing off. Once called, the mechanical
+execution below (and the R10 in-change steps in
+[`versioning.md`](versioning.md) "Per-change workflow") is the Director's job.
 
 Every **release** — any commit that bumps `DSONPARSER_VERSION_STRING` — gets a
 **lightweight** `vX.Y.Z` tag on the release commit, `X.Y.Z` = the new version

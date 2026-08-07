@@ -87,7 +87,11 @@ baseline lives in `DsonParser_Roadmap.md`.
 
 ## Per-change workflow
 
-Any change to the published surface (`DsonParserAPI.h`) must, in the same change:
+**Who decides *when* to bump: the user.** The Director never initiates a bump
+on its own — it does not write a surface-touching (bump-forcing) task-file, or
+approve one from the Implementer, without the user's explicit call. Once
+called, any change to the published surface (`DsonParserAPI.h`) must, in the
+same change:
 
 1. **Classify** it MAJOR / MINOR / PATCH per the scheme above.
 2. **Bump** the macros in `DsonParserVersion.h`.

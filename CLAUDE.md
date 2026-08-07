@@ -15,8 +15,11 @@ this session plays; if unstated, ask.
 
 **Git:** the **Director** owns commits and release tags — doc/config straight to
 `main`, verified source via a `task/<id>` branch squash-merged to `main`, and a
-lightweight `vX.Y.Z` tag on every version bump. The **Implementer never runs
-git**; the user pushes. Full policy:
+lightweight `vX.Y.Z` tag on every version bump. **The user decides *when* to
+bump the version; the Director does not bump on its own initiative — it does
+not hand off a surface-touching (bump-forcing) task-file, or approve one from
+the Implementer, without the user's explicit call.** The **Implementer never
+runs git**; the user pushes. Full policy:
 [`docs/agent-workflow.md`](docs/agent-workflow.md) "Git & release tagging."
 
 **Both roles:** report build and run results faithfully — never claim something
