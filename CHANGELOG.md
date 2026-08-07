@@ -43,33 +43,33 @@ be confused with the lowercase per-channel `visible` UI-metadata key, which this
 family never reads. Purely additive: all existing symbols, signatures, sentinels,
 and behavior are unchanged.
 
-+ DsonDocument_GetSceneNodeExtraChannelCount - number of `studio_node_channels`
++ DsonDocument_GetSceneNodeExtraChannelCount — number of `studio_node_channels`
   channels on one `scene.nodes` node, across every matching `extra[]` block in
   authored order; `0` on invalid handle/index, an empty block, or no block
-+ DsonDocument_GetSceneNodeExtraChannelId - one channel's authored `id` verbatim
++ DsonDocument_GetSceneNodeExtraChannelId — one channel's authored `id` verbatim
   (e.g. `"Visible"`); `""` when absent or invalid
-+ DsonDocument_GetSceneNodeExtraChannelType - one channel's authored `type`
++ DsonDocument_GetSceneNodeExtraChannelType — one channel's authored `type`
   (e.g. `"bool"`, `"enum"`); `""` when absent or invalid
-+ DsonDocument_GetSceneNodeExtraChannelLabel - one channel's authored `label`;
++ DsonDocument_GetSceneNodeExtraChannelLabel — one channel's authored `label`;
   `""` when absent or invalid
-+ DsonDocument_GetSceneNodeExtraChannelGroup - the wrapper's authored `group`
++ DsonDocument_GetSceneNodeExtraChannelGroup — the wrapper's authored `group`
   (sibling of `channel`); `""` when absent or invalid
-+ DsonDocument_GetSceneNodeExtraChannelValue - effective value, `current_value`
++ DsonDocument_GetSceneNodeExtraChannelValue — effective value, `current_value`
   falling back to `value` (bool → `1.0`/`0.0`); `0.0` on invalid
-+ DsonDocument_GetSceneNodeExtraChannelMin - channel `min`; `0.0` on invalid or
++ DsonDocument_GetSceneNodeExtraChannelMin — channel `min`; `0.0` on invalid or
   unauthored (query the field-presence mask first)
-+ DsonDocument_GetSceneNodeExtraChannelMax - channel `max`; `0.0` on invalid or
++ DsonDocument_GetSceneNodeExtraChannelMax — channel `max`; `0.0` on invalid or
   unauthored
-+ DsonDocument_GetSceneNodeExtraChannelClamped - channel `clamped`; `false` on
++ DsonDocument_GetSceneNodeExtraChannelClamped — channel `clamped`; `false` on
   invalid or unauthored
-+ DsonDocument_GetSceneNodeExtraChannelStepSize - channel `step_size`; `0.0` on
++ DsonDocument_GetSceneNodeExtraChannelStepSize — channel `step_size`; `0.0` on
   invalid or unauthored
-+ DsonDocument_GetSceneNodeExtraChannelFieldPresenceMask - authored-field bits
++ DsonDocument_GetSceneNodeExtraChannelFieldPresenceMask — authored-field bits
   (VALUE=0x10, MIN=0x1, MAX=0x2, CLAMPED=0x4, STEP_SIZE=0x8); `0` on invalid or
   when only `current_value` is authored (there is no `current_value` bit, by design)
-+ DsonDocument_GetSceneNodeExtraChannelEnumValueCount - number of `enum_values`
++ DsonDocument_GetSceneNodeExtraChannelEnumValueCount — number of `enum_values`
   on the channel; `0` for a non-enum or invalid
-+ DsonDocument_GetSceneNodeExtraChannelEnumValue - one `enum_values` entry by
++ DsonDocument_GetSceneNodeExtraChannelEnumValue — one `enum_values` entry by
   index, verbatim; `""` when absent or invalid
 
 ## 2.21.0 — 2026-08-03 · MINOR (added)
@@ -97,34 +97,34 @@ only value/min/max/clamped/step_size bits, with no `current_value` bit, so the
 2.19.0 geometry mask contract remains byte-identical. Purely additive: all
 existing symbols, signatures, sentinels, and behavior are unchanged.
 
-+ DsonDocument_GetModifierExtraChannelCount - number of `studio_modifier_channels`
++ DsonDocument_GetModifierExtraChannelCount — number of `studio_modifier_channels`
   entries on one raw `modifier_library` modifier, appended across every matching
   `extra[]` block in authored order; `0` on invalid handle/index or no block
-+ DsonDocument_GetModifierExtraChannelId - one channel's authored `id` verbatim;
++ DsonDocument_GetModifierExtraChannelId — one channel's authored `id` verbatim;
   `""` when absent or invalid
-+ DsonDocument_GetModifierExtraChannelType - one channel's authored `type`
++ DsonDocument_GetModifierExtraChannelType — one channel's authored `type`
   verbatim (`"int"`, `"float"`, `"enum"`, etc.); `""` when absent or invalid
-+ DsonDocument_GetModifierExtraChannelLabel - one channel's authored `label`;
++ DsonDocument_GetModifierExtraChannelLabel — one channel's authored `label`;
   `""` when absent or invalid
-+ DsonDocument_GetModifierExtraChannelGroup - the wrapper's authored `group`, a
++ DsonDocument_GetModifierExtraChannelGroup — the wrapper's authored `group`, a
   sibling of the channel object; `""` when absent or invalid
-+ DsonDocument_GetModifierExtraChannelValue - one channel's effective authored
++ DsonDocument_GetModifierExtraChannelValue — one channel's effective authored
   numeric value: `current_value → value`. This intentionally diverges from
   `GetGeometryChannelValue`, which keeps returning raw `value`
-+ DsonDocument_GetModifierExtraChannelMin - one channel's authored `min`; `0.0`
++ DsonDocument_GetModifierExtraChannelMin — one channel's authored `min`; `0.0`
   on invalid or absent, so gate on the MIN mask bit
-+ DsonDocument_GetModifierExtraChannelMax - one channel's authored `max`; `0.0`
++ DsonDocument_GetModifierExtraChannelMax — one channel's authored `max`; `0.0`
   on invalid or absent, so gate on the MAX mask bit
-+ DsonDocument_GetModifierExtraChannelClamped - one channel's authored `clamped`;
++ DsonDocument_GetModifierExtraChannelClamped — one channel's authored `clamped`;
   `false` on invalid or absent, so gate on the CLAMPED mask bit
-+ DsonDocument_GetModifierExtraChannelStepSize - one channel's authored
++ DsonDocument_GetModifierExtraChannelStepSize — one channel's authored
   `step_size`; `0.0` on invalid or absent, so gate on the STEP_SIZE mask bit
-+ DsonDocument_GetModifierExtraChannelFieldPresenceMask - which of
++ DsonDocument_GetModifierExtraChannelFieldPresenceMask — which of
   value/min/max/clamped/step_size the channel authored; `0` on invalid or nothing
   authored. `current_value` has no bit by design
-+ DsonDocument_GetModifierExtraChannelEnumValueCount - number of authored
++ DsonDocument_GetModifierExtraChannelEnumValueCount — number of authored
   `enum_values` on one channel; `0` on invalid or a non-enum channel
-+ DsonDocument_GetModifierExtraChannelEnumValue - one `enum_values` entry
++ DsonDocument_GetModifierExtraChannelEnumValue — one `enum_values` entry
   verbatim; `""` when absent or invalid
 
 ## 2.20.0 — 2026-08-03 · MINOR (added)
@@ -144,18 +144,18 @@ Six additive accessors, a faithful mirror of the polylist face family — each
 polyline entry has the identical layout `[polygon_group_idx, material_group_idx,
 v0, v1, … vN-1]`: two leading indices, vertex indices from offset `[2]`:
 
-- `+ DsonDocument_GetPolylineCount` — number of polylines (strands); `0` for a
++ DsonDocument_GetPolylineCount — number of polylines (strands); `0` for a
   polygon mesh. Paired with `GetPolylistCount` this is the strand discriminator (a
   strand geometry reports `0` polygons and N polylines; a polygon mesh the reverse).
-- `+ DsonDocument_GetPolylineSegmentCount` — the authored `segment_count`, the total
++ DsonDocument_GetPolylineSegmentCount — the authored `segment_count`, the total
   segment count across all polylines. Its own datum with **no `polylist`
   counterpart**, exposed faithfully rather than derived (it is the open-polyline
   segment total — points − 1 per line — so a consumer must not assume closed loops).
-- `+ DsonDocument_GetPolylineVertexCount` — vertices in one polyline.
-- `+ DsonDocument_GetPolylineVertex` — one polyline's vertex index by position.
-- `+ DsonDocument_GetPolylineGroupIndex` — the polyline's leading `[0]`
++ DsonDocument_GetPolylineVertexCount — vertices in one polyline.
++ DsonDocument_GetPolylineVertex — one polyline's vertex index by position.
++ DsonDocument_GetPolylineGroupIndex — the polyline's leading `[0]`
   polygon-group index.
-- `+ DsonDocument_GetPolylineMaterialIndex` — the polyline's leading `[1]`
++ DsonDocument_GetPolylineMaterialIndex — the polyline's leading `[1]`
   material-group index.
 
 Faithful/non-interpretive (R6.4): `polyline_count` / `polyline_segment_count` and
@@ -733,9 +733,9 @@ so the unknown-key audit is unchanged. Verified against TestFiles
 icon="/data/Daz%203D/Genesis%209/Base/Morphs/Daz%203D/Base/body_bs_NipplesFeminine_HD3.png";
 BaseJointCorrectives.dsf modifier[0] "JCMs On": group="/General/Misc", region absent -> "",
 icon present-but-empty -> "").
-+ DsonDocument_GetModifierGroup -> modifier_library item modifier-level "group" (DAZ Parameter Settings "Path"; "" = none/invalid)
-+ DsonDocument_GetModifierRegion -> modifier_library item modifier-level "region" (DAZ Parameter Settings "Region"; "" = none/invalid)
-+ DsonDocument_GetModifierPresentationIcon -> modifier_library item presentation.icon_large thumbnail path, raw/verbatim ("" = none/invalid)
++ DsonDocument_GetModifierGroup — modifier_library item modifier-level "group" (DAZ Parameter Settings "Path"; "" = none/invalid)
++ DsonDocument_GetModifierRegion — modifier_library item modifier-level "region" (DAZ Parameter Settings "Region"; "" = none/invalid)
++ DsonDocument_GetModifierPresentationIcon — modifier_library item presentation.icon_large thumbnail path, raw/verbatim ("" = none/invalid)
 
 ## 2.1.0 — 2026-06-17 · MINOR (additive)
 
@@ -754,10 +754,10 @@ scalar/url as before, so existing consumers that never call the new accessors ge
 byte-identical behavior. 0.0 is also a legitimate element value (tension/continuity/bias
 are observed 0), so bound-check the Count first - the Count, not a 0.0 element, is the
 array-vs-scalar discriminator.
-+ DsonDocument_GetModifierFormulaOperationValArrayCount -> element count of an array-valued operand; 0 if the operand is scalar/url/absent (modifier_library)
-+ DsonDocument_GetModifierFormulaOperationValArrayElement -> one raw array element by index, in source order; 0.0 if out of range (modifier_library)
-+ DsonDocument_GetSceneModifierFormulaOperationValArrayCount -> as above, scene.modifiers family
-+ DsonDocument_GetSceneModifierFormulaOperationValArrayElement -> as above, scene.modifiers family
++ DsonDocument_GetModifierFormulaOperationValArrayCount — element count of an array-valued operand; 0 if the operand is scalar/url/absent (modifier_library)
++ DsonDocument_GetModifierFormulaOperationValArrayElement — one raw array element by index, in source order; 0.0 if out of range (modifier_library)
++ DsonDocument_GetSceneModifierFormulaOperationValArrayCount — as above, scene.modifiers family
++ DsonDocument_GetSceneModifierFormulaOperationValArrayElement — as above, scene.modifiers family
 
 ## 2.0.0 — 2026-06-13 · MAJOR (breaking)
 
@@ -784,7 +784,7 @@ per-thread (function-local thread_local) slot, so concurrent DsonDocument_Create
 no longer race on it and each thread's GetLastError() reflects its own last call. No symbol,
 signature, or single-threaded behavior changed; the header now states the contract. Same-handle
 concurrent use remains the caller's responsibility (lazy caches mutate on first read).
-! DsonParser_GetLastError -> per-thread (thread_local) storage; was process-global - fixes a data race under concurrent loads, no API/signature change
+! DsonParser_GetLastError — per-thread (thread_local) storage; was process-global - fixes a data race under concurrent loads, no API/signature change
 
 ## 1.5.0 — 2026-06-12 · MINOR (additive)
 
@@ -802,11 +802,11 @@ no document-level resolution, no cross-section merge. Adding the three keys to t
 TestFiles (`test.dsf` modifier = "Modifier/Shape"; `Genesis9.json` base geom is_graft=false,
 node[0]="Actor") and an external geograft (`Genesis9FemaleGenitalia.dsf` → is_graft=true,
 84 vertex_pairs; node[0]="Follower").
-+ DsonDocument_GetNodePresentationType → node_library item presentation.type (DAZ "Content Type"; "" = none/invalid)
-+ DsonDocument_GetNodePresentationLabel → node_library item presentation.label ("" = none/invalid)
-+ DsonDocument_GetModifierPresentationType → modifier_library item presentation.type ("" = none/invalid)
-+ DsonDocument_GetModifierPresentationLabel → modifier_library item presentation.label ("" = none/invalid)
-+ DsonDocument_GetGeometryIsGraft → true iff the geometry declares a populated graft (vertex_pairs present); false for empty/absent graft
++ DsonDocument_GetNodePresentationType — node_library item presentation.type (DAZ "Content Type"; "" = none/invalid)
++ DsonDocument_GetNodePresentationLabel — node_library item presentation.label ("" = none/invalid)
++ DsonDocument_GetModifierPresentationType — modifier_library item presentation.type ("" = none/invalid)
++ DsonDocument_GetModifierPresentationLabel — modifier_library item presentation.label ("" = none/invalid)
++ DsonDocument_GetGeometryIsGraft — true iff the geometry declares a populated graft (vertex_pairs present); false for empty/absent graft
 
 ## 1.4.0 — 2026-06-10 · MINOR (additive)
 
@@ -827,15 +827,15 @@ HID Nancy head diffuse + SSS Color, 4-layer stacks) and a crafted inline-`#id` s
 28 new accessors = 14 shared suffixes × 2 prefixes (per-image
 `DsonDocument_GetImageLayer…`, args `(handle, imageIndex, layerIdx)`; per-channel
 `DsonDocument_GetSceneMaterialChannelLayer…`, args `(handle, sceneMatIndex, channelIdx, layerIdx)`):
-+ …BlendMode → raw "operation" blend string, e.g. "blend_source_over"/"blend_multiply" ("" = invalid/absent)
-+ …Opacity → raw "transparency" (1.0 = opaque). NB sentinel 0.0 collides with a legitimately-transparent layer — bound-check Count first
-+ …Active → "active" flag (false = invalid)
-+ …Invert → "invert" flag (false = invalid)
-+ …ColorR / …ColorG / …ColorB → "color" RGB tint components (0.0 = invalid)
-+ …Rotation → "rotation" in degrees (0.0 = invalid)
-+ …ScaleX / …ScaleY → "xscale" / "yscale" (1.0 = invalid; scale exception per the R1 contract)
-+ …OffsetX / …OffsetY → "xoffset" / "yoffset" (0.0 = invalid)
-+ …MirrorX / …MirrorY → "xmirror" / "ymirror" mirror flags (false = invalid)
++ …BlendMode — raw "operation" blend string, e.g. "blend_source_over"/"blend_multiply" ("" = invalid/absent)
++ …Opacity — raw "transparency" (1.0 = opaque). NB sentinel 0.0 collides with a legitimately-transparent layer — bound-check Count first
++ …Active — "active" flag (false = invalid)
++ …Invert — "invert" flag (false = invalid)
++ …ColorR / …ColorG / …ColorB — "color" RGB tint components (0.0 = invalid)
++ …Rotation — "rotation" in degrees (0.0 = invalid)
++ …ScaleX / …ScaleY — "xscale" / "yscale" (1.0 = invalid; scale exception per the R1 contract)
++ …OffsetX / …OffsetY — "xoffset" / "yoffset" (0.0 = invalid)
++ …MirrorX / …MirrorY — "xmirror" / "ymirror" mirror flags (false = invalid)
 
 ## 1.3.0 — 2026-06-09 · MINOR (additive)
 
@@ -849,9 +849,9 @@ returned only the raw `"#fragment"`. These accessors read the same parsed
 `…ChannelLayer*` surface. Path + label + count only — per-layer blend op/transform stay
 unmodeled (the eye case is all blend_source_over with identity transforms). Parser
 unchanged: faithful exposure of already-parsed data, no merge onto `scene.materials` (R6.4).
-+ DsonDocument_GetImageLayerCount → textured-layer count of the entry's map stack (1 = plain single texture, N = LIE, 0 = no array-form map / invalid; a color-only no-url base layer is not counted). NB unlike GetSceneMaterialChannelLayerCount, which is 0 for a plain channel.
-+ DsonDocument_GetImageLayerTexturePath → layer texture path by (imageIndex, layerIdx); layer 0 = first textured map element ("" = invalid)
-+ DsonDocument_GetImageLayerLabel → LIE layer label by (imageIndex, layerIdx) ("" = invalid)
++ DsonDocument_GetImageLayerCount — textured-layer count of the entry's map stack (1 = plain single texture, N = LIE, 0 = no array-form map / invalid; a color-only no-url base layer is not counted). NB unlike GetSceneMaterialChannelLayerCount, which is 0 for a plain channel.
++ DsonDocument_GetImageLayerTexturePath — layer texture path by (imageIndex, layerIdx); layer 0 = first textured map element ("" = invalid)
++ DsonDocument_GetImageLayerLabel — LIE layer label by (imageIndex, layerIdx) ("" = invalid)
 
 ## 1.2.0 — 2026-06-08 · MINOR (additive)
 
@@ -864,13 +864,13 @@ it; it does **not** apply them onto `scene.materials`, resolve the pointer, or r
 the `image_file` string against `image_library` (parser stays faithful — the consumer
 reads both sections and decides the override). First key only; `image_modification`/
 tiling and multi-key are recognized in the data but not modeled.
-+ DsonDocument_GetSceneAnimationCount → entry count (0 = none/invalid handle)
-+ DsonDocument_GetSceneAnimationUrl → raw DSON property pointer, verbatim ("" = invalid)
-+ DsonDocument_GetSceneAnimationValueKind → first-key value kind: 0 null · 1 number · 2 bool · 3 string · 4 color (-1 = invalid)
-+ DsonDocument_GetSceneAnimationFloat → number value (0.0 if kind ≠ number/invalid)
-+ DsonDocument_GetSceneAnimationBool → bool value (false if kind ≠ bool/invalid)
-+ DsonDocument_GetSceneAnimationString → string value, e.g. an image_file path ("" if kind ≠ string/invalid)
-+ DsonDocument_GetSceneAnimationColorR / …ColorG / …ColorB → RGB from a ≥3-number array (0.0 if kind ≠ color/invalid)
++ DsonDocument_GetSceneAnimationCount — entry count (0 = none/invalid handle)
++ DsonDocument_GetSceneAnimationUrl — raw DSON property pointer, verbatim ("" = invalid)
++ DsonDocument_GetSceneAnimationValueKind — first-key value kind: 0 null · 1 number · 2 bool · 3 string · 4 color (-1 = invalid)
++ DsonDocument_GetSceneAnimationFloat — number value (0.0 if kind ≠ number/invalid)
++ DsonDocument_GetSceneAnimationBool — bool value (false if kind ≠ bool/invalid)
++ DsonDocument_GetSceneAnimationString — string value, e.g. an image_file path ("" if kind ≠ string/invalid)
++ DsonDocument_GetSceneAnimationColorR / …ColorG / …ColorB — RGB from a ≥3-number array (0.0 if kind ≠ color/invalid)
 
 ## 1.1.0 — 2026-06-08 · MINOR (additive)
 
@@ -879,11 +879,11 @@ First typed modeling of `scene.extra`: the DAZ "Character Addon Loader"
 (Genesis 9 eyes/mouth/eyelashes/tear/eyebrows) a `character` preset instances but
 does not list in `scene.nodes`. Paths only — resolving against content roots and
 loading the referenced files stay importer responsibilities.
-+ DsonDocument_GetScenePostLoadAddonCount → slot count, flattened across every scene.extra PostLoadAddons map in document order (0 = none)
-+ DsonDocument_GetScenePostLoadAddonSlot → DAZ slot key (e.g. Follower/Attachment/Head/Face/Eyes)
-+ DsonDocument_GetScenePostLoadAddonAssetName → addon asset name
-+ DsonDocument_GetScenePostLoadAddonAssetFile → content-relative loader .duf path
-+ DsonDocument_GetScenePostLoadAddonMatPreset → content-relative MAT preset .duf path ("" = no preset)
++ DsonDocument_GetScenePostLoadAddonCount — slot count, flattened across every scene.extra PostLoadAddons map in document order (0 = none)
++ DsonDocument_GetScenePostLoadAddonSlot — DAZ slot key (e.g. Follower/Attachment/Head/Face/Eyes)
++ DsonDocument_GetScenePostLoadAddonAssetName — addon asset name
++ DsonDocument_GetScenePostLoadAddonAssetFile — content-relative loader .duf path
++ DsonDocument_GetScenePostLoadAddonMatPreset — content-relative MAT preset .duf path ("" = no preset)
 
 ## 1.0.0 — 2026-06-07 · baseline
 
