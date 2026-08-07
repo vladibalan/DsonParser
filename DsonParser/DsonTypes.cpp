@@ -98,6 +98,44 @@ static void TrackChannelTypeMismatch(std::set<std::string>* unknownKeys,
 
 static bool ParseGeometryChannel(const rapidjson::Value& wrapper, GeometryChannel& out);
 
+// Shared by the Node/Geometry (and Stage-2 Modifier) extra[]-channel walks:
+// parse and append every wrapper in channelsArray via ParseGeometryChannel.
+static void AppendGeometryChannels(const rapidjson::Value& channelsArray,
+                                   std::vector<GeometryChannel>& out);
+
+// Shared by polylist/polyline_list: flatten rows of [g, m, v0, v1, ...] int
+// arrays into a flat values buffer plus a per-row start-offset table.
+static void FlattenIndexRows(const rapidjson::Value& rows, std::vector<int>& values,
+                             std::vector<int>& offsets);
+
+static void ParseNodeRigidFollow(const rapidjson::Value& item, bool& has_rigid_follow,
+                                 std::string& rigid_follow_rotation_mode,
+                                 std::vector<std::string>& rigid_follow_scale_modes,
+                                 std::vector<int>& rigid_follow_reference_vertices);
+static void ParseNodeExtras(const rapidjson::Value& json,
+                            std::vector<MaterialUVAssignment>& shell_material_uv_assignments,
+                            std::vector<GeometryChannel>& extra_channels,
+                            bool& has_rigid_follow,
+                            std::string& rigid_follow_rotation_mode,
+                            std::vector<std::string>& rigid_follow_scale_modes,
+                            std::vector<int>& rigid_follow_reference_vertices);
+
+static void ParseGeometryVertices(const rapidjson::Value& json, FloatArray& vertices, Int& vertex_count);
+static void ParseGeometryPolylist(const rapidjson::Value& json, IntArray& polylist,
+                                  std::vector<int>& polylist_face_offsets, Int& polygon_count);
+static void ParseGeometryPolylineList(const rapidjson::Value& json, IntArray& polyline_list,
+                                      std::vector<int>& polyline_list_offsets,
+                                      int& polyline_count, int& polyline_segment_count);
+static void ParseGeometryExtraChannels(const rapidjson::Value& json, std::vector<GeometryChannel>& channels);
+static void ParseGeometryGraft(const rapidjson::Value& json, bool& is_graft,
+                               std::vector<GraftVertexPair>& graft_vertex_pairs,
+                               std::vector<int>& graft_hidden_polys,
+                               Int& graft_base_vertex_count, Int& graft_base_poly_count);
+static void ParseGeometryRigidity(const rapidjson::Value& json, bool& has_rigidity,
+                                  std::vector<GeometryRigidityWeight>& rigidity_weights,
+                                  std::vector<GeometryRigidityGroup>& rigidity_groups,
+                                  std::set<std::string>* unknownKeys);
+
 static int HexValue(char c) {
     if (c >= '0' && c <= '9') {
         return c - '0';
@@ -340,6 +378,79 @@ bool AssetInfo::ParseFromJson(const rapidjson::Value& json, std::set<std::string
 }
 
 // Node implementation
+
+// Parse one studio/node/rigid_follow extra's inline rigidity_group: the raw
+// reference-vertex patch (rotation_mode, scale_modes, reference_vertices) on
+// a followed mesh this node rides rigidly. Raw, unevaluated passthrough
+// (R6.4). Caller gates on "first rigid_follow wins" before calling.
+static void ParseNodeRigidFollow(const rapidjson::Value& item, bool& has_rigid_follow,
+                                 std::string& rigid_follow_rotation_mode,
+                                 std::vector<std::string>& rigid_follow_scale_modes,
+                                 std::vector<int>& rigid_follow_reference_vertices) {
+    const rapidjson::Value* group = nullptr;
+    if (!JsonHelper::GetObject(item, "rigidity_group", group)) return;
+
+    has_rigid_follow = true;
+    rigid_follow_rotation_mode = JsonHelper::GetStringOrDefault(*group, "rotation_mode");
+
+    const rapidjson::Value* modes = nullptr;
+    if (JsonHelper::GetArray(*group, "scale_modes", modes)) {
+        rigid_follow_scale_modes.reserve(modes->Size());
+        for (rapidjson::SizeType s = 0; s < modes->Size(); s++) {
+            if ((*modes)[s].IsString())
+                rigid_follow_scale_modes.push_back((*modes)[s].GetString());
+        }
+    }
+
+    const rapidjson::Value* refv = nullptr;
+    if (JsonHelper::GetObject(*group, "reference_vertices", refv)) {
+        const rapidjson::Value* values = nullptr;
+        if (JsonHelper::GetArray(*refv, "values", values)) {
+            rigid_follow_reference_vertices.reserve(values->Size());
+            for (rapidjson::SizeType v = 0; v < values->Size(); v++) {
+                if ((*values)[v].IsInt())
+                    rigid_follow_reference_vertices.push_back((*values)[v].GetInt());
+            }
+        }
+    }
+}
+
+// Walk node extras once for the typed payloads exposed by the model. Rigid-
+// follow data and studio_node_channels are raw and unevaluated. Shell
+// material_uvs rows and node extra channels are appended across every exact
+// matching entry in authored order.
+// Neither path resolves references or merges sections (R6.3/R6.4).
+static void ParseNodeExtras(const rapidjson::Value& json,
+                            std::vector<MaterialUVAssignment>& shell_material_uv_assignments,
+                            std::vector<GeometryChannel>& extra_channels,
+                            bool& has_rigid_follow,
+                            std::string& rigid_follow_rotation_mode,
+                            std::vector<std::string>& rigid_follow_scale_modes,
+                            std::vector<int>& rigid_follow_reference_vertices) {
+    const rapidjson::Value* rfExtra = nullptr;
+    if (!JsonHelper::GetArray(json, "extra", rfExtra)) return;
+
+    for (rapidjson::SizeType i = 0; i < rfExtra->Size(); i++) {
+        const auto& item = (*rfExtra)[i];
+        if (!item.IsObject()) continue;
+        const std::string extraType = JsonHelper::GetStringOrDefault(item, "type");
+        if (extraType == "studio/node/shell") {
+            ParseMaterialUVAssignments(item, "material_uvs", shell_material_uv_assignments);
+            continue;
+        }
+        if (extraType == "studio_node_channels") {
+            const rapidjson::Value* channelArr = nullptr;
+            if (JsonHelper::GetArray(item, "channels", channelArr)) {
+                AppendGeometryChannels(*channelArr, extra_channels);
+            }
+            continue;
+        }
+        if (extraType != "studio/node/rigid_follow" || has_rigid_follow) continue;
+        ParseNodeRigidFollow(item, has_rigid_follow, rigid_follow_rotation_mode,
+                             rigid_follow_scale_modes, rigid_follow_reference_vertices);
+    }
+}
+
 bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
     if (!json.IsObject()) {
         return false;
@@ -425,64 +536,8 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
         presentation_preferred_base   = JsonHelper::GetStringOrDefault(*presObj, "preferred_base");
     }
 
-    // Walk node extras once for the typed payloads exposed by the model.
-    // Rigid-follow data and studio_node_channels are raw and unevaluated. Shell
-    // material_uvs rows and node extra channels are appended across every exact
-    // matching entry in authored order.
-    // Neither path resolves references or merges sections (R6.3/R6.4).
-    const rapidjson::Value* rfExtra = nullptr;
-    if (JsonHelper::GetArray(json, "extra", rfExtra)) {
-        for (rapidjson::SizeType i = 0; i < rfExtra->Size(); i++) {
-            const auto& item = (*rfExtra)[i];
-            if (!item.IsObject()) continue;
-            const std::string extraType = JsonHelper::GetStringOrDefault(item, "type");
-            if (extraType == "studio/node/shell") {
-                ParseMaterialUVAssignments(item, "material_uvs", shell_material_uv_assignments);
-                continue;
-            }
-            if (extraType == "studio_node_channels") {
-                const rapidjson::Value* channelArr = nullptr;
-                if (JsonHelper::GetArray(item, "channels", channelArr)) {
-                    extra_channels.reserve(extra_channels.size() + channelArr->Size());
-                    for (rapidjson::SizeType j = 0; j < channelArr->Size(); j++) {
-                        GeometryChannel channel;
-                        if (ParseGeometryChannel((*channelArr)[j], channel)) {
-                            extra_channels.push_back(channel);
-                        }
-                    }
-                }
-                continue;
-            }
-            if (extraType != "studio/node/rigid_follow" || has_rigid_follow) continue;
-
-            const rapidjson::Value* group = nullptr;
-            if (!JsonHelper::GetObject(item, "rigidity_group", group)) continue;
-
-            has_rigid_follow = true;
-            rigid_follow_rotation_mode = JsonHelper::GetStringOrDefault(*group, "rotation_mode");
-
-            const rapidjson::Value* modes = nullptr;
-            if (JsonHelper::GetArray(*group, "scale_modes", modes)) {
-                rigid_follow_scale_modes.reserve(modes->Size());
-                for (rapidjson::SizeType s = 0; s < modes->Size(); s++) {
-                    if ((*modes)[s].IsString())
-                        rigid_follow_scale_modes.push_back((*modes)[s].GetString());
-                }
-            }
-
-            const rapidjson::Value* refv = nullptr;
-            if (JsonHelper::GetObject(*group, "reference_vertices", refv)) {
-                const rapidjson::Value* values = nullptr;
-                if (JsonHelper::GetArray(*refv, "values", values)) {
-                    rigid_follow_reference_vertices.reserve(values->Size());
-                    for (rapidjson::SizeType v = 0; v < values->Size(); v++) {
-                        if ((*values)[v].IsInt())
-                            rigid_follow_reference_vertices.push_back((*values)[v].GetInt());
-                    }
-                }
-            }
-        }
-    }
+    ParseNodeExtras(json, shell_material_uv_assignments, extra_channels, has_rigid_follow,
+                    rigid_follow_rotation_mode, rigid_follow_scale_modes, rigid_follow_reference_vertices);
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
@@ -573,6 +628,210 @@ static bool ParseGeometryChannel(const rapidjson::Value& wrapper, GeometryChanne
     return true;
 }
 
+// Shared by the Node/Geometry (and Stage-2 Modifier) extra[]-channel walks:
+// parse and append every wrapper in channelsArray via ParseGeometryChannel.
+static void AppendGeometryChannels(const rapidjson::Value& channelsArray,
+                                   std::vector<GeometryChannel>& out) {
+    out.reserve(out.size() + channelsArray.Size());
+    for (rapidjson::SizeType j = 0; j < channelsArray.Size(); ++j) {
+        GeometryChannel channel;
+        if (ParseGeometryChannel(channelsArray[j], channel)) out.push_back(channel);
+    }
+}
+
+// Shared by polylist/polyline_list: flatten rows of [g, m, v0, v1, ...] int
+// arrays into a flat values buffer plus a per-row start-offset table.
+static void FlattenIndexRows(const rapidjson::Value& rows, std::vector<int>& values,
+                             std::vector<int>& offsets) {
+    for (rapidjson::SizeType i = 0; i < rows.Size(); ++i) {
+        if (!rows[i].IsArray()) continue;
+        const auto& row = rows[i];
+        offsets.push_back(static_cast<int>(values.size()));
+        for (rapidjson::SizeType j = 0; j < row.Size(); ++j)
+            if (row[j].IsInt()) values.push_back(row[j].GetInt());
+    }
+}
+
+// Vertices: a flat number array (legacy) or a { count, values:[[x,y,z],...] } object
+static void ParseGeometryVertices(const rapidjson::Value& json, FloatArray& vertices, Int& vertex_count) {
+    if (!JsonHelper::HasMember(json, "vertices")) return;
+    const rapidjson::Value& v = json["vertices"];
+    if (v.IsObject()) {
+        if (v.HasMember("count") && v["count"].IsInt()) {
+            vertex_count.value = v["count"].GetInt();
+        }
+        const rapidjson::Value* values = nullptr;
+        if (JsonHelper::GetArray(v, "values", values)) {
+            vertices.values.reserve(values->Size() * 3);
+            for (rapidjson::SizeType i = 0; i < values->Size(); i++) {
+                const auto& p = (*values)[i];
+                if (p.IsArray() && p.Size() >= 3 &&
+                    p[0].IsNumber() && p[1].IsNumber() && p[2].IsNumber()) {
+                    vertices.values.push_back(p[0].GetDouble());
+                    vertices.values.push_back(p[1].GetDouble());
+                    vertices.values.push_back(p[2].GetDouble());
+                }
+            }
+            if (vertex_count.value == 0) {
+                vertex_count.value = static_cast<int>(values->Size());
+            }
+        }
+    } else if (v.IsArray()) {
+        vertices.ParseFromJson(v);
+    }
+}
+
+// Polylist: an array of faces (legacy) or a { count, values:[[g,m,v0,v1,...],...] } object.
+// Faces are flattened, including the leading group/material indices of each face.
+static void ParseGeometryPolylist(const rapidjson::Value& json, IntArray& polylist,
+                                  std::vector<int>& polylist_face_offsets, Int& polygon_count) {
+    if (!JsonHelper::HasMember(json, "polylist")) return;
+    const rapidjson::Value& pl = json["polylist"];
+    const rapidjson::Value* faces = nullptr;
+    if (pl.IsObject()) {
+        if (pl.HasMember("count") && pl["count"].IsInt()) {
+            polygon_count.value = pl["count"].GetInt();
+        }
+        JsonHelper::GetArray(pl, "values", faces);
+    } else if (pl.IsArray()) {
+        faces = &pl;
+    }
+    if (faces) {
+        polylist.values.reserve(faces->Size() * 6);
+        polylist_face_offsets.reserve(faces->Size());
+        FlattenIndexRows(*faces, polylist.values, polylist_face_offsets);
+        if (polygon_count.value == 0) {
+            polygon_count.value = static_cast<int>(faces->Size());
+        }
+    }
+}
+
+// Polyline list: strand / curve geometry (dForce Strand-Based Hair). A sibling
+// of polylist on the same geometry object; a "polygon_mesh" geometry may in
+// fact be strand-based (the discriminator is polylist vs polyline_list, not the
+// type label). For a strand geometry polylist.count is 0 and every curve lives
+// here. Each entry mirrors the polylist convention:
+// [polygon_group_idx, material_group_idx, v0, v1, ..., vN-1], variable length.
+// count / segment_count are faithful authored scalars kept SEPARATE from
+// polygon_count (R6.4). segment_count has no polylist counterpart.
+static void ParseGeometryPolylineList(const rapidjson::Value& json, IntArray& polyline_list,
+                                      std::vector<int>& polyline_list_offsets,
+                                      int& polyline_count, int& polyline_segment_count) {
+    if (!JsonHelper::HasMember(json, "polyline_list")) return;
+    const rapidjson::Value& pll = json["polyline_list"];
+    const rapidjson::Value* lines = nullptr;
+    if (pll.IsObject()) {
+        if (pll.HasMember("count") && pll["count"].IsInt()) {
+            polyline_count = pll["count"].GetInt();
+        }
+        if (pll.HasMember("segment_count") && pll["segment_count"].IsInt()) {
+            polyline_segment_count = pll["segment_count"].GetInt();
+        }
+        JsonHelper::GetArray(pll, "values", lines);
+    } else if (pll.IsArray()) {
+        lines = &pll;
+    }
+    if (lines) {
+        polyline_list_offsets.reserve(lines->Size());
+        // Exact for open polylines (points = segment_count + count) plus the
+        // two leading indices per line; a harmless slight over-reserve if a
+        // future asset ever closes a loop.
+        if (polyline_count > 0 && polyline_segment_count > 0) {
+            polyline_list.values.reserve(
+                static_cast<size_t>(polyline_segment_count) + 3u * static_cast<size_t>(polyline_count));
+        }
+        FlattenIndexRows(*lines, polyline_list.values, polyline_list_offsets);
+        if (polyline_count == 0) {
+            polyline_count = static_cast<int>(lines->Size());
+        }
+    }
+}
+
+// Geometry extra[] may contain multiple payload families. Only expose the
+// authored studio_geometry_channels blocks here; material_selection_sets and
+// other extras are recognized only as "extra" and remain out of scope.
+static void ParseGeometryExtraChannels(const rapidjson::Value& json, std::vector<GeometryChannel>& channels) {
+    const rapidjson::Value* extraArr = nullptr;
+    if (!JsonHelper::GetArray(json, "extra", extraArr)) return;
+    for (rapidjson::SizeType i = 0; i < extraArr->Size(); i++) {
+        const rapidjson::Value& extraItem = (*extraArr)[i];
+        if (!extraItem.IsObject()) continue;
+        if (JsonHelper::GetStringOrDefault(extraItem, "type") != "studio_geometry_channels") continue;
+
+        const rapidjson::Value* channelArr = nullptr;
+        if (!JsonHelper::GetArray(extraItem, "channels", channelArr)) continue;
+
+        AppendGeometryChannels(*channelArr, channels);
+    }
+}
+
+// Geograft weld correspondence. A populated graft (non-empty vertex_pairs)
+// marks a geograft; an empty "graft": {} (base figures, G9 eyes/eyelashes)
+// leaves is_graft false and the arrays empty. Retain the raw weld arrays
+// faithfully (R6.4) in the file's own DSON index space — no remap/weld
+// (the importer owns that): vertex_pairs[i] = [graft-local, base-figure];
+// hidden_polys = base-figure poly indices. The values array is
+// authoritative for the pair count — DAZ's declared vertex_pairs "count"
+// can disagree (Genesis9FemaleGenitalia declares 84, ships 82), matching
+// is_graft's existing size check.
+static void ParseGeometryGraft(const rapidjson::Value& json, bool& is_graft,
+                               std::vector<GraftVertexPair>& graft_vertex_pairs,
+                               std::vector<int>& graft_hidden_polys,
+                               Int& graft_base_vertex_count, Int& graft_base_poly_count) {
+    const rapidjson::Value* graftObj = nullptr;
+    if (!JsonHelper::GetObject(json, "graft", graftObj)) return;
+
+    if (const rapidjson::Value* vp = GetValuesArray(*graftObj, "vertex_pairs")) {
+        is_graft = vp->Size() > 0;
+        graft_vertex_pairs.reserve(vp->Size());
+        for (rapidjson::SizeType i = 0; i < vp->Size(); i++) {
+            const auto& pair = (*vp)[i];
+            if (pair.IsArray() && pair.Size() >= 2 &&
+                pair[0].IsInt() && pair[1].IsInt()) {
+                GraftVertexPair gp;
+                gp.graft_vertex = pair[0].GetInt();
+                gp.base_vertex  = pair[1].GetInt();
+                graft_vertex_pairs.push_back(gp);
+            }
+        }
+    }
+    if (const rapidjson::Value* hp = GetValuesArray(*graftObj, "hidden_polys")) {
+        graft_hidden_polys.reserve(hp->Size());
+        for (rapidjson::SizeType i = 0; i < hp->Size(); i++) {
+            if ((*hp)[i].IsInt()) {
+                graft_hidden_polys.push_back((*hp)[i].GetInt());
+            }
+        }
+    }
+    ParseMember(*graftObj, "vertex_count", graft_base_vertex_count);
+    ParseMember(*graftObj, "poly_count",   graft_base_poly_count);
+}
+
+// Authored geometry rigidity, retained in this geometry's raw index space.
+// Object presence is independent of whether weights/groups contain rows.
+static void ParseGeometryRigidity(const rapidjson::Value& json, bool& has_rigidity,
+                                  std::vector<GeometryRigidityWeight>& rigidity_weights,
+                                  std::vector<GeometryRigidityGroup>& rigidity_groups,
+                                  std::set<std::string>* unknownKeys) {
+    const rapidjson::Value* rigidityObj = nullptr;
+    if (!JsonHelper::GetObject(json, "rigidity", rigidityObj)) return;
+
+    has_rigidity = true;
+    if (const rapidjson::Value* weights = GetValuesArray(*rigidityObj, "weights")) {
+        rigidity_weights.reserve(weights->Size());
+        for (rapidjson::SizeType i = 0; i < weights->Size(); i++) {
+            const rapidjson::Value& row = (*weights)[i];
+            if (row.IsArray() && row.Size() >= 2 && row[0].IsInt() && row[1].IsNumber()) {
+                GeometryRigidityWeight parsed;
+                parsed.vertex_index = row[0].GetInt();
+                parsed.weight = row[1].GetDouble();
+                rigidity_weights.push_back(parsed);
+            }
+        }
+    }
+    ParseObjectArray(*rigidityObj, "groups", rigidity_groups, unknownKeys);
+}
+
 // Geometry parser:
 // Captures mesh topology exactly enough for downstream importers to rebuild the
 // surface: vertex positions, face lists, polygon groups, material groups, and
@@ -604,118 +863,14 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     ParseMember(json, "vertex_count", vertex_count);
     ParseMember(json, "polygon_count", polygon_count);
 
-    // Vertices: a flat number array (legacy) or a { count, values:[[x,y,z],...] } object
-    if (JsonHelper::HasMember(json, "vertices")) {
-        const rapidjson::Value& v = json["vertices"];
-        if (v.IsObject()) {
-            if (v.HasMember("count") && v["count"].IsInt()) {
-                vertex_count.value = v["count"].GetInt();
-            }
-            const rapidjson::Value* values = nullptr;
-            if (JsonHelper::GetArray(v, "values", values)) {
-                vertices.values.reserve(values->Size() * 3);
-                for (rapidjson::SizeType i = 0; i < values->Size(); i++) {
-                    const auto& p = (*values)[i];
-                    if (p.IsArray() && p.Size() >= 3 &&
-                        p[0].IsNumber() && p[1].IsNumber() && p[2].IsNumber()) {
-                        vertices.values.push_back(p[0].GetDouble());
-                        vertices.values.push_back(p[1].GetDouble());
-                        vertices.values.push_back(p[2].GetDouble());
-                    }
-                }
-                if (vertex_count.value == 0) {
-                    vertex_count.value = static_cast<int>(values->Size());
-                }
-            }
-        } else if (v.IsArray()) {
-            vertices.ParseFromJson(v);
-        }
-    }
+    ParseGeometryVertices(json, vertices, vertex_count);
 
     if (const rapidjson::Value* polyArray = GetValuesArray(json, "polygons")) {
         polygons.ParseFromJson(*polyArray);
     }
 
-    // Polylist: an array of faces (legacy) or a { count, values:[[g,m,v0,v1,...],...] } object.
-    // Faces are flattened, including the leading group/material indices of each face.
-    if (JsonHelper::HasMember(json, "polylist")) {
-        const rapidjson::Value& pl = json["polylist"];
-        const rapidjson::Value* faces = nullptr;
-        if (pl.IsObject()) {
-            if (pl.HasMember("count") && pl["count"].IsInt()) {
-                polygon_count.value = pl["count"].GetInt();
-            }
-            JsonHelper::GetArray(pl, "values", faces);
-        } else if (pl.IsArray()) {
-            faces = &pl;
-        }
-        if (faces) {
-            polylist.values.reserve(faces->Size() * 6);
-            polylist_face_offsets.reserve(faces->Size());
-            for (rapidjson::SizeType i = 0; i < faces->Size(); i++) {
-                if ((*faces)[i].IsArray()) {
-                    const auto& face = (*faces)[i];
-                    polylist_face_offsets.push_back(static_cast<int>(polylist.values.size()));
-                    for (rapidjson::SizeType j = 0; j < face.Size(); j++) {
-                        if (face[j].IsInt()) {
-                            polylist.values.push_back(face[j].GetInt());
-                        }
-                    }
-                }
-            }
-            if (polygon_count.value == 0) {
-                polygon_count.value = static_cast<int>(faces->Size());
-            }
-        }
-    }
-
-    // Polyline list: strand / curve geometry (dForce Strand-Based Hair). A sibling
-    // of polylist on the same geometry object; a "polygon_mesh" geometry may in
-    // fact be strand-based (the discriminator is polylist vs polyline_list, not the
-    // type label). For a strand geometry polylist.count is 0 and every curve lives
-    // here. Each entry mirrors the polylist convention:
-    // [polygon_group_idx, material_group_idx, v0, v1, ..., vN-1], variable length.
-    // count / segment_count are faithful authored scalars kept SEPARATE from
-    // polygon_count (R6.4). segment_count has no polylist counterpart.
-    if (JsonHelper::HasMember(json, "polyline_list")) {
-        const rapidjson::Value& pll = json["polyline_list"];
-        const rapidjson::Value* lines = nullptr;
-        if (pll.IsObject()) {
-            if (pll.HasMember("count") && pll["count"].IsInt()) {
-                polyline_count = pll["count"].GetInt();
-            }
-            if (pll.HasMember("segment_count") && pll["segment_count"].IsInt()) {
-                polyline_segment_count = pll["segment_count"].GetInt();
-            }
-            JsonHelper::GetArray(pll, "values", lines);
-        } else if (pll.IsArray()) {
-            lines = &pll;
-        }
-        if (lines) {
-            polyline_list_offsets.reserve(lines->Size());
-            // Exact for open polylines (points = segment_count + count) plus the
-            // two leading indices per line; a harmless slight over-reserve if a
-            // future asset ever closes a loop.
-            if (polyline_count > 0 && polyline_segment_count > 0) {
-                polyline_list.values.reserve(
-                    static_cast<size_t>(polyline_segment_count) + 3u * static_cast<size_t>(polyline_count));
-            }
-            for (rapidjson::SizeType i = 0; i < lines->Size(); i++) {
-                if ((*lines)[i].IsArray()) {
-                    const auto& line = (*lines)[i];
-                    polyline_list_offsets.push_back(static_cast<int>(polyline_list.values.size()));
-                    for (rapidjson::SizeType j = 0; j < line.Size(); j++) {
-                        if (line[j].IsInt()) {
-                            polyline_list.values.push_back(line[j].GetInt());
-                        }
-                    }
-                }
-            }
-            if (polyline_count == 0) {
-                polyline_count = static_cast<int>(lines->Size());
-            }
-        }
-    }
+    ParseGeometryPolylist(json, polylist, polylist_face_offsets, polygon_count);
+    ParseGeometryPolylineList(json, polyline_list, polyline_list_offsets, polyline_count, polyline_segment_count);
 
     ParseStringValuedArray(json, "polygon_groups", polygon_groups);
     ParseStringValuedArray(json, "polygon_material_groups", polygon_material_groups);
@@ -730,85 +885,10 @@ bool Geometry::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     // source order. The wrapper's declared count is not authoritative.
     ParseMaterialUVAssignments(json, "material_uvs", material_uv_assignments);
 
-    // Geometry extra[] may contain multiple payload families. Only expose the
-    // authored studio_geometry_channels blocks here; material_selection_sets and
-    // other extras are recognized only as "extra" and remain out of scope.
-    const rapidjson::Value* extraArr = nullptr;
-    if (JsonHelper::GetArray(json, "extra", extraArr)) {
-        for (rapidjson::SizeType i = 0; i < extraArr->Size(); i++) {
-            const rapidjson::Value& extraItem = (*extraArr)[i];
-            if (!extraItem.IsObject()) continue;
-            if (JsonHelper::GetStringOrDefault(extraItem, "type") != "studio_geometry_channels") continue;
-
-            const rapidjson::Value* channelArr = nullptr;
-            if (!JsonHelper::GetArray(extraItem, "channels", channelArr)) continue;
-
-            channels.reserve(channels.size() + channelArr->Size());
-            for (rapidjson::SizeType j = 0; j < channelArr->Size(); j++) {
-                GeometryChannel channel;
-                if (ParseGeometryChannel((*channelArr)[j], channel)) {
-                    channels.push_back(channel);
-                }
-            }
-        }
-    }
-
-    // Geograft weld correspondence. A populated graft (non-empty vertex_pairs)
-    // marks a geograft; an empty "graft": {} (base figures, G9 eyes/eyelashes)
-    // leaves is_graft false and the arrays empty. Retain the raw weld arrays
-    // faithfully (R6.4) in the file's own DSON index space — no remap/weld
-    // (the importer owns that): vertex_pairs[i] = [graft-local, base-figure];
-    // hidden_polys = base-figure poly indices. The values array is
-    // authoritative for the pair count — DAZ's declared vertex_pairs "count"
-    // can disagree (Genesis9FemaleGenitalia declares 84, ships 82), matching
-    // is_graft's existing size check.
-    const rapidjson::Value* graftObj = nullptr;
-    if (JsonHelper::GetObject(json, "graft", graftObj)) {
-        if (const rapidjson::Value* vp = GetValuesArray(*graftObj, "vertex_pairs")) {
-            is_graft = vp->Size() > 0;
-            graft_vertex_pairs.reserve(vp->Size());
-            for (rapidjson::SizeType i = 0; i < vp->Size(); i++) {
-                const auto& pair = (*vp)[i];
-                if (pair.IsArray() && pair.Size() >= 2 &&
-                    pair[0].IsInt() && pair[1].IsInt()) {
-                    GraftVertexPair gp;
-                    gp.graft_vertex = pair[0].GetInt();
-                    gp.base_vertex  = pair[1].GetInt();
-                    graft_vertex_pairs.push_back(gp);
-                }
-            }
-        }
-        if (const rapidjson::Value* hp = GetValuesArray(*graftObj, "hidden_polys")) {
-            graft_hidden_polys.reserve(hp->Size());
-            for (rapidjson::SizeType i = 0; i < hp->Size(); i++) {
-                if ((*hp)[i].IsInt()) {
-                    graft_hidden_polys.push_back((*hp)[i].GetInt());
-                }
-            }
-        }
-        ParseMember(*graftObj, "vertex_count", graft_base_vertex_count);
-        ParseMember(*graftObj, "poly_count",   graft_base_poly_count);
-    }
-
-    // Authored geometry rigidity, retained in this geometry's raw index space.
-    // Object presence is independent of whether weights/groups contain rows.
-    const rapidjson::Value* rigidityObj = nullptr;
-    if (JsonHelper::GetObject(json, "rigidity", rigidityObj)) {
-        has_rigidity = true;
-        if (const rapidjson::Value* weights = GetValuesArray(*rigidityObj, "weights")) {
-            rigidity_weights.reserve(weights->Size());
-            for (rapidjson::SizeType i = 0; i < weights->Size(); i++) {
-                const rapidjson::Value& row = (*weights)[i];
-                if (row.IsArray() && row.Size() >= 2 && row[0].IsInt() && row[1].IsNumber()) {
-                    GeometryRigidityWeight parsed;
-                    parsed.vertex_index = row[0].GetInt();
-                    parsed.weight = row[1].GetDouble();
-                    rigidity_weights.push_back(parsed);
-                }
-            }
-        }
-        ParseObjectArray(*rigidityObj, "groups", rigidity_groups, unknownKeys);
-    }
+    ParseGeometryExtraChannels(json, channels);
+    ParseGeometryGraft(json, is_graft, graft_vertex_pairs, graft_hidden_polys,
+                       graft_base_vertex_count, graft_base_poly_count);
+    ParseGeometryRigidity(json, has_rigidity, rigidity_weights, rigidity_groups, unknownKeys);
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
