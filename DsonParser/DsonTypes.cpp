@@ -136,6 +136,21 @@ static void ParseGeometryRigidity(const rapidjson::Value& json, bool& has_rigidi
                                   std::vector<GeometryRigidityGroup>& rigidity_groups,
                                   std::set<std::string>* unknownKeys);
 
+static void ParseModifierChannel(const rapidjson::Value& json, String& channel, std::string& channel_label,
+                                 double& channel_value, int& channel_value_kind,
+                                 std::string& channel_value_string, double& channel_min,
+                                 double& channel_max, bool& channel_clamped,
+                                 std::set<std::string>* unknownKeys);
+static void ParseModifierMorph(const rapidjson::Value& json, IndexedVector3Array& morph_deltas,
+                               IndexedVector3Array& normal_deltas, bool& has_morph);
+static void ParseModifierPushExtra(const rapidjson::Value& json, bool& is_push, double& push_offset_value);
+static void ParseModifierExtraChannels(const rapidjson::Value& json, std::vector<GeometryChannel>& extra_channels);
+
+static bool ParseImageLayer(const rapidjson::Value& mapElem, ImageLayer& layer);
+
+static void ParseUVCoords(const rapidjson::Value& uvsArray, FloatArray& uvs);
+static void ParseUVOverrides(const rapidjson::Value& polyVertIndices, std::vector<UVOverride>& uv_overrides);
+
 static int HexValue(char c) {
     if (c >= '0' && c <= '9') {
         return c - '0';
@@ -1151,60 +1166,51 @@ bool Formula::ParseFromJson(const rapidjson::Value& json, std::set<std::string>*
     return true;
 }
 
-// Modifier parser:
-// Handles morph deltas, normal deltas, channel metadata, skin_binding "skin"
-// data, stored formula RPN payloads, and source-order extra[]
-// studio_modifier_channels. Formula evaluation and referenced-file loading
-// remain importer responsibilities.
-bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
-    if (!json.IsObject()) {
-        return false;
-    }
-    
-    static const std::set<std::string> knownKeys = {
-        "id", "name", "type", "url", "parent", "skin_binding", "channel",
-        "deltas", "normal_deltas", "vertex_count", "formulas", "region", "group", "skin", "morph",
-        "presentation", "extra"
-    };
-    
-    ParseMember(json, "id", id);
-    ParseMember(json, "name", name);
-    ParseMember(json, "type", type);
-    ParseMember(json, "url", url);
-    ParseMember(json, "parent", parent);
-    ParseMember(json, "skin_binding", skin_binding);
-
-    // Parse channel reference
+// Parse channel reference: id/label, the current_value/value kind chain
+// (number -> KindNumber; bool -> 1.0/0.0 + KindBool; string -> KindString,
+// tracked as a mismatch since the numeric read can't represent it; anything
+// else -> mismatch, channel_value stays 0.0), then min/max/clamped.
+static void ParseModifierChannel(const rapidjson::Value& json, String& channel, std::string& channel_label,
+                                 double& channel_value, int& channel_value_kind,
+                                 std::string& channel_value_string, double& channel_min,
+                                 double& channel_max, bool& channel_clamped,
+                                 std::set<std::string>* unknownKeys) {
     const rapidjson::Value* channelObj = nullptr;
-    if (JsonHelper::GetObject(json, "channel", channelObj)) {
-        channel.value = JsonHelper::GetStringOrDefault(*channelObj, "id");
-        channel_label = JsonHelper::GetStringOrDefault(*channelObj, "label");
-        {
-            const char* valKey = channelObj->HasMember("current_value") ? "current_value" : "value";
-            if (channelObj->HasMember(valKey)) {
-                const rapidjson::Value& v = (*channelObj)[valKey];
-                if (v.IsNumber()) {
-                    channel_value = v.GetDouble();
-                    channel_value_kind = KindNumber;
-                } else if (v.IsBool()) {
-                    channel_value = v.GetBool() ? 1.0 : 0.0;
-                    channel_value_kind = KindBool;
-                } else if (v.IsString()) {
-                    channel_value_string = v.GetString();
-                    channel_value_kind = KindString;
-                    TrackChannelTypeMismatch(unknownKeys, channel.value, valKey, v);
-                    // channel_value stays 0.0
-                } else {
-                    TrackChannelTypeMismatch(unknownKeys, channel.value, valKey, v);
-                    // channel_value stays its default (0.0)
-                }
+    if (!JsonHelper::GetObject(json, "channel", channelObj)) return;
+
+    channel.value = JsonHelper::GetStringOrDefault(*channelObj, "id");
+    channel_label = JsonHelper::GetStringOrDefault(*channelObj, "label");
+    {
+        const char* valKey = channelObj->HasMember("current_value") ? "current_value" : "value";
+        if (channelObj->HasMember(valKey)) {
+            const rapidjson::Value& v = (*channelObj)[valKey];
+            if (v.IsNumber()) {
+                channel_value = v.GetDouble();
+                channel_value_kind = Modifier::KindNumber;
+            } else if (v.IsBool()) {
+                channel_value = v.GetBool() ? 1.0 : 0.0;
+                channel_value_kind = Modifier::KindBool;
+            } else if (v.IsString()) {
+                channel_value_string = v.GetString();
+                channel_value_kind = Modifier::KindString;
+                TrackChannelTypeMismatch(unknownKeys, channel.value, valKey, v);
+                // channel_value stays 0.0
+            } else {
+                TrackChannelTypeMismatch(unknownKeys, channel.value, valKey, v);
+                // channel_value stays its default (0.0)
             }
         }
-        channel_min = JsonHelper::GetDoubleOrDefault(*channelObj, "min", 0.0);
-        channel_max = JsonHelper::GetDoubleOrDefault(*channelObj, "max", 1.0);
-        channel_clamped = JsonHelper::GetBoolOrDefault(*channelObj, "clamped", false);
     }
+    channel_min = JsonHelper::GetDoubleOrDefault(*channelObj, "min", 0.0);
+    channel_max = JsonHelper::GetDoubleOrDefault(*channelObj, "max", 1.0);
+    channel_clamped = JsonHelper::GetBoolOrDefault(*channelObj, "clamped", false);
+}
 
+// Top-level deltas/normal_deltas, plus the nested "morph" payload real DAZ
+// morph modifiers use instead (sets has_morph and re-reads morph/normal
+// deltas from inside it).
+static void ParseModifierMorph(const rapidjson::Value& json, IndexedVector3Array& morph_deltas,
+                               IndexedVector3Array& normal_deltas, bool& has_morph) {
     // Parse morph deltas as indexed array
     const rapidjson::Value* deltasObj = nullptr;
     if (JsonHelper::GetObject(json, "deltas", deltasObj)) {
@@ -1219,19 +1225,115 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
 
     // Real DAZ morph modifiers nest deltas under a "morph" payload.
     const rapidjson::Value* morphObj = nullptr;
-    if (JsonHelper::GetObject(json, "morph", morphObj)) {
-        has_morph = true;
+    if (!JsonHelper::GetObject(json, "morph", morphObj)) return;
 
-        const rapidjson::Value* morphDeltasObj = nullptr;
-        if (JsonHelper::GetObject(*morphObj, "deltas", morphDeltasObj)) {
-            morph_deltas.ParseFromJson(*morphDeltasObj);
+    has_morph = true;
+
+    const rapidjson::Value* morphDeltasObj = nullptr;
+    if (JsonHelper::GetObject(*morphObj, "deltas", morphDeltasObj)) {
+        morph_deltas.ParseFromJson(*morphDeltasObj);
+    }
+
+    const rapidjson::Value* morphNormalDeltasObj = nullptr;
+    if (JsonHelper::GetObject(*morphObj, "normal_deltas", morphNormalDeltasObj)) {
+        normal_deltas.ParseFromJson(*morphNormalDeltasObj);
+    }
+}
+
+// Geometry-shell "Mesh Offset" push modifier: the push type marker and
+// the "Offset Distance (cm)" channel live nested in extra[], not at the
+// modifier top level (mirrors the material extra[] walk). Faithful,
+// unevaluated (R6.4): is_push from studio/modifier/push; push_offset_value
+// from the first studio_modifier_channels channel, current_value -> value.
+// The offset is committed only when the push marker is present, so a
+// non-push modifier's channels are never mis-read as an offset.
+static void ParseModifierPushExtra(const rapidjson::Value& json, bool& is_push, double& push_offset_value) {
+    const rapidjson::Value* extraArr = nullptr;
+    if (!JsonHelper::GetArray(json, "extra", extraArr)) return;
+
+    bool sawPush = false;
+    bool sawOffset = false;
+    double offset = 0.0;
+    for (rapidjson::SizeType i = 0; i < extraArr->Size(); i++) {
+        const auto& extraItem = (*extraArr)[i];
+        if (!extraItem.IsObject()) continue;
+        const std::string extraType = JsonHelper::GetStringOrDefault(extraItem, "type");
+
+        if (extraType == "studio/modifier/push") {
+            sawPush = true;
+            continue;
         }
+        if (extraType != "studio_modifier_channels" || sawOffset) continue;
 
-        const rapidjson::Value* morphNormalDeltasObj = nullptr;
-        if (JsonHelper::GetObject(*morphObj, "normal_deltas", morphNormalDeltasObj)) {
-            normal_deltas.ParseFromJson(*morphNormalDeltasObj);
+        const rapidjson::Value* channelsArr = nullptr;
+        if (!JsonHelper::GetArray(extraItem, "channels", channelsArr) ||
+            channelsArr->Size() == 0) continue;
+
+        const auto& entry = (*channelsArr)[0];
+        const rapidjson::Value* chObj = nullptr;
+        if (!entry.IsObject() || !JsonHelper::GetObject(entry, "channel", chObj)) continue;
+
+        const char* valKey = chObj->HasMember("current_value") ? "current_value" : "value";
+        if (chObj->HasMember(valKey)) {
+            double tmp = 0.0;
+            if (JsonHelper::GetNumberOrBool((*chObj)[valKey], tmp)) {
+                offset = tmp;
+                sawOffset = true;
+            }
         }
     }
+    is_push = sawPush;
+    if (is_push && sawOffset) push_offset_value = offset;
+}
+
+// Modifier extra[] can also carry arbitrary authored studio_modifier_channels
+// blocks (for example dForce Strand-Based-Hair generation settings). Retain
+// them independently from the push-offset read above so push behavior stays
+// byte-identical.
+static void ParseModifierExtraChannels(const rapidjson::Value& json, std::vector<GeometryChannel>& extra_channels) {
+    const rapidjson::Value* extraArr = nullptr;
+    if (!JsonHelper::GetArray(json, "extra", extraArr)) return;
+
+    for (rapidjson::SizeType i = 0; i < extraArr->Size(); i++) {
+        const rapidjson::Value& extraItem = (*extraArr)[i];
+        if (!extraItem.IsObject()) continue;
+        if (JsonHelper::GetStringOrDefault(extraItem, "type") !=
+            "studio_modifier_channels") continue;
+
+        const rapidjson::Value* channelArr = nullptr;
+        if (!JsonHelper::GetArray(extraItem, "channels", channelArr)) continue;
+
+        AppendGeometryChannels(*channelArr, extra_channels);
+    }
+}
+
+// Modifier parser:
+// Handles morph deltas, normal deltas, channel metadata, skin_binding "skin"
+// data, stored formula RPN payloads, and source-order extra[]
+// studio_modifier_channels. Formula evaluation and referenced-file loading
+// remain importer responsibilities.
+bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys) {
+    if (!json.IsObject()) {
+        return false;
+    }
+
+    static const std::set<std::string> knownKeys = {
+        "id", "name", "type", "url", "parent", "skin_binding", "channel",
+        "deltas", "normal_deltas", "vertex_count", "formulas", "region", "group", "skin", "morph",
+        "presentation", "extra"
+    };
+
+    ParseMember(json, "id", id);
+    ParseMember(json, "name", name);
+    ParseMember(json, "type", type);
+    ParseMember(json, "url", url);
+    ParseMember(json, "parent", parent);
+    ParseMember(json, "skin_binding", skin_binding);
+
+    ParseModifierChannel(json, channel, channel_label, channel_value, channel_value_kind,
+                         channel_value_string, channel_min, channel_max, channel_clamped, unknownKeys);
+
+    ParseModifierMorph(json, morph_deltas, normal_deltas, has_morph);
 
     // Parse skin binding payload (the actual key is "skin", not "skin_binding")
     const rapidjson::Value* skinObj = nullptr;
@@ -1255,75 +1357,41 @@ bool Modifier::ParseFromJson(const rapidjson::Value& json, std::set<std::string>
     group  = JsonHelper::GetStringOrDefault(json, "group");
     region = JsonHelper::GetStringOrDefault(json, "region");
 
-    // Geometry-shell "Mesh Offset" push modifier: the push type marker and
-    // the "Offset Distance (cm)" channel live nested in extra[], not at the
-    // modifier top level (mirrors the material extra[] walk). Faithful,
-    // unevaluated (R6.4): is_push from studio/modifier/push; push_offset_value
-    // from the first studio_modifier_channels channel, current_value -> value.
-    // The offset is committed only when the push marker is present, so a
-    // non-push modifier's channels are never mis-read as an offset.
-    const rapidjson::Value* extraArr = nullptr;
-    if (JsonHelper::GetArray(json, "extra", extraArr)) {
-        bool sawPush = false;
-        bool sawOffset = false;
-        double offset = 0.0;
-        for (rapidjson::SizeType i = 0; i < extraArr->Size(); i++) {
-            const auto& extraItem = (*extraArr)[i];
-            if (!extraItem.IsObject()) continue;
-            const std::string extraType = JsonHelper::GetStringOrDefault(extraItem, "type");
-
-            if (extraType == "studio/modifier/push") {
-                sawPush = true;
-                continue;
-            }
-            if (extraType != "studio_modifier_channels" || sawOffset) continue;
-
-            const rapidjson::Value* channelsArr = nullptr;
-            if (!JsonHelper::GetArray(extraItem, "channels", channelsArr) ||
-                channelsArr->Size() == 0) continue;
-
-            const auto& entry = (*channelsArr)[0];
-            const rapidjson::Value* chObj = nullptr;
-            if (!entry.IsObject() || !JsonHelper::GetObject(entry, "channel", chObj)) continue;
-
-            const char* valKey = chObj->HasMember("current_value") ? "current_value" : "value";
-            if (chObj->HasMember(valKey)) {
-                double tmp = 0.0;
-                if (JsonHelper::GetNumberOrBool((*chObj)[valKey], tmp)) {
-                    offset = tmp;
-                    sawOffset = true;
-                }
-            }
-        }
-        is_push = sawPush;
-        if (is_push && sawOffset) push_offset_value = offset;
-    }
-
-    // Modifier extra[] can also carry arbitrary authored studio_modifier_channels
-    // blocks (for example dForce Strand-Based-Hair generation settings). Retain
-    // them independently from the push-offset read above so push behavior stays
-    // byte-identical.
-    if (JsonHelper::GetArray(json, "extra", extraArr)) {
-        for (rapidjson::SizeType i = 0; i < extraArr->Size(); i++) {
-            const rapidjson::Value& extraItem = (*extraArr)[i];
-            if (!extraItem.IsObject()) continue;
-            if (JsonHelper::GetStringOrDefault(extraItem, "type") !=
-                "studio_modifier_channels") continue;
-
-            const rapidjson::Value* channelArr = nullptr;
-            if (!JsonHelper::GetArray(extraItem, "channels", channelArr)) continue;
-
-            extra_channels.reserve(extra_channels.size() + channelArr->Size());
-            for (rapidjson::SizeType j = 0; j < channelArr->Size(); j++) {
-                GeometryChannel channel;
-                if (ParseGeometryChannel((*channelArr)[j], channel)) {
-                    extra_channels.push_back(channel);
-                }
-            }
-        }
-    }
+    ParseModifierPushExtra(json, is_push, push_offset_value);
+    ParseModifierExtraChannels(json, extra_channels);
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);
+    return true;
+}
+
+// Parse one "map" array element into an LIE layer: the resolved path (base or
+// overlay) plus its compositing metadata (label, blend op, opacity,
+// active/invert, 2D transform, color tint). Kept only when GetImageMapPath
+// resolves a non-empty path.
+static bool ParseImageLayer(const rapidjson::Value& mapElem, ImageLayer& layer) {
+    if (!GetImageMapPath(mapElem, layer.url) || layer.url.empty()) {
+        return false;
+    }
+    if (mapElem.IsObject()) {
+        layer.label    = JsonHelper::GetStringOrDefault(mapElem, "label");
+        layer.blend_op = JsonHelper::GetStringOrDefault(mapElem, "operation");
+        layer.opacity  = JsonHelper::GetDoubleOrDefault(mapElem, "transparency", 1.0);
+        layer.active   = JsonHelper::GetBoolOrDefault  (mapElem, "active",  true);
+        layer.invert   = JsonHelper::GetBoolOrDefault  (mapElem, "invert",  false);
+        layer.rotation = JsonHelper::GetDoubleOrDefault(mapElem, "rotation", 0.0);
+        layer.scale_x  = JsonHelper::GetDoubleOrDefault(mapElem, "xscale",  1.0);
+        layer.scale_y  = JsonHelper::GetDoubleOrDefault(mapElem, "yscale",  1.0);
+        layer.offset_x = JsonHelper::GetDoubleOrDefault(mapElem, "xoffset", 0.0);
+        layer.offset_y = JsonHelper::GetDoubleOrDefault(mapElem, "yoffset", 0.0);
+        layer.mirror_x = JsonHelper::GetBoolOrDefault  (mapElem, "xmirror", false);
+        layer.mirror_y = JsonHelper::GetBoolOrDefault  (mapElem, "ymirror", false);
+        const rapidjson::Value* c = nullptr;
+        if (JsonHelper::GetArray(mapElem, "color", c) && c->Size() >= 3) {
+            if ((*c)[0].IsNumber()) layer.color.x = (*c)[0].GetDouble();
+            if ((*c)[1].IsNumber()) layer.color.y = (*c)[1].GetDouble();
+            if ((*c)[2].IsNumber()) layer.color.z = (*c)[2].GetDouble();
+        }
+    }
     return true;
 }
 
@@ -1332,11 +1400,11 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     if (!json.IsObject()) {
         return false;
     }
-    
+
     static const std::set<std::string> knownKeys = {
         "id", "name", "url", "map", "map_file", "map_size", "map_gamma"
     };
-    
+
     ParseMember(json, "id", id);
     ParseMember(json, "name", name);
     ParseMember(json, "url", url);
@@ -1350,30 +1418,7 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
             layers.reserve(map.Size());
             for (rapidjson::SizeType i = 0; i < map.Size(); i++) {
                 ImageLayer layer;
-                if (!GetImageMapPath(map[i], layer.url) || layer.url.empty()) {
-                    continue;
-                }
-                if (map[i].IsObject()) {
-                    layer.label    = JsonHelper::GetStringOrDefault(map[i], "label");
-                    layer.blend_op = JsonHelper::GetStringOrDefault(map[i], "operation");
-                    layer.opacity  = JsonHelper::GetDoubleOrDefault(map[i], "transparency", 1.0);
-                    layer.active   = JsonHelper::GetBoolOrDefault  (map[i], "active",  true);
-                    layer.invert   = JsonHelper::GetBoolOrDefault  (map[i], "invert",  false);
-                    layer.rotation = JsonHelper::GetDoubleOrDefault(map[i], "rotation", 0.0);
-                    layer.scale_x  = JsonHelper::GetDoubleOrDefault(map[i], "xscale",  1.0);
-                    layer.scale_y  = JsonHelper::GetDoubleOrDefault(map[i], "yscale",  1.0);
-                    layer.offset_x = JsonHelper::GetDoubleOrDefault(map[i], "xoffset", 0.0);
-                    layer.offset_y = JsonHelper::GetDoubleOrDefault(map[i], "yoffset", 0.0);
-                    layer.mirror_x = JsonHelper::GetBoolOrDefault  (map[i], "xmirror", false);
-                    layer.mirror_y = JsonHelper::GetBoolOrDefault  (map[i], "ymirror", false);
-                    const rapidjson::Value* c = nullptr;
-                    if (JsonHelper::GetArray(map[i], "color", c) && c->Size() >= 3) {
-                        if ((*c)[0].IsNumber()) layer.color.x = (*c)[0].GetDouble();
-                        if ((*c)[1].IsNumber()) layer.color.y = (*c)[1].GetDouble();
-                        if ((*c)[2].IsNumber()) layer.color.z = (*c)[2].GetDouble();
-                    }
-                }
-                layers.push_back(layer);
+                if (ParseImageLayer(map[i], layer)) layers.push_back(layer);
             }
         }
 
@@ -1386,7 +1431,7 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     else {
         ParseMember(json, "map_file", map_file);
     }
-    
+
     // map_size is a [width, height] int array (e.g. [4096, 4096]).
     // Permissive: absent or any other shape leaves the defaults (0).
     const rapidjson::Value* mapSize = nullptr;
@@ -1397,6 +1442,40 @@ bool Image::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
 
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
+}
+
+// Flatten a "uvs" array of [u,v] pairs (already unwrapped by the caller via
+// GetValuesArray, so this also covers the {count,values:[[u,v],...]} shape)
+// into flat U,V,U,V,... coordinates. A malformed row (not an array, fewer
+// than 2 elements, or a non-numeric U/V) is skipped.
+static void ParseUVCoords(const rapidjson::Value& uvsArray, FloatArray& uvs) {
+    uvs.values.reserve(uvsArray.Size() * 2);
+    for (rapidjson::SizeType i = 0; i < uvsArray.Size(); i++) {
+        if (!uvsArray[i].IsArray()) continue;
+        const auto& uv = uvsArray[i];
+        if (uv.Size() < 2) continue;
+        if (!uv[0].IsNumber() || !uv[1].IsNumber()) continue;
+        uvs.values.push_back(uv[0].GetDouble());
+        uvs.values.push_back(uv[1].GetDouble());
+    }
+}
+
+// Sparse polygon_vertex_indices override rows (caller has already confirmed
+// the sparse-triplet shape): [face_index, corner_index, uv_index] listing only
+// face corners whose uv_index differs from the identity default. A malformed
+// row (not a 3+ element array, or a non-int face/corner/uv_index) is skipped.
+static void ParseUVOverrides(const rapidjson::Value& polyVertIndices, std::vector<UVOverride>& uv_overrides) {
+    uv_overrides.reserve(polyVertIndices.Size());
+    for (rapidjson::SizeType i = 0; i < polyVertIndices.Size(); i++) {
+        const rapidjson::Value& elem = polyVertIndices[i];
+        if (!elem.IsArray() || elem.Size() < 3) continue;
+        if (!elem[0].IsInt() || !elem[1].IsInt() || !elem[2].IsInt()) continue;
+        UVOverride ov;
+        ov.face     = elem[0].GetInt();
+        ov.corner   = elem[1].GetInt();
+        ov.uv_index = elem[2].GetInt();
+        uv_overrides.push_back(ov);
+    }
 }
 
 // UV set parser:
@@ -1410,7 +1489,7 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
     if (!json.IsObject()) {
         return false;
     }
-    
+
     static const std::set<std::string> knownKeys = {
         "id", "name", "label", "url", "uvs", "polygon_vertex_indices", "vertex_count"
     };
@@ -1426,20 +1505,9 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
 
     // Parse UVs - plain [[u,v],...] array or {"count":N,"values":[[u,v],...]} object
     if (const rapidjson::Value* uvsArray = GetValuesArray(json, "uvs")) {
-        uvs.values.reserve(uvsArray->Size() * 2);
-        for (rapidjson::SizeType i = 0; i < uvsArray->Size(); i++) {
-            if ((*uvsArray)[i].IsArray()) {
-                const auto& uv = (*uvsArray)[i];
-                if (uv.Size() >= 2) {
-                    if (uv[0].IsNumber() && uv[1].IsNumber()) {
-                        uvs.values.push_back(uv[0].GetDouble());
-                        uvs.values.push_back(uv[1].GetDouble());
-                    }
-                }
-            }
-        }
+        ParseUVCoords(*uvsArray, uvs);
     }
-    
+
     if (const rapidjson::Value* polyVertIndices = GetValuesArray(json, "polygon_vertex_indices")) {
         // Detect sparse triplet format: first element is a 3-int array.
         // DAZ DSON spec: each entry is [face_index, corner_index, uv_index]
@@ -1451,20 +1519,10 @@ bool UVSet::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* u
         }
 
         if (isSparse) {
-            uv_overrides.reserve(polyVertIndices->Size());
-            for (rapidjson::SizeType i = 0; i < polyVertIndices->Size(); i++) {
-                const rapidjson::Value& elem = (*polyVertIndices)[i];
-                if (!elem.IsArray() || elem.Size() < 3) continue;
-                if (!elem[0].IsInt() || !elem[1].IsInt() || !elem[2].IsInt()) continue;
-                UVOverride ov;
-                ov.face     = elem[0].GetInt();
-                ov.corner   = elem[1].GetInt();
-                ov.uv_index = elem[2].GetInt();
-                uv_overrides.push_back(ov);
-            }
+            ParseUVOverrides(*polyVertIndices, uv_overrides);
         }
     }
-    
+
     TrackUnknownKeys(json, knownKeys, unknownKeys);
     return true;
 }
