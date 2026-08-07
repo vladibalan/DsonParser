@@ -3,8 +3,8 @@
 // file via DsonParserAPI.h, then queries nodes, geometry, materials, skin, and
 // morphs to sanity-check the parser. Links DsonParser.lib. Most execution is a
 // manual smoke test/example consumer; selected in-memory regressions, including
-// geometry and scene-node shell material-UV coverage, also have deterministic
-// command-line modes that bypass the final keypress.
+// geometry, scene-node shell material-UV, and scene-node extra-channel coverage
+// also have deterministic command-line modes that bypass the final keypress.
 //
 
 #include <iostream>
@@ -2134,6 +2134,145 @@ static bool RunSceneNodeShellMaterialUVAssignmentTest()
     return allPass;
 }
 
+static bool RunSceneNodeExtraChannelTest()
+{
+    std::cout << "========================================\n";
+    std::cout << "SCENE-NODE EXTRA CHANNEL TEST (2.22.0)\n";
+    std::cout << "========================================\n\n";
+
+    static const char kSceneNodeExtraChannelJson[] = R"JSON(
+{
+  "scene": {
+    "nodes": [
+      {
+        "id": "bob scalp_94918",
+        "extra": [
+          {
+            "type": "studio_node_channels",
+            "version": 4,
+            "channels": [
+              { "channel": { "id": "Visible", "type": "bool", "current_value": false } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "authored-visible",
+        "extra": [
+          {
+            "type": "studio_node_channels",
+            "version": 4,
+            "channels": [
+              { "channel": { "id": "Visible", "type": "bool", "current_value": true } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "empty-channel-array",
+        "extra": [
+          { "type": "studio_node_channels", "version": 4, "channels": [] }
+        ]
+      },
+      {
+        "id": "missing-channel-array",
+        "extra": [
+          { "type": "studio_node_channels", "version": 4 }
+        ]
+      },
+      { "id": "no-node-channel-block" },
+      {
+        "id": "multi-channel",
+        "extra": [
+          {
+            "type": "unrelated",
+            "channels": [
+              { "channel": { "id": "Ignored", "type": "bool", "current_value": false } }
+            ]
+          },
+          {
+            "type": "studio_node_channels",
+            "version": 4,
+            "channels": [
+              { "channel": { "id": "Visible", "type": "bool", "current_value": true } },
+              {
+                "channel": {
+                  "id": "Selectable",
+                  "type": "enum",
+                  "label": "Selectable",
+                  "value": 1,
+                  "enum_values": ["Off", "On"]
+                },
+                "group": "/Node"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+)JSON";
+
+    DsonDocumentHandle doc = DsonDocument_Create();
+    if (!doc || DsonDocument_LoadFromString(doc, kSceneNodeExtraChannelJson) != 0) {
+        std::cout << "Scene-node extra-channel fixture load: FAIL";
+        if (doc) std::cout << " (" << DsonParser_GetLastError() << ")";
+        std::cout << "\n\n";
+        if (doc) DsonDocument_Destroy(doc);
+        return false;
+    }
+
+    bool allPass = true;
+    auto chk = [&](const char* label, bool cond) {
+        std::cout << "  " << label << ": " << (cond ? "PASS" : "FAIL") << "\n";
+        allPass = allPass && cond;
+    };
+
+    chk("Authored hidden Visible current_value false",
+        DsonDocument_GetSceneNodeExtraChannelCount(doc, 0) == 1 &&
+        std::strcmp(DsonDocument_GetSceneNodeExtraChannelId(doc, 0, 0), "Visible") == 0 &&
+        std::strcmp(DsonDocument_GetSceneNodeExtraChannelType(doc, 0, 0), "bool") == 0 &&
+        DsonDocument_GetSceneNodeExtraChannelValue(doc, 0, 0) == 0.0 &&
+        std::strcmp(DsonDocument_GetSceneNodeExtraChannelGroup(doc, 0, 0), "") == 0 &&
+        DsonDocument_GetSceneNodeExtraChannelFieldPresenceMask(doc, 0, 0) == 0);
+    chk("Authored visible Visible current_value true",
+        DsonDocument_GetSceneNodeExtraChannelCount(doc, 1) == 1 &&
+        std::strcmp(DsonDocument_GetSceneNodeExtraChannelId(doc, 1, 0), "Visible") == 0 &&
+        DsonDocument_GetSceneNodeExtraChannelValue(doc, 1, 0) == 1.0);
+    chk("Empty and missing channels stubs tolerated",
+        DsonDocument_GetSceneNodeExtraChannelCount(doc, 2) == 0 &&
+        DsonDocument_GetSceneNodeExtraChannelCount(doc, 3) == 0);
+    chk("No studio_node_channels block stays unauthored",
+        DsonDocument_GetSceneNodeExtraChannelCount(doc, 4) == 0);
+    chk("Multi-channel source-order passthrough",
+        DsonDocument_GetSceneNodeExtraChannelCount(doc, 5) == 2 &&
+        std::strcmp(DsonDocument_GetSceneNodeExtraChannelId(doc, 5, 0), "Visible") == 0 &&
+        std::strcmp(DsonDocument_GetSceneNodeExtraChannelId(doc, 5, 1), "Selectable") == 0 &&
+        std::strcmp(DsonDocument_GetSceneNodeExtraChannelLabel(doc, 5, 1), "Selectable") == 0 &&
+        std::strcmp(DsonDocument_GetSceneNodeExtraChannelGroup(doc, 5, 1), "/Node") == 0 &&
+        DsonDocument_GetSceneNodeExtraChannelValue(doc, 5, 1) == 1.0 &&
+        DsonDocument_GetSceneNodeExtraChannelEnumValueCount(doc, 5, 1) == 2 &&
+        std::strcmp(DsonDocument_GetSceneNodeExtraChannelEnumValue(doc, 5, 1, 0), "Off") == 0);
+    chk("Invalid handle sentinels",
+        DsonDocument_GetSceneNodeExtraChannelCount(nullptr, 0) == 0 &&
+        std::strcmp(DsonDocument_GetSceneNodeExtraChannelId(nullptr, 0, 0), "") == 0 &&
+        DsonDocument_GetSceneNodeExtraChannelValue(nullptr, 0, 0) == 0.0 &&
+        !DsonDocument_GetSceneNodeExtraChannelClamped(nullptr, 0, 0));
+    chk("Invalid node/channel/enum sentinels",
+        DsonDocument_GetSceneNodeExtraChannelCount(doc, -1) == 0 &&
+        DsonDocument_GetSceneNodeExtraChannelCount(doc, 6) == 0 &&
+        std::strcmp(DsonDocument_GetSceneNodeExtraChannelType(doc, 0, -1), "") == 0 &&
+        DsonDocument_GetSceneNodeExtraChannelFieldPresenceMask(doc, 0, -1) == 0 &&
+        DsonDocument_GetSceneNodeExtraChannelEnumValueCount(doc, 0, -1) == 0 &&
+        std::strcmp(DsonDocument_GetSceneNodeExtraChannelEnumValue(doc, 5, 1, 99), "") == 0);
+
+    std::cout << "\nScene-node extra-channel overall: "
+              << (allPass ? "PASS" : "FAIL") << "\n\n";
+    DsonDocument_Destroy(doc);
+    return allPass;
+}
+
 static bool RunUVSetNameLabelTest()
 {
     std::cout << "=========================================\n";
@@ -2504,6 +2643,10 @@ int main(int argc, char* argv[])
         return RunSceneNodeShellMaterialUVAssignmentTest() ? 0 : 1;
     }
 
+    if (argc == 2 && std::strcmp(argv[1], "--scene-node-extra-channel-regression") == 0) {
+        return RunSceneNodeExtraChannelTest() ? 0 : 1;
+    }
+
     if (argc == 2 && std::strcmp(argv[1], "--uvset-name-label-regression") == 0) {
         return RunUVSetNameLabelTest() ? 0 : 1;
     }
@@ -2537,6 +2680,7 @@ int main(int argc, char* argv[])
     RunGeometrySubdivisionBlockTest();
     RunGeometryMaterialUVAssignmentTest();
     RunSceneNodeShellMaterialUVAssignmentTest();
+    RunSceneNodeExtraChannelTest();
     RunUVSetNameLabelTest();
     RunSceneManifestAccessorsTest();
 

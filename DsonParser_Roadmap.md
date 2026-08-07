@@ -99,6 +99,13 @@ across 4 audit passes with zero remaining gaps.
   URL, e.g. `"#Genesis9"`). Distinct from `parent` — a fitted figure root
   carries `conform_target` and no `parent`; child bones carry `parent` and no
   `conform_target`. Faithful passthrough (R6.4); no reference resolution (2.17.0).
+- Per-scene-node authored channels: `GetSceneNodeExtraChannel*` — every
+  `scene.nodes` `extra[]` `studio_node_channels` channel in source order, the
+  node-side sibling of `GetGeometryChannel*` / `GetModifierExtraChannel*`. The
+  motivating payload is the DAZ Scene-pane eye-icon `Visible` bool; `Value` is the
+  effective `current_value → value` (bool → `1.0`/`0.0`). Faithful / no
+  cross-section merge — the scene→library→core effective-visibility resolution and
+  the unauthored⇒visible default stay consumer-side (2.22.0).
 
 **Skin Binding (C)**
 - `node_weights` primary + `local_weights` fallback
@@ -429,6 +436,47 @@ G. Formulas
 ---
 
 ## Recently completed (post-v1)
+
+### Scene-node authored channels (`scene.nodes[].extra[].studio_node_channels`) — ✅ implemented (Aug 2026)
+Library version **2.22.0** (13 **additive** accessors) exposes, per scene node,
+every `extra[]` `studio_node_channels` channel in source order — the node-side
+sibling of 2.19.0 `GetGeometryChannel*` and 2.21.0 `GetModifierExtraChannel*`
+(same shared `GeometryChannel` wrapper + `ParseGeometryChannel`). The motivating
+payload is **node visibility**: the DAZ Scene-pane eye-icon is a
+`{ "id":"Visible", "type":"bool", "current_value":<bool> }` channel that reached
+no accessor, so a node authored hidden (the dForce Bodacious Bob Hair scalp/growth
+cap) imported visible — a solid opaque-white shell over the head. Motivated by the
+DsonToUnreal node-visibility carry (FR 2026-08-07).
+
+- `GetSceneNodeExtraChannel{Count,Id,Type,Label,Group,Value,Min,Max,Clamped,StepSize,FieldPresenceMask,EnumValueCount,EnumValue}`
+  on the `scene.nodes` index space (same as `GetSceneNodeId`). `Value` is the
+  effective `current_value → value` (bool → `1.0`/`0.0`), matching the modifier
+  family; a bool channel sets no field-presence bit, so read `Value` directly.
+
+Faithful / no cross-section merge (**R6.4**): channels matched by
+`"type":"studio_node_channels"`, appended in authored order, empty lists tolerated
+(Count `0`). The parser does **not** run the scene→`node_library`→core `visible`
+effective-visibility resolution or bake the DSON "unauthored ⇒ visible" default —
+an absent `Visible` channel is a Count with no `Visible` id, never a `false`;
+applying the default and any library/core fallback is consumer work. Read from
+`scene.nodes` only (the shared node parse also captures the `node_library` side,
+but no library accessor is published — scene-only, like the shell family); the
+lowercase per-channel `visible` UI-metadata key is never read. Sentinels per the
+R1 family contract (counts/mask → `0`, strings → `""`, doubles → `0.0`, bool →
+`false`). Purely additive; all existing symbols unchanged.
+
+Verified by an independent Director from-scratch Rebuild (Release|x64, clean — 0
+warnings, 0 errors), the `DsonTest2` harness (`--scene-node-extra-channel-regression`
+PASS: authored hidden `Visible/current_value:false` → `Value 0.0`, authored
+visible → `1.0`, empty/missing/absent blocks → Count `0`, multi-channel
+source-order passthrough, invalid sentinels; the 2.21.0 modifier and 2.19.0
+geometry channel regressions still PASS after the shared-wrapper relocation), and
+a dynamic-load P/Invoke proof against the built DLL over the FR's exact
+`bob scalp_94918` node (`Visible → 0.0`; a normal node → Count `0`).
+
+**Consumer note (additive, non-breaking):** the 13 new functions are available to
+the UE plugin; existing calls are unaffected — an older DLL simply leaves
+visibility unread and the node imports visible, exactly as today.
 
 ### Polyline list — strand/curve geometry (`geometry_library[].polyline_list`) — ✅ implemented (Aug 2026)
 Library version **2.20.0** (6 **additive** accessors) exposes the `polyline_list`

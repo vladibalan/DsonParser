@@ -23,7 +23,7 @@
 //   import pipeline: geometry and scene-node shell material-UV assignments,
 //   geometry graft/rigidity blocks, skeleton
 //   nodes, skin weights, UVs, materials, images, morph deltas, formula payloads,
-//   modifier extra channels, and scene instances.
+//   modifier extra channels, scene-node extra channels, and scene instances.
 // - A post-parse pass resolves material channel image references to image
 //   texture paths and, for identity-linked LIE images, their per-layer paths.
 //   Broader cross-file asset resolution is outside this parser.
@@ -95,6 +95,8 @@ static void TrackChannelTypeMismatch(std::set<std::string>* unknownKeys,
     unknownKeys->insert(std::string(valueKey) + " [channel \"" + channelId +
         "\": type=" + JsonHelper::JsonTypeName(v) + ", used default]");
 }
+
+static bool ParseGeometryChannel(const rapidjson::Value& wrapper, GeometryChannel& out);
 
 static int HexValue(char c) {
     if (c >= '0' && c <= '9') {
@@ -424,8 +426,9 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
     }
 
     // Walk node extras once for the typed payloads exposed by the model.
-    // Rigid-follow data is raw and unevaluated. Shell material_uvs rows are
-    // appended across every exact studio/node/shell entry in authored order.
+    // Rigid-follow data and studio_node_channels are raw and unevaluated. Shell
+    // material_uvs rows and node extra channels are appended across every exact
+    // matching entry in authored order.
     // Neither path resolves references or merges sections (R6.3/R6.4).
     const rapidjson::Value* rfExtra = nullptr;
     if (JsonHelper::GetArray(json, "extra", rfExtra)) {
@@ -435,6 +438,19 @@ bool Node::ParseFromJson(const rapidjson::Value& json, std::set<std::string>* un
             const std::string extraType = JsonHelper::GetStringOrDefault(item, "type");
             if (extraType == "studio/node/shell") {
                 ParseMaterialUVAssignments(item, "material_uvs", shell_material_uv_assignments);
+                continue;
+            }
+            if (extraType == "studio_node_channels") {
+                const rapidjson::Value* channelArr = nullptr;
+                if (JsonHelper::GetArray(item, "channels", channelArr)) {
+                    extra_channels.reserve(extra_channels.size() + channelArr->Size());
+                    for (rapidjson::SizeType j = 0; j < channelArr->Size(); j++) {
+                        GeometryChannel channel;
+                        if (ParseGeometryChannel((*channelArr)[j], channel)) {
+                            extra_channels.push_back(channel);
+                        }
+                    }
+                }
                 continue;
             }
             if (extraType != "studio/node/rigid_follow" || has_rigid_follow) continue;

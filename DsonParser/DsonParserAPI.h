@@ -12,6 +12,10 @@
 // Public C ABI orientation:
 // v2.1.0 — runtime: DsonParser_GetVersion(); compile-time: DSONPARSER_VERSION_*.
 // Release history: CHANGELOG.md; SemVer/C-ABI policy: docs/versioning.md.
+// What's new in 2.22.0: DsonDocument_GetSceneNodeExtraChannel* expose
+//   scene.nodes extra[] studio_node_channels in source order (the DAZ
+//   eye-icon "Visible" bool + future node channels); Value is
+//   current_value -> value, mirroring the modifier family.
 // What's new in 2.21.0: DsonDocument_GetModifierExtraChannel* expose
 //   modifier_library extra[] studio_modifier_channels in source order; Value is
 //   current_value -> value by design.
@@ -295,6 +299,44 @@ DSONPARSER_API int DsonDocument_GetSceneNodeShellMaterialUVAssignmentCount(DsonD
 DSONPARSER_API const char* DsonDocument_GetSceneNodeShellMaterialUVAssignmentMaterialGroup(DsonDocumentHandle handle, int sceneNodeIndex, int assignmentIndex);
 // @since 2.13.0
 DSONPARSER_API const char* DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(DsonDocumentHandle handle, int sceneNodeIndex, int assignmentIndex);
+// scene.nodes extra[].studio_node_channels entries in source order -- the DAZ
+// Scene-pane eye-icon "Visible" bool (capital V; NOT the lowercase per-channel
+// `visible` UI-metadata key) plus any future node channels
+// (Selectable/Renderable). Structural sibling of GetModifierExtraChannel*:
+// Value returns the EFFECTIVE authored value (current_value -> value). A bool
+// channel authors current_value with no numeric `value`, so read Value directly
+// and do NOT gate on the VALUE presence bit. Faithful, no cross-section merge
+// (R6.4): the effective scene->library->core visibility resolution and the
+// "unauthored => visible (true)" default are the CONSUMER's -- an absent Visible
+// channel is simply Count-with-no-Visible-id, not a false. R1 sentinels:
+// Count/mask -> 0, strings -> "", doubles -> 0.0, bool -> false; bound-check
+// Count first.
+// @since 2.22.0
+DSONPARSER_API int         DsonDocument_GetSceneNodeExtraChannelCount(DsonDocumentHandle handle, int sceneNodeIndex);
+// @since 2.22.0
+DSONPARSER_API const char* DsonDocument_GetSceneNodeExtraChannelId(DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex);
+// @since 2.22.0
+DSONPARSER_API const char* DsonDocument_GetSceneNodeExtraChannelType(DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex);
+// @since 2.22.0
+DSONPARSER_API const char* DsonDocument_GetSceneNodeExtraChannelLabel(DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex);
+// @since 2.22.0
+DSONPARSER_API const char* DsonDocument_GetSceneNodeExtraChannelGroup(DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex);
+// @since 2.22.0
+DSONPARSER_API double      DsonDocument_GetSceneNodeExtraChannelValue(DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex);
+// @since 2.22.0
+DSONPARSER_API double      DsonDocument_GetSceneNodeExtraChannelMin(DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex);
+// @since 2.22.0
+DSONPARSER_API double      DsonDocument_GetSceneNodeExtraChannelMax(DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex);
+// @since 2.22.0
+DSONPARSER_API bool        DsonDocument_GetSceneNodeExtraChannelClamped(DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex);
+// @since 2.22.0
+DSONPARSER_API double      DsonDocument_GetSceneNodeExtraChannelStepSize(DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex);
+// @since 2.22.0
+DSONPARSER_API int         DsonDocument_GetSceneNodeExtraChannelFieldPresenceMask(DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex);
+// @since 2.22.0
+DSONPARSER_API int         DsonDocument_GetSceneNodeExtraChannelEnumValueCount(DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex);
+// @since 2.22.0
+DSONPARSER_API const char* DsonDocument_GetSceneNodeExtraChannelEnumValue(DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex, int enumIndex);
 DSONPARSER_API int         DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneNodeIndex);
 DSONPARSER_API const char* DsonDocument_GetSceneNodeGeometryId(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex);
 DSONPARSER_API const char* DsonDocument_GetSceneNodeGeometryUrl(DsonDocumentHandle handle, int sceneNodeIndex, int geomRefIndex);

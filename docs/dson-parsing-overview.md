@@ -86,8 +86,10 @@ current loader scope.
 : Parsed separately from libraries. Scene arrays contain placed instances and
   references to library entries. The parser currently reads scene nodes,
   including their raw authored transform/joint overrides and component presence,
-  and each node's `studio/node/shell` extra `material_uvs` assignments,
-  modifiers, materials, and UV sets, plus the post-load addon manifest in
+  and each node's `studio/node/shell` extra `material_uvs` assignments and its
+  `studio_node_channels` extra channels (the DAZ eye-icon `Visible` bool; see
+  Scene vs Library Data), modifiers, materials, and UV sets, plus the post-load
+  addon manifest in
   `scene.extra` (the DAZ "Character Addon Loader" `PostLoadAddons`; see the Scene
   Post-Load Addons section below), the `scene.extra` `scene_post_load_script`
   references (DAZ Scripts the static import does not execute; see the Scene
@@ -353,6 +355,25 @@ order and exposes them through
 These are node-indexed, verbatim reads. They do not fall back to or combine with
 `DsonDocument_GetGeometryMaterialUVAssignment*`; resolving the UV-set name to an
 external DSF remains importer work (R6.3/R6.4). Since 2.13.0.
+
+A scene node may also author a `studio_node_channels` block in its
+`scene.nodes[i].extra[]` — most importantly the DAZ Scene-pane eye-icon
+**`Visible`** bool (`{ "id":"Visible", "type":"bool", "current_value":<bool> }`).
+Every channel in that block is exposed in source order by
+`DsonDocument_GetSceneNodeExtraChannel{Count,Id,Type,Label,Group,Value,Min,Max,Clamped,StepSize,FieldPresenceMask,EnumValueCount,EnumValue}`,
+the node-side sibling of `GetGeometryChannel*` / `GetModifierExtraChannel*` (it
+reuses the shared `ParseGeometryChannel` wrapper and, like the modifier family,
+`…Value` returns the effective `current_value → value` — a bool reads
+`1.0`/`0.0`, so read it directly rather than gating on the `VALUE` presence bit).
+Faithful / no cross-section merge (R6.4): the parser does **not** run the
+scene → `node_library` → core `visible` effective-visibility resolution or bake
+the DSON "unauthored ⇒ visible (true)" default — an absent `Visible` channel is
+simply a Count with no `Visible` id, and applying the default (plus any
+library/core fallback) is the consumer's. Read from `scene.nodes` only; the
+shared node parse also captures the `node_library` side but publishes no library
+accessor (scene-only, like the shell family). The capital-V `Visible` channel id
+is distinct from the lowercase per-channel `visible` UI-metadata key, which this
+family never reads. Since 2.22.0.
 
 This distinction matters when an importer needs the base asset definition versus
 the configured scene instance.

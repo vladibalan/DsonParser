@@ -11,9 +11,10 @@
 // Modifier, Image, UVSet, scene instances) and the root DsonDocument that owns
 // them. These compose the primitive wrappers from DsonDataTypes.h. Parsing
 // logic lives in DsonTypes.cpp; Node and Geometry retain their own authored
-// material-to-UV assignments and authored transform-channel metadata, while
-// Geometry also includes raw graft and rigidity data, and Modifier retains
-// source-order extra[] studio_modifier_channels.
+// material-to-UV assignments and authored transform-channel metadata, Node also
+// retains source-order extra[] studio_node_channels, while Geometry includes raw
+// graft and rigidity data, and Modifier retains source-order extra[]
+// studio_modifier_channels.
 // The C ABI over this model is in DsonParserAPI.
 //
 // Internal header — NOT part of the public surface. Consumers use the C ABI in
@@ -72,6 +73,35 @@ struct NodeTransformChannel {
     unsigned int field_presence = 0;  // authored fields: MIN=0x1, MAX=0x2, CLAMPED=0x4
 };
 
+// Shared wrapper for the studio_*_channels families (geometry / modifier /
+// node). Raw, unevaluated passthrough (R6.4) - a value is NOT resolved against
+// its enum_values, and each published accessor family decides whether to return
+// raw value or effective current_value -> value.
+// DAZ authors min/max/clamped/step_size on some channel kinds only, and value 0
+// is legitimate, so presence is the only signal that separates an authored field
+// from a default.
+struct GeometryChannel {
+    std::string id;                   // channel "id" ("SubDIALevel"), verbatim
+    std::string type;                 // channel "type" ("int"/"enum"), verbatim
+    std::string label;                // channel "label"; "" if absent
+    std::string group;                // wrapper "group" (sibling of "channel"); "" if absent
+    double value = 0.0;               // "value"; meaningful only when the VALUE bit is set
+    double current_value = 0.0;       // channel "current_value"; the effective
+                                      //   authored value. Captured for the
+                                      //   geometry / modifier / node families;
+                                      //   geometry keeps returning raw value.
+    bool has_current_value = false;   // true iff current_value was authored
+                                      //   (number or bool). NOT a mask bit --
+                                      //   the shared field_presence mask is
+                                      //   unchanged (R2).
+    double min = 0.0;                 // "min"; meaningful only when the MIN bit is set
+    double max = 0.0;                 // "max"; meaningful only when the MAX bit is set
+    bool clamped = false;             // "clamped"; meaningful only when the CLAMPED bit is set
+    double step_size = 0.0;           // "step_size"; meaningful only when the STEP_SIZE bit is set
+    std::vector<std::string> enum_values; // "enum_values", source order; empty for a non-enum
+    unsigned int field_presence = 0;  // VALUE=0x10, MIN=0x1, MAX=0x2, CLAMPED=0x4, STEP_SIZE=0x8
+};
+
 // Node in scene hierarchy
 struct Node {
     String id;
@@ -111,6 +141,12 @@ struct Node {
     std::vector<NodeGeometryRef> geometries; // only populated on scene figure nodes
     // Rows from studio/node/shell extra entries, in authored extra/row order.
     std::vector<MaterialUVAssignment> shell_material_uv_assignments;
+    // Channels from studio_node_channels extra entries (the DAZ Scene-pane
+    // eye-icon "Visible" bool + future node channels), in authored order.
+    // Populated for both node_library and scene.nodes; only the scene-node
+    // accessor is published. Effective value (current_value -> value) is
+    // resolved at the accessor, as for Modifier::extra_channels.
+    std::vector<GeometryChannel> extra_channels;
     std::string presentation_type;             // presentation.type  (DAZ "Content Type"; "" if absent)
     std::string presentation_label;            // presentation.label (declared display name; "" if absent)
     std::string presentation_preferred_base;   // presentation.preferred_base
@@ -148,35 +184,6 @@ struct GeometryRigidityGroup {
     bool use_transform_bones_for_scale = false;
 
     bool ParseFromJson(const rapidjson::Value& json, std::set<std::string>* unknownKeys = nullptr);
-};
-
-// One authored studio_geometry_channels channel: an element of a geometry's
-// extra[] "/General/Mesh Resolution" block. Raw, unevaluated passthrough (R6.4)
-// - a value is NOT resolved against its enum_values, and nothing is reconciled
-// against the sibling edge_interpolation_mode / subd_normal_smoothing_mode
-// strings. DAZ authors min/max/clamped/step_size on the int channels only and
-// never on the enums, and value 0 is legitimate ("Catmark", "Smoothed"), so
-// presence is the only signal that separates an authored field from a default.
-struct GeometryChannel {
-    std::string id;                   // channel "id" ("SubDIALevel"), verbatim
-    std::string type;                 // channel "type" ("int"/"enum"), verbatim
-    std::string label;                // channel "label"; "" if absent
-    std::string group;                // wrapper "group" (sibling of "channel"); "" if absent
-    double value = 0.0;               // "value"; meaningful only when the VALUE bit is set
-    double current_value = 0.0;       // channel "current_value"; the effective
-                                      //   authored value. Captured for both
-                                      //   families; only the modifier extra-channel
-                                      //   accessor returns it (geometry keeps value).
-    bool has_current_value = false;   // true iff current_value was authored
-                                      //   (number or bool). NOT a mask bit --
-                                      //   the shared field_presence mask is
-                                      //   unchanged (R2).
-    double min = 0.0;                 // "min"; meaningful only when the MIN bit is set
-    double max = 0.0;                 // "max"; meaningful only when the MAX bit is set
-    bool clamped = false;             // "clamped"; meaningful only when the CLAMPED bit is set
-    double step_size = 0.0;           // "step_size"; meaningful only when the STEP_SIZE bit is set
-    std::vector<std::string> enum_values; // "enum_values", source order; empty for a non-enum
-    unsigned int field_presence = 0;  // VALUE=0x10, MIN=0x1, MAX=0x2, CLAMPED=0x4, STEP_SIZE=0x8
 };
 
 // Geometry data

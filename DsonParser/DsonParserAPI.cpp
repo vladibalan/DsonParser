@@ -29,6 +29,9 @@
 //   channels without resolving enum values or reconciling sibling strings.
 // - Expose authored modifier extra channels without resolving enum values; their
 //   Value accessor returns the effective current_value -> value reading.
+// - Expose authored scene-node extra channels without resolving visibility or
+//   merging scene/library/core sections; their Value accessor also returns the
+//   effective current_value -> value reading.
 // - Expose authored geometry rigidity weights/groups without remapping or
 //   interpreting their geometry-local indices and node references.
 // - Expose authored geometry and scene-node shell material-to-UV names without
@@ -363,6 +366,12 @@ static const Dson::MaterialUVAssignment* GetSceneNodeShellMaterialUVAssignment(
     DsonDocumentHandle handle, int sceneNodeIndex, int assignmentIndex) {
     const Dson::Node* node = GetSceneNode(handle, sceneNodeIndex);
     return node ? At(node->shell_material_uv_assignments, assignmentIndex) : nullptr;
+}
+
+static const Dson::GeometryChannel* GetSceneNodeExtraChannel(
+    DsonDocumentHandle handle, int sceneNodeIndex, int channelIndex) {
+    const Dson::Node* node = GetSceneNode(handle, sceneNodeIndex);
+    return node ? At(node->extra_channels, channelIndex) : nullptr;
 }
 
 static const Dson::Modifier* GetLibraryModifier(DsonDocumentHandle handle, int modifierIndex) {
@@ -1015,6 +1024,122 @@ const char* DsonDocument_GetSceneNodeShellMaterialUVAssignmentUVSetName(
     const Dson::MaterialUVAssignment* assignment =
         GetSceneNodeShellMaterialUVAssignment(handle, sceneNodeIndex, assignmentIndex);
     return assignment ? assignment->uv_set_name.c_str() : "";
+}
+
+int DsonDocument_GetSceneNodeExtraChannelCount(DsonDocumentHandle handle, int sceneNodeIndex) {
+    const Dson::Node* node = GetSceneNode(handle, sceneNodeIndex);
+    return node ? static_cast<int>(node->extra_channels.size()) : 0;
+}
+
+const char* DsonDocument_GetSceneNodeExtraChannelId(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetSceneNodeExtraChannel(handle, sceneNodeIndex, channelIndex);
+    return channel ? channel->id.c_str() : "";
+}
+
+const char* DsonDocument_GetSceneNodeExtraChannelType(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetSceneNodeExtraChannel(handle, sceneNodeIndex, channelIndex);
+    return channel ? channel->type.c_str() : "";
+}
+
+const char* DsonDocument_GetSceneNodeExtraChannelLabel(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetSceneNodeExtraChannel(handle, sceneNodeIndex, channelIndex);
+    return channel ? channel->label.c_str() : "";
+}
+
+const char* DsonDocument_GetSceneNodeExtraChannelGroup(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetSceneNodeExtraChannel(handle, sceneNodeIndex, channelIndex);
+    return channel ? channel->group.c_str() : "";
+}
+
+double DsonDocument_GetSceneNodeExtraChannelValue(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetSceneNodeExtraChannel(handle, sceneNodeIndex, channelIndex);
+    if (!channel) return 0.0;
+    return channel->has_current_value ? channel->current_value : channel->value;
+}
+
+double DsonDocument_GetSceneNodeExtraChannelMin(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetSceneNodeExtraChannel(handle, sceneNodeIndex, channelIndex);
+    return channel ? channel->min : 0.0;
+}
+
+double DsonDocument_GetSceneNodeExtraChannelMax(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetSceneNodeExtraChannel(handle, sceneNodeIndex, channelIndex);
+    return channel ? channel->max : 0.0;
+}
+
+bool DsonDocument_GetSceneNodeExtraChannelClamped(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetSceneNodeExtraChannel(handle, sceneNodeIndex, channelIndex);
+    return channel ? channel->clamped : false;
+}
+
+double DsonDocument_GetSceneNodeExtraChannelStepSize(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetSceneNodeExtraChannel(handle, sceneNodeIndex, channelIndex);
+    return channel ? channel->step_size : 0.0;
+}
+
+int DsonDocument_GetSceneNodeExtraChannelFieldPresenceMask(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetSceneNodeExtraChannel(handle, sceneNodeIndex, channelIndex);
+    return channel ? static_cast<int>(channel->field_presence) : 0;
+}
+
+int DsonDocument_GetSceneNodeExtraChannelEnumValueCount(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    int channelIndex) {
+    const Dson::GeometryChannel* channel =
+        GetSceneNodeExtraChannel(handle, sceneNodeIndex, channelIndex);
+    return channel ? static_cast<int>(channel->enum_values.size()) : 0;
+}
+
+const char* DsonDocument_GetSceneNodeExtraChannelEnumValue(
+    DsonDocumentHandle handle,
+    int sceneNodeIndex,
+    int channelIndex,
+    int enumIndex) {
+    const Dson::GeometryChannel* channel =
+        GetSceneNodeExtraChannel(handle, sceneNodeIndex, channelIndex);
+    const std::string* value = channel ? At(channel->enum_values, enumIndex) : nullptr;
+    return value ? value->c_str() : "";
 }
 
 int DsonDocument_GetSceneNodeGeometryCount(DsonDocumentHandle handle, int sceneNodeIndex) {

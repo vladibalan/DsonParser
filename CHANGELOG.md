@@ -11,6 +11,67 @@ Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
+## 2.22.0 -- 2026-08-07 - MINOR (added)
+
+Exposes, per `scene.nodes` scene node, every `extra[]` `studio_node_channels`
+channel in source order -- the node-side sibling of the 2.19.0
+`GetGeometryChannel*` and 2.21.0 `GetModifierExtraChannel*` families (same shared
+`GeometryChannel` wrapper and `ParseGeometryChannel`). The motivating payload is
+**node visibility**: the DAZ Scene-pane eye-icon state is a
+`{ "id":"Visible", "type":"bool", "current_value":<bool> }` channel in that block,
+and it reached no accessor -- so a node authored hidden (the dForce Bodacious Bob
+Hair scalp/growth cap) imported visible, as a solid opaque-white shell over the
+head.
+
+`Value` returns the **effective** authored value (`current_value` -> `value`),
+matching the modifier family and diverging from `GetGeometryChannelValue`'s raw
+`value`: a bool channel authors `current_value` with no numeric `value`, so
+`Visible: current_value=false` reads `0.0` and `true` reads `1.0`. Read `Value`
+directly; do not gate on the field-presence `VALUE` bit (a bool channel sets no
+mask bit -- the shared mask contract stays byte-identical to 2.19.0/2.21.0).
+
+Faithful / no cross-section merge (R6.4): channels are matched by
+`"type":"studio_node_channels"` and appended in authored order, empty channel
+lists are tolerated (Count `0`), and the parser does **not** perform the
+scene->`node_library`->core `visible` effective-visibility resolution, nor bake
+the DSON "unauthored => visible" default -- an absent `Visible` channel is simply
+a Count with no `Visible` id, never a `false`. Applying visibility, resolving the
+default, and any library/core fallback stay with the consumer. Read from
+`scene.nodes` only; the shared node parse also captures the `node_library` side
+but no library accessor is published (scene-only, like the shell family). Not to
+be confused with the lowercase per-channel `visible` UI-metadata key, which this
+family never reads. Purely additive: all existing symbols, signatures, sentinels,
+and behavior are unchanged.
+
++ DsonDocument_GetSceneNodeExtraChannelCount - number of `studio_node_channels`
+  channels on one `scene.nodes` node, across every matching `extra[]` block in
+  authored order; `0` on invalid handle/index, an empty block, or no block
++ DsonDocument_GetSceneNodeExtraChannelId - one channel's authored `id` verbatim
+  (e.g. `"Visible"`); `""` when absent or invalid
++ DsonDocument_GetSceneNodeExtraChannelType - one channel's authored `type`
+  (e.g. `"bool"`, `"enum"`); `""` when absent or invalid
++ DsonDocument_GetSceneNodeExtraChannelLabel - one channel's authored `label`;
+  `""` when absent or invalid
++ DsonDocument_GetSceneNodeExtraChannelGroup - the wrapper's authored `group`
+  (sibling of `channel`); `""` when absent or invalid
++ DsonDocument_GetSceneNodeExtraChannelValue - effective value, `current_value`
+  falling back to `value` (bool -> `1.0`/`0.0`); `0.0` on invalid
++ DsonDocument_GetSceneNodeExtraChannelMin - channel `min`; `0.0` on invalid or
+  unauthored (query the field-presence mask first)
++ DsonDocument_GetSceneNodeExtraChannelMax - channel `max`; `0.0` on invalid or
+  unauthored
++ DsonDocument_GetSceneNodeExtraChannelClamped - channel `clamped`; `false` on
+  invalid or unauthored
++ DsonDocument_GetSceneNodeExtraChannelStepSize - channel `step_size`; `0.0` on
+  invalid or unauthored
++ DsonDocument_GetSceneNodeExtraChannelFieldPresenceMask - authored-field bits
+  (VALUE=0x10, MIN=0x1, MAX=0x2, CLAMPED=0x4, STEP_SIZE=0x8); `0` on invalid or
+  when only `current_value` is authored (there is no `current_value` bit, by design)
++ DsonDocument_GetSceneNodeExtraChannelEnumValueCount - number of `enum_values`
+  on the channel; `0` for a non-enum or invalid
++ DsonDocument_GetSceneNodeExtraChannelEnumValue - one `enum_values` entry by
+  index, verbatim; `""` when absent or invalid
+
 ## 2.21.0 -- 2026-08-03 - MINOR (added)
 
 Exposes, per raw `modifier_library` modifier, every `extra[]`
