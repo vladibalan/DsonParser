@@ -34,8 +34,13 @@ never a least-effort default.
 - cpp `Patterns.md` core NOT vendored: filename collision with the text-layer core (both target
   `Docs/Patterns.md`). Deferred to the next sync; fit gap carried to the master. Its conventions
   (orientation headers, vendoring fence, `VENDORED.txt` seal) are applied in-tree regardless.
-- The repo's previous `Check-ReleaseTag.ps1` had an `-Audit` mode (all released headings vs tags);
-  the config-driven core lacks it. Accepted; fit gap carried to the master.
+- The repo's previous `Check-ReleaseTag.ps1` had an `-Audit` mode (a full sweep: every released
+  CHANGELOG heading against its tag); the config-driven core (`Tools/Check-ReleaseTag.ps1`) lacks it
+  and gates only the current release point (version source, top CHANGELOG heading, and git tag all
+  agree). Trade-off: the interim loss is that historical heading/tag drift is no longer swept
+  wholesale; each new release is still gated at its own release point by the COD-11 close-gate, with
+  Director tagging discipline the backstop, so the residual risk is bounded to pre-existing releases.
+  Accepted; fit gap carried to the master (restore the sweep upstream).
 - `Tools/IncludeGuard.config.json` lands with `repoDirMarker` deliberately blank = include-guard
   disabled (checkpoint 2a); the hook script is not vendored into `.claude/hooks/`.
 - memory-autocommit hook wired (2026-08-08): the Claude auto-memory store was relocated in-repo to
