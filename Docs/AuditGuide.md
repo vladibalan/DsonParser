@@ -121,14 +121,16 @@ recognized-but-unparsed fields are documented honestly. Check whether a clean
 unknown-key report could be misread as full semantic support.
 ```
 
-### v2 Formula Planning
+### Formula Coverage
 
 ```text
-Using DsonParser_Roadmap.md and Docs/dson-parsing-overview.md, audit the planned
-formula parsing work before implementation. Identify the DsonTypes.h/.cpp model
-changes, C API additions, unknown-key changes, and tests needed to support
-formula operations such as push url, push val, mult, div, add, sub, pow, and
-spline_tcb. Do not implement; produce a concrete implementation checklist.
+Using Docs/Capabilities.md (Formulas) and Docs/dson-parsing-overview.md, audit the
+shipped formula surface. Confirm the formulas array is parsed on Modifier; that
+FormulaOperation op, val, url, and val_array are captured; that formula output and
+stage are captured; that push (constant), push (url), mult, div, add, sub, pow, and
+spline_tcb operands are all represented; and that every formula C API accessor is
+exposed on both the modifier_library and scene.modifiers index spaces. Report any
+gap; do not change behavior.
 ```
 
 ### Accessor Fan-Out (C ABI Maintenance Tripwire)

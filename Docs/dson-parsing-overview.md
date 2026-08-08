@@ -1,9 +1,12 @@
 # DSON Parsing Overview
 
-This document is the first stop for audits and LLM-assisted questions about how
-this library parses DAZ Studio DSON/DSF/DUF data. It summarizes the code paths,
-data ownership, supported sections, and known boundaries so readers do not need
-to start by reading the full implementation files.
+This document is the first stop for audits and LLM-assisted questions about **how**
+this library parses DAZ Studio DSON/DSF/DUF data - the code paths, data ownership,
+per-section parse behavior and faithfulness rules, and known boundaries, so readers
+do not need to start by reading the full implementation files. The **enumerated
+accessor catalog** - what each section exposes, by family - lives in
+[`Docs/Capabilities.md`](Capabilities.md); this doc describes how each section is
+parsed and cites accessors only where they are load-bearing to that behavior.
 
 ## File Map
 
@@ -16,7 +19,7 @@ to start by reading the full implementation files.
 | `DsonParser/DsonInflate.h/.cpp` | Internal, dependency-free gzip/DEFLATE support used by the loader before JSON parsing. Verifies gzip CRC32 and ISIZE (a blank all-zero trailer is accepted on a clean inflate - DAZ-compat). |
 | `DsonParser/DsonParserAPI.h/.cpp` | Flat `extern "C"` API for DLL consumers. Owns opaque handles, parser-owned string returns, bounds-checked accessors, and lazy query caches. |
 | `DsonParser/DsonParserVersion.h` | Canonical library version macros (`DSONPARSER_VERSION_*`); published with and included by `DsonParserAPI.h`. Single source of truth for `DsonParser_GetVersion()` and the `CHANGELOG.md` baseline. |
-| `DsonParser_Roadmap.md` | Current capability summary, audit history, known v1 limitations, and planned v2 formula parsing work. |
+| `Docs/Capabilities.md` | The current-state C-ABI capability catalog: what each DSON area exposes, by accessor family. |
 
 The published surface is `DsonParserAPI.h` (the flat C ABI). The C++ model
 headers (`DsonDataTypes.h`, `DsonTypes.h`, `DsonHelpers.h`) are internal
@@ -817,4 +820,7 @@ The parser deliberately does not handle:
 - ZIP archive parsing and concatenated multi-member gzip streams.
 - Cross-platform build validation beyond the current Windows DLL setup.
 
-See `DsonParser_Roadmap.md` for the planned formula work and audit history.
+See [`Docs/Capabilities.md`](Capabilities.md) for the accessor catalog and
+[`CHANGELOG.md`](../CHANGELOG.md) for per-release history. The v2 formula work is complete on the
+parser side (stored and exposed above; evaluation stays the consumer's, per these boundaries); the
+audit procedure is in [`Docs/AuditGuide.md`](AuditGuide.md).

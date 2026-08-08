@@ -41,8 +41,9 @@ procedure. Pin record: `Docs/Reference.md` "Framework pin record". Cold/on-deman
   verbatim core) commits only the store's pathspec on session end.
 - Test-runner cores (`RunTests.ps1`, `TestConfig.local.example.json`) not vendored: the testing
   module is dormant (JIT - stand up with the first suite).
-- `Capabilities.md` skeleton skipped: `DsonParser_Roadmap.md` owns capability detail (restructure
-  deferred, `Docs/Roadmap.md`). `Intent`/`Principles` landed 2026-08-08, owner-approved.
+- `Capabilities.md` materialized 2026-08-08: the capability catalog lives in `Docs/Capabilities.md`
+  (promoted from the retired `DsonParser_Roadmap.md`); `dson-parsing-overview.md` stays the
+  parse-behavior map. `Intent`/`Principles` landed 2026-08-08, owner-approved.
 - No SLOTS.md / MATERIALIZE.md copies kept - this doc is the adaptation record.
 - All other landings per the stock procedure, at canonical `Docs/` / `Tools/` casing (the previous
   lowercase `docs/` / `tools/` dirs were renamed in the migration).

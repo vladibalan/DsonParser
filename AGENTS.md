@@ -8,7 +8,7 @@ importers (a separate UE 5.4.4 plugin consumes it).
 ## Session pickup
 
 1. Read `Docs/Intent.md` (direction) and `Docs/Roadmap.md` (open status; `Docs/Principles.md`
-   governs both). Epochs: `DsonParser_Roadmap.md`; *why*: `Docs/DecisionLog.md`; facts: `Docs/Reference.md`.
+   governs both). Capabilities: `Docs/Capabilities.md`; *why*: `Docs/DecisionLog.md`; facts: `Docs/Reference.md`.
 2. For any parsing / data-model / C-API question, read `Docs/dson-parsing-overview.md` **before**
    opening source - it is the authoritative file map, pipeline, and coverage doc. Most tasks need
    only it plus one source file; every real source file also opens with an `orientation:` block.

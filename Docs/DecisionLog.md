@@ -5,6 +5,55 @@ notable rejects. Cold/on-demand (off the hot-path budget) - it absorbs history s
 rules docs stay tight. Newest at top. When it crosses the doc ceiling, rotate as a dated
 append-only log (see `Docs/DocRules.md`, "Cold-doc rotation, in detail").
 
+## 2026-08-08 - Retire DsonParser_Roadmap.md; capability catalog -> Docs/Capabilities.md
+
+**What.** Dissolved the bespoke `DsonParser_Roadmap.md` (871 ln) into the standard doc tiers and
+retired it (`git rm`). Created `Docs/Capabilities.md` (194 ln / 13.2 KB) - the framework's optional
+`Capabilities.md` code-layer slot, previously skipped (`Docs/FrameworkSlots.md`) - as the
+current-state C-ABI capability catalog, promoted from the roadmap's v1 A-G inventory + Known
+Limitations + the shipped v2 formula accessors. Added the three current Scene families the roadmap
+inventory omitted (post-load addons 1.1.0, post-load scripts 2.3.0, scene animations 1.2.0/2.16.0)
+so the catalog is complete. Reframed `dson-parsing-overview.md` from "capability summary + boundaries"
+to the parse-behavior map, ceding the enumerated catalog to `Capabilities.md` (identity note + File
+Map row + closing pointer repointed). Dropped the roadmap's "Recently completed" (~420 ln) and Audit
+History as duplication; folded the v2 audit-prompt addendum into `Docs/AuditGuide.md`, reframing its
+stale "v2 Formula Planning" prompt into a shipped-surface "Formula Coverage" audit. Repointed live
+cross-refs: `AGENTS.md`, `Docs/Intent.md`, `Docs/Reference.md` (x2), `Docs/FrameworkSlots.md`,
+`Docs/Roadmap.md`, `Docs/AuditGuide.md`, and the overview. Doc-only; no source, ABI, or version change.
+
+**Why.** The roadmap was duplication against DocRules "one home per fact", on every axis:
+- v1 inventory duplicated `dson-parsing-overview.md` - a corrected coverage grep confirmed every
+  distinctive item (preferred_base, conform_target, node visibility, push, modifier parent, rigidity,
+  graft weld, material UVs, capped influences, scales, map_size) is already present there.
+- "Recently completed" duplicated `CHANGELOG.md`, the consumer-shipped ABI-history authority
+  (2.0.0 -> 2.22.0, richer and verbatim).
+- The v2 parser plan (items 1-3 + 3b) is fully shipped: all nine 3b accessors
+  (`Get{Modifier,SceneModifier}ChannelValue`, `GetMorphId`, the channel min/max/clamped family)
+  export today, verified against `DsonParserAPI.h`. UE-side items 4-6 are consumer-repo scope (P1).
+Two owner calls set the shape: drop the duplicated history (vs move to DecisionLog); and create the
+framework-canonical `Capabilities.md` (vs designate the overview as the catalog), accepting a two-doc
+rewrite for the standard slot name.
+
+**Adjudicated (overview demotion depth).** The overview's accessor citations are woven into its
+faithfulness/behavior prose (the effective-vs-raw value divergence, sentinel contracts, R6.4) and are
+load-bearing to those explanations. A full "parse-pipeline only" de-interleave would rewrite a
+cohesive 820-ln doc for tier purity at real regression risk and, done partially, would leave the doc
+inconsistent. Chosen: realize the demotion as identity reframe + catalog repoint, keeping behavioral
+accessor citations in place with the enumerated catalog's single home now in `Capabilities.md`. The
+deeper gut stays available on demand.
+
+**Verification.** Check-DocForm census PASS: 30 docs, 0 hard-cap failures, 0 warnings.
+`Docs/Capabilities.md` form-clean (0 non-ASCII, 0 lines > 120). Repo grep for `DsonParser_Roadmap`
+reaches 0 live-doc pointers; the remaining hits are frozen or intentional - the `.handoff/` task
+archive, the sealed `Docs/CHANGELOG/1.x.md` 1.0.0 baseline entry, the settled DecisionLog ASCII-sweep
+record (below), and the new retirement mentions in `Roadmap.md` / `FrameworkSlots.md`. All added Scene
+accessor names verified against `DsonParser/DsonParserAPI.h`.
+
+**Rejected / adjudicated.** Move "Recently completed" into DecisionLog verbatim (duplicates CHANGELOG
+and forces a DecisionLog rotation - dropped instead). No new doc, overview as the catalog (fewest
+docs, but the owner chose the framework filename). Keep a thin redirect stub for the roadmap
+(archive-over-delete already rejected in the migration; git preserves the file - deleted).
+
 ## 2026-08-08 - Legacy-doc ASCII sweep + CHANGELOG rotation (seal v1.x)
 
 **What.** Reversed the deliberate Unicode typography in the three non-ASCII docs back to ASCII

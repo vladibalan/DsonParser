@@ -9,7 +9,7 @@ status (`Docs/Roadmap.md`) or shipped rationale (`Docs/DecisionLog.md`). Subordi
 Complete DSON asset fidelity through the C ABI: everything a DAZ file states, faithfully exposed,
 so any engine importer can rebuild the asset - geometry, materials, rigging, morphs, dials -
 without DAZ-side tooling. The current epoch is the v2 formula work (control dials / ERC / JCM data
-exposure) per `DsonParser_Roadmap.md`. Out of scope: evaluating or interpreting that data (the
+exposure) per `Docs/Capabilities.md`. Out of scope: evaluating or interpreting that data (the
 consumer's job, P1), rendering semantics, and DAZ-side tooling.
 
 ## Tensions to honor (not yet scheduled)

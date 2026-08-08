@@ -48,7 +48,7 @@ single biggest source of consumer bugs - confirm the family before judging a sen
 ## Version carriers (the project's COD-11 binding)
 
 The consumer is an LLM agent in a separate repo that sees only shipped artifacts - never this
-repo's git log or `DsonParser_Roadmap.md`. Four carriers announce every change (policy:
+repo's git log or internal docs like `Docs/Capabilities.md`. Four carriers announce every change (policy:
 `Docs/Versioning.md`):
 
 | Carrier | Answers |
@@ -63,7 +63,7 @@ repo's git log or `DsonParser_Roadmap.md`. Four carriers announce every change (
   banner's "what's new" line refreshes.
 - The SemVer boundary is binary (ABI) compatibility of the flat C API. Comment/whitespace-only
   header edits: no bump, no CHANGELOG entry.
-- **Capability epochs are not SemVer**: `DsonParser_Roadmap.md`'s "v1"/"v2" label capability eras;
+- **Capability epochs are not SemVer**: `Docs/Capabilities.md`'s "v1"/"v2" label capability eras;
   the v2 formula work shipped as additive MINOR bumps within 1.x. A MAJOR comes only from a
   breaking ABI change.
 - Baseline `1.0.0` labeled the first versioned tree (~180 exports); pre-versioning history is not

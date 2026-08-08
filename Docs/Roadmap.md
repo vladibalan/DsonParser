@@ -2,7 +2,7 @@
 
 The single source of truth for **open status**: the current phase, what is deferred, and the
 backlog. Status only - the *why* lives in `Docs/DecisionLog.md`, durable facts in
-`Docs/Reference.md`, capability detail and epoch history in `DsonParser_Roadmap.md`. Keep it
+`Docs/Reference.md`, capability detail in `Docs/Capabilities.md`, per-release history in `CHANGELOG.md`. Keep it
 current **in the same change that moves the status**.
 
 ## Current phase
@@ -11,10 +11,15 @@ The parser is stable at 2.22.0 (flat C ABI; consumer: the DsonToUnreal UE 5.4.4 
 2026-08-08: the repo migrated onto the LLMfrmw text+code+cpp framework stack (v0.2.0) - migration
 complete, verification gate green; governance now runs on the vendored cores (`Docs/Rulebook.md`,
 `Docs/AgentWorkflow.md`, `Docs/Versioning.md`); the migration entry (and its close-out) is in
-`Docs/DecisionLog.md`. The v2 formula epoch continues per `DsonParser_Roadmap.md`.
+`Docs/DecisionLog.md`. The v2 formula epoch's parser side is complete (catalog:
+`Docs/Capabilities.md`); the remaining formula work is consumer-side (the UE importer).
 
 ## Done
 
+- 2026-08-08 - Retired `DsonParser_Roadmap.md`: promoted its v1 inventory + the shipped formula
+  accessors into the framework `Docs/Capabilities.md` catalog slot, reframed `dson-parsing-overview.md`
+  as the parse-behavior map, and dropped the roadmap's `CHANGELOG.md`-duplicated history and
+  fully-shipped v2 plan. Dispositions and why: `Docs/DecisionLog.md`.
 - 2026-08-08 - Legacy-doc ASCII sweep (`CHANGELOG.md`, `DsonParser_Roadmap.md`,
   `Docs/dson-parsing-overview.md` -> 0 non-ASCII) + root `CHANGELOG.md` rotation: sealed the v1.x
   epoch (1.0.0-1.6.0) into `Docs/CHANGELOG/1.x.md`, 465-char line wrapped; root 58.9 KB under the
@@ -27,8 +32,7 @@ complete, verification gate green; governance now runs on the vendored cores (`D
 
 ## Deferred
 
-- Optional restructure of `DsonParser_Roadmap.md` into the Capabilities/DecisionLog tiers (ruled
-  out of the migration's scope; revisit on demand).
+- (none)
 
 ## Known issues
 
