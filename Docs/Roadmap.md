@@ -11,12 +11,18 @@ The parser is stable at 2.22.0 (flat C ABI; consumer: the DsonToUnreal UE 5.4.4 
 2026-08-08 LLMfrmw framework migration (v0.2.0) and its follow-on doc settling are complete (see
 Done below); governance runs on the vendored cores (`Docs/Rulebook.md`, `Docs/AgentWorkflow.md`,
 `Docs/Versioning.md`), the doc tiers are settled with `Docs/Capabilities.md` owning capability
-detail, and the close-outs are in `Docs/DecisionLog.md`. The v2 formula epoch's parser side is
+detail, and the close-outs are in `Docs/DecisionLog.md`. Framework conformance is a codified standing
+discipline (COD-102: conform by default, argue every divergence), with the adaptation ledger
+(`Docs/FrameworkSlots.md`) audited clean against it. The v2 formula epoch's parser side is
 complete (catalog: `Docs/Capabilities.md`); the remaining formula work is consumer-side (the UE
 importer).
 
 ## Done
 
+- 2026-08-08 - Established COD-102 (framework-conformance discipline: conform to the vendored LLMfrmw
+  stack by default, argue every divergence) and audited the `Docs/FrameworkSlots.md` deviation ledger
+  against it - every deviation clears the bar; the two gaps found are closed (the `ReleaseTag -Audit`
+  trade-off now argued in the ledger; the C++14 pin below). Dispositions and why: `Docs/DecisionLog.md`.
 - 2026-08-08 - Pinned the C++ standard to C++14 via a root `Directory.Build.props`
   (`<LanguageStandard>stdcpp14</LanguageStandard>`), covering all three projects and configs from one
   home instead of the v143 default (CPP-1). Verified: full `/t:Rebuild` Release|x64 emits `/std:c++14`
