@@ -62,3 +62,11 @@ importer).
   Implementer task). [added 2026-08-08]
 - Vendor the cpp-layer `Patterns.md` core at the next framework sync, once the master resolves its
   filename collision with the text-layer core (fit gap carried back). [added 2026-08-08]
+- Convert `Docs/dson-parsing-overview.md` into framework slots, then delete it (owner runs it in a
+  separate session): component/pipeline map -> `Docs/Architecture.md`; durable parse-behavior facts +
+  C-ABI return/sentinel contracts -> `Docs/Reference.md`; enumerated catalog already in
+  `Docs/Capabilities.md` (kit artifact map: overview -> `Architecture.md` + cpp `orientation:` headers).
+  Reverses the 2026-08-08 keep-as-parse-behavior-map call (`Docs/DecisionLog.md`, which flagged a full
+  de-interleave as regression risk since accessor citations are woven into behavior prose) - preserve those
+  citations in the targets and record the reversal in `Docs/DecisionLog.md` when the work lands.
+  [added 2026-08-08]
