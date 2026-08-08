@@ -34,8 +34,11 @@ procedure. Pin record: `Docs/Reference.md` "Framework pin record". Cold/on-deman
   the config-driven core lacks it. Accepted; fit gap carried to the master.
 - `Tools/IncludeGuard.config.json` lands with `repoDirMarker` deliberately blank = include-guard
   disabled (checkpoint 2a); the hook script is not vendored into `.claude/hooks/`.
-- memory-autocommit hook not wired: the Claude memory store lives outside the repo (bringing it
-  in-repo is a `Docs/Roadmap.md` backlog item).
+- memory-autocommit hook wired (2026-08-08): the Claude auto-memory store was relocated in-repo to
+  `.claude/memory/` via the `autoMemoryDirectory` binding in `.claude/settings.local.json` - a
+  per-seat local binding whose value is an absolute machine path. The Stop-hook
+  `.claude/hooks/memory-autocommit.ps1` (authored to the master's spec; a local convenience, not a
+  verbatim core) commits only the store's pathspec on session end.
 - Test-runner cores (`RunTests.ps1`, `TestConfig.local.example.json`) not vendored: the testing
   module is dormant (JIT - stand up with the first suite).
 - `Capabilities.md` skeleton skipped: `DsonParser_Roadmap.md` owns capability detail (restructure

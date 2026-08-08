@@ -15,6 +15,9 @@ complete, verification gate green; governance now runs on the vendored cores (`D
 
 ## Done
 
+- 2026-08-08 - Claude auto-memory store brought in-repo (`.claude/memory/`) via the
+  `autoMemoryDirectory` binding, plus the `memory-autocommit` Stop-hook wired - dispositions and
+  why: `Docs/DecisionLog.md`.
 - 2026-08-08 - LLMfrmw framework migration (text+code+cpp) - dispositions and why:
   `Docs/DecisionLog.md`.
 
@@ -38,9 +41,6 @@ complete, verification gate green; governance now runs on the vendored cores (`D
 
 ## Backlog
 
-- Bring the Claude per-project memory store into the repo: relocate the external harness store to
-  an in-repo `.claude/memory/` per `Docs/MemoryConventions.md`, then wire the memory-autocommit
-  Stop-hook. [added 2026-08-08]
 - ASCII cleanup sweep across legacy/domain docs (reverses the earlier deliberate Unicode sweep,
   `CHANGELOG.md` typography included); afterwards re-measure `CHANGELOG.md` against the 64 KB
   ceiling and rule rotate-vs-linear. [added 2026-08-08]
