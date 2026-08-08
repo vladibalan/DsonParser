@@ -11,9 +11,10 @@ The parser is stable at 2.22.0 (flat C ABI; consumer: the DsonToUnreal UE 5.4.4 
 2026-08-08 LLMfrmw framework migration (v0.2.0) and its follow-on doc settling are complete (see
 Done below); governance runs on the vendored cores (`Docs/Rulebook.md`, `Docs/AgentWorkflow.md`,
 `Docs/Versioning.md`), the doc tiers are settled with `Docs/Capabilities.md` owning capability
-detail, and the close-outs are in `Docs/DecisionLog.md`. Framework conformance is a codified standing
-discipline (COD-102: conform by default, argue every divergence), with the adaptation ledger
-(`Docs/FrameworkSlots.md`) audited clean against it. The v2 formula epoch's parser side is
+detail, and the close-outs are in `Docs/DecisionLog.md`. Framework conformance is under reframe
+(2026-08-08): the owner is moving the framework's closed-catalog consumer model toward a selective one
+with the framework Agent, so the COD-102 conformance discipline is paused and the doc-elimination
+objective is on hold (see Deferred; why: `Docs/DecisionLog.md`). The v2 formula epoch's parser side is
 complete (catalog: `Docs/Capabilities.md`); the remaining formula work is consumer-side (the UE
 importer).
 
@@ -44,7 +45,12 @@ importer).
 
 ## Deferred
 
-- (none)
+- Framework-conformance enforcement (COD-102) and the "convert + eliminate non-framework docs" objective
+  are paused pending the closed-catalog -> consumer-selective reframe the owner is taking to the framework
+  Agent (why: `Docs/DecisionLog.md`; a sitrep was prepared for that conversation). COD-102 stays as written,
+  unenforced and unrevised, until the reframe lands; its final shape depends on the outcome. The one decided
+  disposition - `Docs/dson-parsing-overview.md` convert+delete - is in the Backlog and is not blocked by this.
+  [2026-08-08]
 
 ## Known issues
 

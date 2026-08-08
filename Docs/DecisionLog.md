@@ -5,6 +5,31 @@ notable rejects. Cold/on-demand (off the hot-path budget) - it absorbs history s
 rules docs stay tight. Newest at top. When it crosses the doc ceiling, rotate as a dated
 append-only log (see `Docs/DocRules.md`, "Cold-doc rotation, in detail").
 
+## 2026-08-08 - Reframe framework consumption: closed-catalog -> consumer-selective (COD-102 paused)
+
+**What.** Named the framework's closed-catalog consumer model - materialize the full slot set, record every
+skipped slot or project-local doc as an argued deviation - as the root cause behind repeated Director misreads
+of the "convert + eliminate all non-framework docs" objective. Decision: the owner takes a reframe to the
+LLMfrmw framework Agent to make consumer interaction selective (pick the cores/skeletons/modules you need at
+adoption and as the project evolves; non-selection is normal, not a deviation). Pending that outcome, COD-102
+is left unchanged but paused - not enforced, not revised - and the doc-elimination objective is on hold
+(`Docs/Roadmap.md` Current phase + Deferred). A situation report for the framework Agent was prepared; the
+owner carries it. Doc-only; no source, ABI, or version change.
+
+**Why.** Two compounding failures, evidenced against the master read-only at LLMfrmw v0.2.0 (229775d): (1) the
+slot universe is not visible in-repo (`Docs/FrameworkSlots.md` records only FILLED slots), so "is this doc
+part of the framework?" is uncomputable and agents guess or audit - a careful read over-counted the
+non-framework docs 6-to-1 (five of six were skeleton slots) and two Directors diverged; (2) the closed default
+frames legitimate non-use as a defect, so COD-102 encoded the framework's permissive "conform, argue
+divergence" default rather than the owner's inverted intent. A selective model with a small in-repo selection
+manifest restores computable classification without vendoring the whole catalog (owner declined vendoring it).
+
+**Adjudicated.** `dson-parsing-overview.md` is the only genuine non-slot; the kit maps it -> `Architecture.md`
+yet its own migration-steps prose says it "stays project-owned" - a master contradiction flagged in the
+sitrep. Its convert+delete is booked in the Backlog, independent of the reframe. COD-102 rewrite deferred: its
+final shape (conform-to-selection vs conform-to-closed-catalog) depends on the reframe outcome, so rewriting
+now would repeat the churn.
+
 ## 2026-08-08 - Pin the C++ standard explicitly (CPP-1); COD-102 audit Gap 1 closed
 
 **What.** Added a repo-root `Directory.Build.props` pinning `<LanguageStandard>stdcpp14</LanguageStandard>`

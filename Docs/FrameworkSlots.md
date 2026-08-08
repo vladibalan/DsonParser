@@ -31,6 +31,10 @@ Governed by COD-102 (`Docs/Rulebook.md`): conformance is the default; every entr
 deliberate, argued departure from the stock procedure - the concrete constraint and its trade-off -
 never a least-effort default.
 
+Note (2026-08-08): the closed-catalog conformance model these deviations answer to is under owner reframe
+toward consumer-selective interaction, so COD-102 is currently paused; status + why in `Docs/Roadmap.md`
+and `Docs/DecisionLog.md`.
+
 - cpp `Patterns.md` core NOT vendored: filename collision with the text-layer core (both target
   `Docs/Patterns.md`). Deferred to the next sync; fit gap carried to the master. Its conventions
   (orientation headers, vendoring fence, `VENDORED.txt` seal) are applied in-tree regardless.
