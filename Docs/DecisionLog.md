@@ -24,6 +24,18 @@ near-verbatim (rule crosswalk: the master's `Docs/Catalog/DsonTest2Kit.md`). One
 home beats hand-maintained per-repo copies; a pinned version sync replaces doc drift. Conducted per
 the master's `layers/MigrationGuide.md` with the user holding every checkpoint.
 
+**Closed same-day.** Verification gate all-PASS: Check-DocForm 29 docs, 0 hard-cap failures, 5
+adjudicated warns (the legacy-doc set, cleared by the ASCII-sweep backlog item); Check-SourceGeometry
+0 COD-6 nesting failures, 34 soft COD-5 warns booked as a Roadmap known issue; Check-ReleaseTag
+consistent at 2.22.0; full `/t:Rebuild` Release|x64 clean with zero warnings; both hooks verified
+live in-session (doc-guard caught a real AGENTS.md budget breach; review-guard emits the checklist +
+extraRules). Landed as one doc/config commit to `main` (ce12c57). The migration report went to the
+user to carry the fit gaps upstream (Patterns.md core name collision, MATERIALIZE case-collision
+ordering hazard, ReleaseTag `-Audit` loss, DocForm `excludeDirs` gap, cpp MATERIALIZE step-2/3
+wording, the vacuous-sourceMarkers quirk). The census-noise `memory-maintenance/` scratch dir
+(closed 2026-07-12 memory-migration residue) was relocated out of the tree to the user's config area
+(checkpoint A2), clearing 9 of the 14 initial doc-census warns.
+
 **Rejected / adjudicated.** Archive-over-delete for superseded docs (git history suffices;
 deleted). Lowercase `docs/`/`tools/` landing paths (user ruling: framework conventions win - dirs
 renamed instead). Include-guard hook (off - plain C++, `owningHeaders` empty, adds nothing here).

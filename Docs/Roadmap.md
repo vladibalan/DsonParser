@@ -8,10 +8,10 @@ current **in the same change that moves the status**.
 ## Current phase
 
 The parser is stable at 2.22.0 (flat C ABI; consumer: the DsonToUnreal UE 5.4.4 plugin).
-2026-08-08: the repo migrated onto the LLMfrmw text+code+cpp framework stack (v0.2.0) - governance
-now runs on the vendored cores (`Docs/Rulebook.md`, `Docs/AgentWorkflow.md`, `Docs/Versioning.md`);
-the migration entry is in `Docs/DecisionLog.md`. The v2 formula epoch continues per
-`DsonParser_Roadmap.md`.
+2026-08-08: the repo migrated onto the LLMfrmw text+code+cpp framework stack (v0.2.0) - migration
+complete, verification gate green; governance now runs on the vendored cores (`Docs/Rulebook.md`,
+`Docs/AgentWorkflow.md`, `Docs/Versioning.md`); the migration entry (and its close-out) is in
+`Docs/DecisionLog.md`. The v2 formula epoch continues per `DsonParser_Roadmap.md`.
 
 ## Done
 
