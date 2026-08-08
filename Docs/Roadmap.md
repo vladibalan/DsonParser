@@ -1,18 +1,19 @@
 # DsonParser - Roadmap
 
 The single source of truth for **open status**: the current phase, what is deferred, and the
-backlog. Status only - the *why* lives in `Docs/DecisionLog.md`, durable facts in
-`Docs/Reference.md`, capability detail in `Docs/Capabilities.md`, per-release history in `CHANGELOG.md`. Keep it
-current **in the same change that moves the status**.
+backlog. Status only - the *why* lives in `Docs/DecisionLog.md`, durable facts in `Docs/Reference.md`,
+capability detail in `Docs/Capabilities.md`, per-release history in `CHANGELOG.md`. Keep it current
+**in the same change that moves the status**.
 
 ## Current phase
 
-The parser is stable at 2.22.0 (flat C ABI; consumer: the DsonToUnreal UE 5.4.4 plugin).
-2026-08-08: the repo migrated onto the LLMfrmw text+code+cpp framework stack (v0.2.0) - migration
-complete, verification gate green; governance now runs on the vendored cores (`Docs/Rulebook.md`,
-`Docs/AgentWorkflow.md`, `Docs/Versioning.md`); the migration entry (and its close-out) is in
-`Docs/DecisionLog.md`. The v2 formula epoch's parser side is complete (catalog:
-`Docs/Capabilities.md`); the remaining formula work is consumer-side (the UE importer).
+The parser is stable at 2.22.0 (flat C ABI; consumer: the DsonToUnreal UE 5.4.4 plugin). The
+2026-08-08 LLMfrmw framework migration (v0.2.0) and its follow-on doc settling are complete (see
+Done below); governance runs on the vendored cores (`Docs/Rulebook.md`, `Docs/AgentWorkflow.md`,
+`Docs/Versioning.md`), the doc tiers are settled with `Docs/Capabilities.md` owning capability
+detail, and the close-outs are in `Docs/DecisionLog.md`. The v2 formula epoch's parser side is
+complete (catalog: `Docs/Capabilities.md`); the remaining formula work is consumer-side (the UE
+importer).
 
 ## Done
 
