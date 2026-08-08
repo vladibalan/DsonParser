@@ -256,3 +256,16 @@ formula evaluation, override resolution, and instance-onto-definition collapsing
 decisions computed from the faithful inputs. Sole sanctioned exception: intra-material
 `image_url -> texture_path` resolution against `image_library`. Any new cross-section merge is a
 semantic shift requiring explicit user sign-off.
+
+## COD-102 - Conform to the vendored framework; argue every divergence
+
+This repo runs on the vendored LLMfrmw stack (pin record: `Docs/Reference.md` "Framework pin record");
+conformance is the default, not a preference. Adopt the stock cores, doc tiers, tooling, and
+procedures as they ship, and take core updates by re-syncing from the pin - never by hand-forking a
+vendored core. A divergence - a skipped slot, a local procedure, a non-stock tool or layout - is
+allowed only when it is strongly argued: a justification naming the concrete constraint and its
+trade-off, recorded as a deviation in `Docs/FrameworkSlots.md`, with a `Docs/DecisionLog.md` entry
+where the call is non-obvious, and carried to the master as a fit gap where it exposes a framework
+limitation rather than silently forked. "It was the least-effort path", "easier", or "the framework
+made it awkward" is never the justification; an unargued or convenience-only deviation is a defect
+this rule fails. Conformity and discipline are the standard.

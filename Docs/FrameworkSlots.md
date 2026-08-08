@@ -27,6 +27,10 @@ procedure. Pin record: `Docs/Reference.md` "Framework pin record". Cold/on-deman
 
 ## Local deviations from the stock MATERIALIZE
 
+Governed by COD-102 (`Docs/Rulebook.md`): conformance is the default; every entry below is a
+deliberate, argued departure from the stock procedure - the concrete constraint and its trade-off -
+never a least-effort default.
+
 - cpp `Patterns.md` core NOT vendored: filename collision with the text-layer core (both target
   `Docs/Patterns.md`). Deferred to the next sync; fit gap carried to the master. Its conventions
   (orientation headers, vendoring fence, `VENDORED.txt` seal) are applied in-tree regardless.

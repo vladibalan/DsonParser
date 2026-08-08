@@ -5,6 +5,33 @@ notable rejects. Cold/on-demand (off the hot-path budget) - it absorbs history s
 rules docs stay tight. Newest at top. When it crosses the doc ceiling, rotate as a dated
 append-only log (see `Docs/DocRules.md`, "Cold-doc rotation, in detail").
 
+## 2026-08-08 - Standing framework-conformance rule (COD-102)
+
+**What.** Added project-local rule **COD-102** (`Docs/Rulebook.md`, COD-100+ section): conformance to
+the vendored LLMfrmw stack is the default, and a divergence from the stock cores, doc tiers, tooling,
+or procedures is allowed only when strongly argued - a named constraint plus its trade-off - recorded
+as a `Docs/FrameworkSlots.md` deviation (with a DecisionLog entry where non-obvious) and carried to
+the master as a fit gap where it exposes a framework limitation, never a least-effort default. Bound
+the existing deviation ledger to the rule with a governing line under `Docs/FrameworkSlots.md` "Local
+deviations from the stock MATERIALIZE". Doc-only; no source, ABI, or version change.
+
+**Why.** The LLMfrmw migration (below, same date) landed the structure; the owner elevated *staying*
+on it to a standing discipline - conformity over convenience, so no future divergence is taken merely
+because it was the least-effort path. A rule with teeth beats a buried note: the Rulebook is the tier
+the Director's review gate and design-time self-audit already check.
+
+**Placement (adjudicated).** Owner's ruling among three doctrine-defensible homes. Chosen: Rulebook
+COD-102 - the enforceable project-local tier (COD-100/101 precedent), reached from AGENTS.md's
+before-source-edit route, with `Docs/FrameworkSlots.md` pointing to it. Rejected: Principles.md P5
+(chartered product-purpose-only, and it delegates "how you work" to the rules cores - a process rule
+there breaks its tier); FrameworkSlots.md as the home (topically precise but a cold/on-demand doc -
+made the pointer, not the home, so the rule lands in the checked tier).
+
+**Follow-up (flagged, not booked).** COD-102 now governs the pre-existing FrameworkSlots deviations;
+some are principled (include-guard off = plain C++; testing dormant = widen-JIT), others are deferrals
+(`Patterns.md` core collision, `ReleaseTag -Audit` loss) that must now clear the strengthened bar or
+resolve. An audit of the ledger against COD-102 is available on the owner's call.
+
 ## 2026-08-08 - Retire DsonParser_Roadmap.md; capability catalog -> Docs/Capabilities.md
 
 **What.** Dissolved the bespoke `DsonParser_Roadmap.md` (871 ln) into the standard doc tiers and
