@@ -54,3 +54,5 @@
 - [Ignore Parser governance as DsonAnimate Director](dsonanimate-ignore-parser-governance.md) — Seat governs (AgentWorkflow); Director commits (doc→main, source→task branch+squash), user pushes.
 - [Parser refactor behavioral diff gate](parser-refactor-behavioral-diff-gate.md) — Verify behavior-preserving refactors via before/after harness-stdout diff + P/Invoke probe (separate processes; DLL-pin LNK1104); harness gaps: polyline_list=0 coverage, Genesis3.duf=0 geoms.
 - [memory-maintenance relocated](memory-maintenance-relocated.md) — Moved to D:/ClaudeConfig/memory-maintenance/ 2026-08-08; salvage file pending plugin-seat adoption.
+- [LLMfrmw consumer-interaction reframe](llmfrmw-consumer-interaction-reframe.md) — Closed->selective reframe in flight with framework Agent; COD-102 + doc-elimination paused until it lands.
+- [LLMfrmw closed slot catalog](llmfrmw-closed-slot-catalog.md) — Framework docs = cores+skeletons per layer; only dson-parsing-overview.md is a genuine non-slot in DsonTest2.
