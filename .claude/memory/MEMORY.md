@@ -1,0 +1,56 @@
+- [Build & read preferences](build-and-read-prefs.md) — Implementer builds; Director re-runs (parser)/defers (plugins); confirm big reads.
+- [Reconcile FR framing against codebase](reconcile-fr-framing-against-codebase.md) — An FR's "how" isn't the spec; reconcile vs architecture; surface the fork early.
+- [Value types are scaffolding](value-types-are-scaffolding.md) — Unused Dson value types are intentional scaffolding; don't remove.
+- [Testing/verification discipline](no-asset-specific-test-oracles.md) — No automated tests; verify via user bake + tagged logs; no per-asset oracles.
+- [Value wrappers in ternary](value-wrappers-in-ternary.md) — Dson::Int needs static_cast in ?: vs a primitive (C2445).
+- [UE consumer / C++14 constraint](ue-consumer-cpp14-constraint.md) — Consumed by UE 5.4.4 via C ABI; stay UE-agnostic; C++14.
+- [Agnostic plugin architecture](agnostic-plugin-architecture.md) — Parser→Importer→Designer; Importer faithful/consumer-blind; Designer pure-UE.
+- [LIE layered-image schema](lie-layered-image-schema.md) — DAZ map always-array (LIE=≥2); per-layer url+label+compositing on Image::layers.
+- [No silent fails](no-silent-fails.md) — Surface blockers/gaps/uncertainty/partial results explicitly.
+- [Read docs before assuming](read-docs-before-assuming.md) — Read project Docs/*.md before proposing or asking.
+- [UE engine source location](ue-engine-source-location.md) — UE source build at D:/UE_5.4; read on disk to confirm UE-API behavior.
+- [Claude Desktop session rooting](claude-desktop-session-rooting.md) — Ctrl+N roots each session at its own repo; per-repo memory stores (migrated 2026-07-12); universals → user-global CLAUDE.md.
+- [Decisions grounded in principles](decisions-grounded-in-principles.md) — Design forks decided by documented principles + quantified trade-offs.
+- [Ask for files before diagnostics](ask-for-files-before-diagnostics.md) — Ask user to upload needed files before build/diagnostic workarounds.
+- [DSON gzip decompress blocked](dson-gzip-decompress-blocked.md) — Bitdefender blocks gzip-decompress of .dsf/.duf; check magic; ask for decompressed.
+- [Handoff-system port guide](handoff-system-port-guide.md) — handoff-system-port-guide.md = portable workflow spec; sync w/ agent-workflow.md.
+- [DAZ content library root](daz-content-library-root.md) — DAZ files under D:/Daz_content/ (plain JSON); diagnostics in DsonHost.log.
+- [DSON animations-keyed material overrides](dson-animations-keyed-material-overrides.md) — Material init data in scene.animations key 0; GetSceneAnimation* (1.2.0).
+- [Parser faithful, no cross-section merge](parser-faithful-no-cross-section-merge.md) — Never overwrite one section from another; additive-MINOR accessors.
+- [Compliance run definition](compliance-run-definition.md) — Per-seat rule audit: parser COD/CPP rulebook+P1-P4 (since 2026-08-08); DsonToUnreal R1–R12+P; Artisan R1–R13+P.
+- [Glob spaced-path quirk](glob-spaced-path-plugin.md) — Glob/shell unreliable in spaced paths; PowerShell + absolute paths; Move-Item.
+- [Repo Tools/ dir + git-add verify](repo-tools-dir-and-git-add-verify.md) — Scripts in Tools/ (canonical case since 2026-08-08); core.ignorecase drops wrong-case adds; verify git show --stat.
+- [PS 5.1 hooks must be ASCII](ps51-hooks-ascii-only.md) — BOM-less UTF-8 .ps1 decodes as 1252; keep .claude hooks pure ASCII.
+- [Claude hook self-modification block](claude-hook-self-modification-block.md) — Editing own hooks denied; get explicit user auth, never bypass.
+- [PS 5.1 git commit-message quotes](ps51-git-commit-message-quotes.md) — Double-quotes break commit -m; -F - adds BOM; reword quote-free or -F ASCII.
+- [Accessor fan-out tripwire](accessor-fanout-tripwire.md) — Prompt-only, never script it; criteria live in the prompt; run all 5 metrics.
+- [Director runtime-verify via user import](director-runtime-verify-via-user-import.md) — Director can't run DAZ imports headlessly; verify = user's editor import.
+- [Director parser-verify via P/Invoke](director-parser-verify-via-pinvoke.md) — Parser accessors ARE runtime-verifiable headlessly: PowerShell P/Invoke harness vs on-disk proof asset.
+- [Handoff design read via file](handoff-design-read-via-file.md) — All Director-Implementer exchanges via files incl. design read; never hand-relay.
+- [DSON formula data in external DSFs](dson-formula-data-external-dsfs.md) — Control dials/ERC in external DSFs via scene.modifiers walk; JCMs by discovery.
+- [Gate process changes on recurrence](gate-process-changes-on-recurrence.md) — Institutionalize workflow fixes only after recurrence; default watch-and-wait.
+- [Ground-truth before fixing](ground-truth-before-fixing.md) — Get ground-truth data before writing a fix; no hypothesis-fixes.
+- [Perf answers need log evidence](perf-answers-need-log-evidence.md) — Read log timestamps (or code) BEFORE answering perf/behavior questions.
+- [DSON catalog-metadata fields](dson-catalog-metadata-fields.md) — content_type=presentation.type; label=presentation.label; geograft=vertex_pairs.
+- [DSON transform-channel limits](dson-transform-channel-limits.md) — All 3 transforms author min/max 100%; clamped never false; scale = placeholder.
+- [DSON scene-modifier parent is geometry id](dson-scene-modifier-parent-is-geometry-id.md) — scene.modifiers[].parent = a node's GEOMETRY id, not node id; map {geom→node}.
+- [DsonParser consumer dynamic-load only](dsonparser-consumer-dynamic-load-only.md) — Plugin loads DLL via GetProcAddress only; DsonLoadTest verifies load model.
+- [Parser changes route through user](parser-changes-route-through-user.md) — Route parser changes as what/why through the user; never the C-ABI how.
+- [Upstream status stale, confirm with user](upstream-status-stale-confirm-with-user.md) — Upstream status fast-stale from Artisan seat; confirm; conflicting notes=stop.
+- [R7 revision pending](r7-revision-pending.md) — R7 (permissive/never-abort) slated for revision; layered-import HARD FAIL sanctioned.
+- [Scope-check before escalating forks](scope-check-before-escalating-forks.md) — Confirm the in-scope path doesn't already deliver it before escalating.
+- [Verify the actual failure mode](verify-the-actual-failure-mode.md) — Evidence must exercise the actual failure mode, not a proxy metric.
+- [Trace cited reference before de-risking](trace-cited-reference-before-derisking.md) — Trace X's logic before accepting "mirrors proven X"; gesturing caused regressions.
+- [Parser opaque; vendor only via procedure](parser-opaque-vendor-only-via-procedure.md) — Don't read/run parser repo; vendor via Tools/Sync-Parser.ps1; verify via build.
+- [Parser CHANGELOG authority](parser-changelog-authority.md) — Vendored CHANGELOG = C-ABI authority; read before FR-ing.
+- [Zeroed gzip trailer (DAZ packs)](dson-zeroed-gzip-trailer.md) — All-zero CRC32+ISIZE trailer caused drop; tolerated since 2.2.3/3.3.4.
+- [Release tagging is a Director step](release-tagging-director-step.md) — vX.Y.Z tag = Director's job at squash-merge; RECURRING miss; Check-ReleaseTag.ps1.
+- [User decides when to bump the version](user-decides-version-bumps.md) — Director never initiates a bump; waits for user's explicit call before handing off surface-touching work.
+- [Stability-first plans before handoff](stability-first-plans-before-handoff.md) — Handoffs gated on vetted stability-first plan; convince first; Principles P6.
+- [Runtime-verify risky slices before merge](runtime-verify-risky-slices-before-merge.md) — Risky UE slices = user runtime-verifies on branch before merge; lowest-risk first.
+- [Concurrent-run git checks (shared trees)](implementer-concurrent-run-git-check.md) — Branch gone/clean = parallel run already merged (git show first); re-check at commit.
+- [DsonTest2 harness hang on exit](feedback-harness-hang-on-exit.md) — Harness blocks on cin.get(); piped EOF exits 255 (not a failure); read PASS/FAIL.
+- [Editor checks are the user's job](editor-checks-are-users-job.md) — Never assign Editor/GUI verification in a task-file; user does it personally.
+- [Ignore Parser governance as DsonAnimate Director](dsonanimate-ignore-parser-governance.md) — Seat governs (AgentWorkflow); Director commits (doc→main, source→task branch+squash), user pushes.
+- [Parser refactor behavioral diff gate](parser-refactor-behavioral-diff-gate.md) — Verify behavior-preserving refactors via before/after harness-stdout diff + P/Invoke probe (separate processes; DLL-pin LNK1104); harness gaps: polyline_list=0 coverage, Genesis3.duf=0 geoms.
+- [memory-maintenance relocated](memory-maintenance-relocated.md) — Moved to D:/ClaudeConfig/memory-maintenance/ 2026-08-08; salvage file pending plugin-seat adoption.
