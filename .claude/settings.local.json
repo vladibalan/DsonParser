@@ -1,4 +1,5 @@
 {
+  "autoMemoryDirectory": "E:/Work/Code/DsonTest2/.claude/memory",
   "permissions": {
     "allow": [
       "Bash(awk -F/ '{print $1}')",

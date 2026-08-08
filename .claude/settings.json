@@ -31,6 +31,18 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/memory-autocommit.ps1\"",
+            "timeout": 30,
+            "statusMessage": "memory-autocommit: committing auto-memory store..."
+          }
+        ]
+      }
     ]
   }
 }
