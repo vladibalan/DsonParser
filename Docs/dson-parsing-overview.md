@@ -13,14 +13,14 @@ to start by reading the full implementation files.
 | `DsonParser/DsonTypes.h` | Typed DSON model: asset metadata, nodes, geometry, materials, skin bindings, modifiers, images, UV sets, scene instances, and root document. |
 | `DsonParser/DsonTypes.cpp` | Main parser implementation. Converts RapidJSON objects into the `Dson::*` model and performs limited post-parse image reference linkage. |
 | `DsonParser/DsonHelpers.h/.cpp` | Safe RapidJSON helper API (`JsonHelper`) used by the parser. Declarations in `.h`, implementations in `.cpp`. |
-| `DsonParser/DsonInflate.h/.cpp` | Internal, dependency-free gzip/DEFLATE support used by the loader before JSON parsing. Verifies gzip CRC32 and ISIZE (a blank all-zero trailer is accepted on a clean inflate — DAZ-compat). |
+| `DsonParser/DsonInflate.h/.cpp` | Internal, dependency-free gzip/DEFLATE support used by the loader before JSON parsing. Verifies gzip CRC32 and ISIZE (a blank all-zero trailer is accepted on a clean inflate - DAZ-compat). |
 | `DsonParser/DsonParserAPI.h/.cpp` | Flat `extern "C"` API for DLL consumers. Owns opaque handles, parser-owned string returns, bounds-checked accessors, and lazy query caches. |
 | `DsonParser/DsonParserVersion.h` | Canonical library version macros (`DSONPARSER_VERSION_*`); published with and included by `DsonParserAPI.h`. Single source of truth for `DsonParser_GetVersion()` and the `CHANGELOG.md` baseline. |
 | `DsonParser_Roadmap.md` | Current capability summary, audit history, known v1 limitations, and planned v2 formula parsing work. |
 
 The published surface is `DsonParserAPI.h` (the flat C ABI). The C++ model
 headers (`DsonDataTypes.h`, `DsonTypes.h`, `DsonHelpers.h`) are internal
-implementation detail — consumers never include them, and the RapidJSON they
+implementation detail - consumers never include them, and the RapidJSON they
 reference never reaches a consumer.
 
 ## Parsing Pipeline
@@ -46,7 +46,7 @@ fills one section's data from another (e.g. it does not apply `scene.animations`
 onto `scene.materials`, even when a channel is empty). Merging overrides,
 evaluating formulas, and collapsing instances onto definitions are left to the
 consumer, which reads the faithful sections and decides. The only resolution it
-performs is intra-material image linkage (`image_url → texture_path`). This is
+performs is intra-material image linkage (`image_url -> texture_path`). This is
 rule COD-101 in [`Rulebook.md`](Rulebook.md).
 
 ### Compressed Input (gzip)
@@ -59,7 +59,7 @@ unchanged. The gzip trailer CRC32 and ISIZE are enforced when present, so corrup
 or mis-decoded data fails with a gzip-specific error rather than surfacing later
 as a misleading JSON parse error. One DAZ-compatibility exception: a **blank
 (all-zero) trailer** is accepted when the DEFLATE stream itself inflated cleanly
-— a real shipped DAZ product writes its `.dsf` members with a zeroed trailer and
+- a real shipped DAZ product writes its `.dsf` members with a zeroed trailer and
 DAZ Studio loads them (it does not validate the trailer), so the loader trusts the
 clean inflate (the inflater only succeeds on a final-block DEFLATE termination)
 rather than dropping the asset. Genuine truncation or corruption still fails inside
@@ -94,7 +94,7 @@ current loader scope.
   Post-Load Addons section below), the `scene.extra` `scene_post_load_script`
   references (DAZ Scripts the static import does not execute; see the Scene
   Post-Load Scripts section below), and the `scene.animations` keyframe channels
-  (see the Scene Animations section below — stored faithfully, never applied onto
+  (see the Scene Animations section below - stored faithfully, never applied onto
   `scene.materials`). Presentation and current camera are recognized but not stored
   as typed fields.
 
@@ -102,63 +102,63 @@ current loader scope.
 : Parsed into library `Node` definitions. Captures id, name, label, type,
   parent, URL, translation, rotation, scale, general scale, center/end points,
   orientation, rotation order, and the item's `presentation` content type +
-  label (`DsonDocument_GetNodePresentationType`/`…Label`; see Asset Catalog
+  label (`DsonDocument_GetNodePresentationType`/`...Label`; see Asset Catalog
   Metadata below).
 
   A node's `translation[]` / `rotation[]` / `scale[]` are additionally retained as
-  **authored transform channels** — per channel the verbatim `id`, `label`, `min`,
-  `max`, `clamped`, and a field-presence mask — exposed by
+  **authored transform channels** - per channel the verbatim `id`, `label`, `min`,
+  `max`, `clamped`, and a field-presence mask - exposed by
   `DsonDocument_GetNode{Translation,Rotation,Scale}Channel{Count,Id,Label,Min,Max,Clamped,FieldPresenceMask}`
   (since 2.18.0). These sit beside the existing
   `GetNode{Translation,Rotation,Scale}{X,Y,Z}` value accessors, which are unchanged
-  and remain the only read of a channel's *value* — the channel family deliberately
+  and remain the only read of a channel's *value* - the channel family deliberately
   does not re-expose it. **Presence is the contract:** DAZ authors `clamped` only
-  sometimes and never as `false` (Genesis 9 base: 800 authored `true`, 451 absent —
+  sometimes and never as `false` (Genesis 9 base: 800 authored `true`, 451 absent -
   and scale never authors it at all), while `min`/`max` are always authored but
   legitimately `0..0` on a locked joint. So `Min`/`Max`/`Clamped` are meaningful only
-  when the matching `DSONPARSER_CHANNEL_FIELD_{MIN,MAX,CLAMPED}` bit is set — `0.0`
+  when the matching `DSONPARSER_CHANNEL_FIELD_{MIN,MAX,CLAMPED}` bit is set - `0.0`
   and `false` are each both the invalid sentinel *and* a legitimate reading; query
   the mask first. Faithful passthrough (R6.4): channels stay in source order, and
-  nothing is clamped, resolved onto engine axes, or filtered — a locked or unbounded
+  nothing is clamped, resolved onto engine axes, or filtered - a locked or unbounded
   channel is reported as authored, because classifying a range as a "real" constraint
   is the consumer's judgment. Read from `node_library`: the shared `Node` parse
   co-populates `scene.nodes` instances, but no scene-family accessor is published. A
-  plain `[x,y,z]` numeric transform array authors no channels (`Count` → 0). Note the
+  plain `[x,y,z]` numeric transform array authors no channels (`Count` -> 0). Note the
   per-channel keys (`min`/`max`/`clamped`/`label`, and the unmodeled
   `name`/`type`/`step_size`/`visible`) live inside array elements, which
-  `TrackUnknownKeys` does not walk — they never appear in the unknown-key trail, so a
+  `TrackUnknownKeys` does not walk - they never appear in the unknown-key trail, so a
   clean audit report says nothing about them either way.
 
-  For a **rigid-follow** node — a DAZ rigid-follow gem/attachment
+  For a **rigid-follow** node - a DAZ rigid-follow gem/attachment
   whose `extra[]` carries a `studio/node/rigid_follow` entry with an inline
   `rigidity_group` (a fixed reference-vertex patch on a followed mesh it rides
-  rigidly) — the group's raw reference-vertex indices, `rotation_mode`, and
+  rigidly) - the group's raw reference-vertex indices, `rotation_mode`, and
   per-axis `scale_modes` are exposed via `DsonDocument_GetNodeHasRigidFollow` /
-  `…GetNodeRigidFollowRotationMode` / `…GetNodeRigidFollowScaleMode{Count,}` /
-  `…GetNodeRigidFollowReferenceVertex{Count,}`. Read from the **`node_library`**
-  definition — the `scene.nodes` instance carries only a bare
-  `studio/node/rigid_follow` marker with no group — and gated on that marker
+  `...GetNodeRigidFollowRotationMode` / `...GetNodeRigidFollowScaleMode{Count,}` /
+  `...GetNodeRigidFollowReferenceVertex{Count,}`. Read from the **`node_library`**
+  definition - the `scene.nodes` instance carries only a bare
+  `studio/node/rigid_follow` marker with no group - and gated on that marker
   (twin of the modifier push read below): faithful/unevaluated (R6.4), raw
   passthrough, no follow reconstruction or cross-section merge. `HasRigidFollow`
   is the presence discriminator (an empty group still reports `true`, so absence
-  stays distinguishable from an empty vertex list); bound-check the `…Count`
-  accessors, and note `…ReferenceVertex` returns `-1` on invalid because vertex
+  stays distinguishable from an empty vertex list); bound-check the `...Count`
+  accessors, and note `...ReferenceVertex` returns `-1` on invalid because vertex
   index 0 is legitimate (mirrors `GetSkinJointWeightVertexIndex`). Since 2.8.0.
 
 `geometry_library`
 : Parsed into `Geometry`. Captures vertex positions, polygon/polylist data
-  (plus, for strand geometry, the sibling `polyline_list` curves — see Polyline
+  (plus, for strand geometry, the sibling `polyline_list` curves - see Polyline
   List below; since 2.20.0), face offsets, polygon groups, material groups,
   vertex/polygon counts,
   default UV-set reference, source-order `material_uvs` assignments from each
-  material-group name to its authored UV-set name, a geograft signal — whether the geometry
-  declares a populated `graft` block (`DsonDocument_GetGeometryIsGraft`) — and,
+  material-group name to its authored UV-set name, a geograft signal - whether the geometry
+  declares a populated `graft` block (`DsonDocument_GetGeometryIsGraft`) - and,
   for a graft, the raw geograft weld correspondence (`vertex_pairs` /
   `hidden_polys` / declared base counts; see Asset Catalog Metadata below), plus
   the complete authored `rigidity` block: sparse vertex weights and source-order
   groups with rotation/scale modes, reference/mask vertices, reference and
   transform-node strings, and the authored transform-bones-for-scale flag, plus
-  the geometry's **subdivision declaration** — the declared `type`, the sibling
+  the geometry's **subdivision declaration** - the declared `type`, the sibling
   `edge_interpolation_mode` / `subd_normal_smoothing_mode` strings, and the
   `extra[]` `studio_geometry_channels` block (see Geometry Subdivision
   Declaration below; since 2.19.0).
@@ -173,42 +173,42 @@ current loader scope.
   dial metadata/value bounds, skin binding payloads, formulas, the item's
   authored parent URL (`DsonDocument_GetModifierParent`),
   `presentation` content type + label + icon
-  (`DsonDocument_GetModifierPresentationType`/`…Label`/`…Icon`), and the
+  (`DsonDocument_GetModifierPresentationType`/`...Label`/`...Icon`), and the
   modifier-level `group`/`region` control tags (`DsonDocument_GetModifierGroup`/
-  `…Region`; see Asset Catalog Metadata below). Formula `output`, `stage`, and
+  `...Region`; see Asset Catalog Metadata below). Formula `output`, `stage`, and
   the source-order RPN `operations` (`op` plus scalar `val`/`url`, or array
   `val_array` for spline_tcb knots) are stored and exposed; the parser does not
   evaluate them or follow their channel references. For a geometry-shell **push
   modifier** (`studio/modifier/push`, the "Mesh Offset" of a Geometry Shell
-  wearable), the push identity and its "Offset Distance" channel value — both
-  nested in `extra[]`, not at the modifier top level — are exposed via
-  `DsonDocument_GetModifierIsPush` / `…GetModifierPushOffset` (the offset prefers
+  wearable), the push identity and its "Offset Distance" channel value - both
+  nested in `extra[]`, not at the modifier top level - are exposed via
+  `DsonDocument_GetModifierIsPush` / `...GetModifierPushOffset` (the offset prefers
   `current_value` over `value`, returned raw in the channel's cm; `0.0` is both the
   sentinel and a legitimate value, so gate on `IsPush`). `GetModifierParent`
   addresses that same raw modifier index and returns the parent URL verbatim, so
   a consumer can match each push to its target geometry by fragment; the parser
   does not resolve or join the reference (R6.4). A modifier's `extra[]` block of
-  `"type":"studio_modifier_channels"` — every wrapped `channel` in source order —
+  `"type":"studio_modifier_channels"` - every wrapped `channel` in source order -
   is exposed by `DsonDocument_GetModifierExtraChannel{Count,Id,Type,Label,Group,
   Value,Min,Max,Clamped,StepSize,FieldPresenceMask,EnumValueCount,EnumValue}`,
   addressed by `(modifierIndex, channelIndex)` on the same raw `modifier_library`
   index space as `GetModifierId` (since 2.21.0). It is the structural sibling of
   the `GetGeometryChannel*` family (it reuses the same wrapper parser and carrier),
-  with **one deliberate divergence**: `…ExtraChannelValue` returns the channel's
-  **effective** value — `current_value`, falling back to `value` only when
-  `current_value` is absent — whereas `GetGeometryChannelValue` returns the raw
+  with **one deliberate divergence**: `...ExtraChannelValue` returns the channel's
+  **effective** value - `current_value`, falling back to `value` only when
+  `current_value` is absent - whereas `GetGeometryChannelValue` returns the raw
   `value`. This is load-bearing for dForce Strand-Based-Hair generation settings
   (the `DZ__SPS_<group>` modifiers), where `PreRender Hairs Per Guide` is authored
   `value:0` / `current_value:24`: returning `value` would read a per-group density
-  of `0` and generate no hair. The shared field-presence mask is **unchanged** — it
+  of `0` and generate no hair. The shared field-presence mask is **unchanged** - it
   still reports only `value`/`min`/`max`/`clamped`/`step_size` presence (there is no
   `current_value` bit), so the 2.19.0 geometry-channel mask stays byte-identical.
   Faithful passthrough (R6.4): blocks are matched on `type` and appended in authored
   order, an enum's `value` is not resolved against `enum_values`, and each wrapper's
   `presentation` and other siblings stay unmodeled. Every channel in the block is
   exposed (the whole simulation channel list, not just the generation params).
-  Sentinels follow the R1 family contract: counts/mask → `0`, strings → `""`,
-  numerics → `0.0`, bool → `false`.
+  Sentinels follow the R1 family contract: counts/mask -> `0`, strings -> `""`,
+  numerics -> `0.0`, bool -> `false`.
 
 `image_library`
 : Parsed into `Image`. Captures id, name, URL, map file/path, and the `map_size` pixel dimensions
@@ -225,12 +225,12 @@ current loader scope.
 : Parsed into `UVSet`. Captures id, name, label, UV coordinates, vertex count,
   and sparse polygon-vertex UV overrides. The authored `name` and `label` (the
   DAZ display name, e.g. `"Base Multi UDIM"`) are exposed verbatim via
-  `DsonDocument_GetUVSetName` / `…GetUVSetLabel`, `""` when absent (since
+  `DsonDocument_GetUVSetName` / `...GetUVSetLabel`, `""` when absent (since
   2.14.0).
 
 ## Asset Catalog Metadata (presentation + geograft)
 
-For building a library catalog of installed assets — and a UI over a figure's controls —
+For building a library catalog of installed assets - and a UI over a figure's controls -
 several declared facts are exposed as faithful single-file reads: the parser reports what the
 opened file declares and does no classification, folder inference, or document-level
 resolution (R6.4); the consumer maps and selects.
@@ -240,50 +240,50 @@ resolution (R6.4); the consumer maps and selects.
   They are exposed **per item**, not as one document-level value, because `presentation`
   legitimately appears on many items and which one represents "the asset" is the consumer's
   call (it already knows `asset_info.type`):
-  - `DsonDocument_GetNodePresentationType` / `…Label` — for figures, clothing, hair, props
+  - `DsonDocument_GetNodePresentationType` / `...Label` - for figures, clothing, hair, props
     (e.g. `"Follower"`, `"Wardrobe/Clothing"`).
-  - `DsonDocument_GetModifierPresentationType` / `…Label` — for shapes/morphs
+  - `DsonDocument_GetModifierPresentationType` / `...Label` - for shapes/morphs
     (e.g. `"Modifier/Shape"`).
-  - A preset (`.duf`) with no `presentation` returns `""` — the consumer treats `""` as
+  - A preset (`.duf`) with no `presentation` returns `""` - the consumer treats `""` as
     "unknown".
-- **Node conform-target base figure** — a follower/attachment `node_library` item's
+- **Node conform-target base figure** - a follower/attachment `node_library` item's
   `presentation` block may also carry a `preferred_base` string naming the base figure
   the item conforms to (e.g. `"/Genesis 8/Female"`). Exposed via
   `DsonDocument_GetNodePresentationPreferredBase` on the same node index space as the
   presentation type/label above. Read from `node_library` only; modifiers do not carry it.
-  Use case: a standalone geograft importer disambiguates which base a graft targets — the
+  Use case: a standalone geograft importer disambiguates which base a graft targets - the
   wearable DUF itself carries no identity (its `conform_target` is the
   `name://@selection:` placeholder) and node/geometry names lie (the official G8F
   genitalia is internally `Genesis3FemaleGenitalia`); the 2.9.0 declared graft base
   vertex/poly counts split G8 Female (16556/16368) from G8 Male (16384/16196) but cannot
   split same-topology bases, so this authored string is the decisive signal. The string
-  names the CONFORM-TARGET body, not the product's styling — a Female-named product may
-  declare a Male target (`Genesis8FemaleGenitalia.dsf` → `"/Genesis 8/Male"`). Raw
+  names the CONFORM-TARGET body, not the product's styling - a Female-named product may
+  declare a Male target (`Genesis8FemaleGenitalia.dsf` -> `"/Genesis 8/Male"`). Raw
   passthrough (R6.4): the parser does no content-path resolution, catalog inference, or
   cross-section merge; `""` when the field is absent or the handle/index is invalid.
   Since 2.15.0.
-- **Geograft signal** — `DsonDocument_GetGeometryIsGraft` returns `true` only when the
+- **Geograft signal** - `DsonDocument_GetGeometryIsGraft` returns `true` only when the
   geometry declares a **populated** `graft` (a non-empty `vertex_pairs`). DAZ writes an
-  empty `"graft": {}` on non-graft meshes (base figures, and Genesis 9 Eyes — which uses
-  `rigidity` — and Eyelashes), so key-presence alone is not the signal; an empty graft
+  empty `"graft": {}` on non-graft meshes (base figures, and Genesis 9 Eyes - which uses
+  `rigidity` - and Eyelashes), so key-presence alone is not the signal; an empty graft
   reports `false`.
-- **Geograft weld correspondence** — when the geometry is a graft, the `graft` block's
+- **Geograft weld correspondence** - when the geometry is a graft, the `graft` block's
   raw weld arrays are exposed per geometry in the file's own DSON index space (the
-  importer owns the DSON→import-point remap and the weld; the parser does neither):
-  - `vertex_pairs` — the boundary weld pairs, **both** members as `[graft-local vertex,
-    base-figure vertex]` — via `DsonDocument_GetGeometryGraftVertexPairCount` /
-    `…GraftVertexPairGraftVertex` / `…GraftVertexPairBaseVertex`.
-  - `hidden_polys` — the base-figure polygon indices the graft hides on weld (empty for
-    an additive graft) — via `…GetGeometryGraftHiddenPolyCount` / `…GraftHiddenPoly`.
-  - the graft block's declared `vertex_count` / `poly_count` — the base-figure resolution
-    the base-side pair indices are expressed in — via `…GetGeometryGraftBaseVertexCount` /
-    `…GraftBasePolyCount`.
+  importer owns the DSON->import-point remap and the weld; the parser does neither):
+  - `vertex_pairs` - the boundary weld pairs, **both** members as `[graft-local vertex,
+    base-figure vertex]` - via `DsonDocument_GetGeometryGraftVertexPairCount` /
+    `...GraftVertexPairGraftVertex` / `...GraftVertexPairBaseVertex`.
+  - `hidden_polys` - the base-figure polygon indices the graft hides on weld (empty for
+    an additive graft) - via `...GetGeometryGraftHiddenPolyCount` / `...GraftHiddenPoly`.
+  - the graft block's declared `vertex_count` / `poly_count` - the base-figure resolution
+    the base-side pair indices are expressed in - via `...GetGeometryGraftBaseVertexCount` /
+    `...GraftBasePolyCount`.
   The **pair count is the parsed `values` length, not DAZ's declared
   `vertex_pairs.count`** (they can disagree: `Genesis9FemaleGenitalia.dsf` declares 84 but
-  ships 82 rows), consistent with how `is_graft` keys off the values size. Count family →
-  `0` on invalid; the vertex/poly accessors → `-1` (index 0 is legitimate). Faithful
+  ships 82 rows), consistent with how `is_graft` keys off the values size. Count family ->
+  `0` on invalid; the vertex/poly accessors -> `-1` (index 0 is legitimate). Faithful
   passthrough (R6.4): no remap, weld, reorder, or cross-section merge. Since 2.9.0.
-- **Geometry rigidity** — `DsonDocument_GetGeometryHasRigidity` distinguishes an
+- **Geometry rigidity** - `DsonDocument_GetGeometryHasRigidity` distinguishes an
   authored `geometry.rigidity` object (including an empty one) from absence. The
   `DsonDocument_GetGeometryRigidityWeight*` family exposes valid parsed sparse
   `[vertexIndex, weight]` rows; the `...RigidityGroup*` family exposes every group
@@ -294,13 +294,13 @@ resolution (R6.4); the consumer maps and selects.
   remap, weld, reference resolution, transform/scale derivation, or evaluation
   (R6.4). Counts return `0` on invalid input; vertex-index accessors return `-1`;
   strings return `""`, weight `0.0`, and bools `false`. Since 2.10.0.
-- **Control inventory (modifier `group`/`region`/icon)** — for a UI over a figure's
+- **Control inventory (modifier `group`/`region`/icon)** - for a UI over a figure's
   sliderable controls. A modifier carries its DAZ Parameter-Settings "Path" as a
   modifier-level `group` (`DsonDocument_GetModifierGroup`, e.g.
   `/Pose Controls/Head/Expressions`) and "Region" as a modifier-level `region`
   (`DsonDocument_GetModifierRegion`, e.g. `Head`); the per-control thumbnail is
   `presentation.icon_large` (`DsonDocument_GetModifierPresentationIcon`, returned
-  **verbatim** — percent-encoded as stored, the consumer resolves/loads it). All three are
+  **verbatim** - percent-encoded as stored, the consumer resolves/loads it). All three are
   raw passthrough, `""` when the field is absent or the index is invalid. Nesting note:
   `group`/`region` are siblings of `channel`/`presentation`; the icon sits inside
   `presentation` next to `type`/`label`.
@@ -319,7 +319,7 @@ The C API keeps these separate:
 - `DsonDocument_GetNode*` reads `node_library`.
 - `DsonDocument_GetSceneNode*` reads `scene.nodes`, including each instance's
   verbatim parent pointer, its fit-parent pointer (a fitted figure root's
-  `conform_target`, the DAZ "Fit To" target URL — `GetSceneNodeConformTarget`,
+  `conform_target`, the DAZ "Fit To" target URL - `GetSceneNodeConformTarget`,
   2.17.0), and local translation/rotation/scale, general scale, rotation order,
   raw `center_point` / `orientation`, and raw `inherits_scale`. `parent` and
   `conform_target` are distinct: a fitted figure root carries `conform_target`
@@ -329,19 +329,19 @@ The C API keeps these separate:
 - `DsonDocument_GetSceneMaterial*` reads `scene.materials`.
 - `DsonDocument_GetSceneModifier*` reads `scene.modifiers`, including each
   entry's authored `parent` URL naming the target node (e.g. `"#Genesis9-1"`
-  or `"#Genesis9_JewelBikini._Bottom"`) — `GetSceneModifierParent` (2.17.0),
+  or `"#Genesis9_JewelBikini._Bottom"`) - `GetSceneModifierParent` (2.17.0),
   the sibling of the 2.11.0 library-family `GetModifierParent`. The channel
   value family exposes both the numeric read (`GetSceneModifierChannelValue`)
   and a **value-kind discriminator + string getter** for channels whose
-  `current_value` (or `value` fallback) is a string — `"type":"file"` DAZ
+  `current_value` (or `value` fallback) is a string - `"type":"file"` DAZ
   script / template loaders. `GetSceneModifierChannelValueKind` returns
-  `0` null/absent · `1` number · `2` bool · `3` string; `-1` invalid — the
+  `0` null/absent - `1` number - `2` bool - `3` string; `-1` invalid - the
   same numeric legend as `GetSceneAnimationValueKind` (a color kind is
   defined but not applicable to modifier channels, which are scalar).
   `GetSceneModifierChannelValueString` returns the raw string when kind
   is `3`; `""` otherwise. The existing double
-  `GetSceneModifierChannelValue` is unchanged — it still returns `0.0` for
-  a string (and `1.0`/`0.0` for a bool per 2.2.1) — so consumers only
+  `GetSceneModifierChannelValue` is unchanged - it still returns `0.0` for
+  a string (and `1.0`/`0.0` for a bool per 2.2.1) - so consumers only
   reading the numeric side see byte-identical behavior; a string still
   trips the `TrackChannelTypeMismatch` audit entry (2.2.2) because the
   numeric read still defaults. Since 2.17.0.
@@ -357,17 +357,17 @@ These are node-indexed, verbatim reads. They do not fall back to or combine with
 external DSF remains importer work (R6.3/R6.4). Since 2.13.0.
 
 A scene node may also author a `studio_node_channels` block in its
-`scene.nodes[i].extra[]` — most importantly the DAZ Scene-pane eye-icon
+`scene.nodes[i].extra[]` - most importantly the DAZ Scene-pane eye-icon
 **`Visible`** bool (`{ "id":"Visible", "type":"bool", "current_value":<bool> }`).
 Every channel in that block is exposed in source order by
 `DsonDocument_GetSceneNodeExtraChannel{Count,Id,Type,Label,Group,Value,Min,Max,Clamped,StepSize,FieldPresenceMask,EnumValueCount,EnumValue}`,
 the node-side sibling of `GetGeometryChannel*` / `GetModifierExtraChannel*` (it
 reuses the shared `ParseGeometryChannel` wrapper and, like the modifier family,
-`…Value` returns the effective `current_value → value` — a bool reads
+`...Value` returns the effective `current_value -> value` - a bool reads
 `1.0`/`0.0`, so read it directly rather than gating on the `VALUE` presence bit).
 Faithful / no cross-section merge (R6.4): the parser does **not** run the
-scene → `node_library` → core `visible` effective-visibility resolution or bake
-the DSON "unauthored ⇒ visible (true)" default — an absent `Visible` channel is
+scene -> `node_library` -> core `visible` effective-visibility resolution or bake
+the DSON "unauthored => visible (true)" default - an absent `Visible` channel is
 simply a Count with no `Visible` id, and applying the default (plus any
 library/core fallback) is the consumer's. Read from `scene.nodes` only; the
 shared node parse also captures the `node_library` side but publishes no library
@@ -414,23 +414,23 @@ merge.
 ### Scene Post-Load Addons
 
 A DAZ "Character Addon Loader" entry in `scene.extra` lists companion conforming
-figures — Genesis 9 eyes, mouth, eyelashes, tear, and a character-dependent
-eyebrows figure — that a `character` preset pulls in but does **not** list in
+figures - Genesis 9 eyes, mouth, eyelashes, tear, and a character-dependent
+eyebrows figure - that a `character` preset pulls in but does **not** list in
 `scene.nodes`. The parser models this manifest
 (`scene.extra[].settings.PostLoadAddons`) on `Scene::post_load_addons` and exposes
 it as a flat, document-ordered list:
 
 - `DsonDocument_GetScenePostLoadAddonCount`
-- `DsonDocument_GetScenePostLoadAddonSlot` — the DAZ slot key, e.g.
+- `DsonDocument_GetScenePostLoadAddonSlot` - the DAZ slot key, e.g.
   `Follower/Attachment/Head/Face/Eyes`.
 - `DsonDocument_GetScenePostLoadAddonAssetName`
-- `DsonDocument_GetScenePostLoadAddonAssetFile` — content-relative loader `.duf`.
-- `DsonDocument_GetScenePostLoadAddonMatPreset` — content-relative MAT preset
+- `DsonDocument_GetScenePostLoadAddonAssetFile` - content-relative loader `.duf`.
+- `DsonDocument_GetScenePostLoadAddonMatPreset` - content-relative MAT preset
   `.duf`, or `""` when the slot has none.
 
 The index flattens slots across every `PostLoadAddons` map in `scene.extra`, in
 document order; a slot is kept only if it has a non-empty `AssetFile`. The parser
-surfaces the referenced paths only — resolving them against content roots and
+surfaces the referenced paths only - resolving them against content roots and
 loading the referenced `.duf` files remains an importer responsibility (consistent
 with the no-recursive-load boundary below). The per-addon `SelectAddon` flag is
 intentionally not exposed: observed uniformly `false` across sample characters, it
@@ -439,7 +439,7 @@ is a UI hint, not a load gate.
 ### Scene Post-Load Scripts
 
 A `scene.extra` entry of DAZ type `scene_post_load_script` names a DAZ Script
-(`.dse`/`.dsa`) that DAZ Studio runs when the asset loads — runtime work a static
+(`.dse`/`.dsa`) that DAZ Studio runs when the asset loads - runtime work a static
 import **cannot** replicate. For example, the Genesis 9 base figure's `scene.extra`
 carries a "Character Addon Loader" `.dse` (which assigns the card-eyebrow textures
 that nothing in the static content references), and a `Card Eyebrows.duf` preset
@@ -447,20 +447,20 @@ carries a "Remove Duplicate Eyebrows" cleanup `.dse`. The parser stores each suc
 reference on `Scene::post_load_scripts` (`ScenePostLoadScript`: `type` / `name` /
 `script`) and exposes it as a flat, document-ordered list:
 
-- `DsonDocument_GetScenePostLoadScriptCount` — `0` on invalid handle / none.
-- `DsonDocument_GetScenePostLoadScriptName` — the entry `name`.
-- `DsonDocument_GetScenePostLoadScriptType` — the entry `type` (e.g.
+- `DsonDocument_GetScenePostLoadScriptCount` - `0` on invalid handle / none.
+- `DsonDocument_GetScenePostLoadScriptName` - the entry `name`.
+- `DsonDocument_GetScenePostLoadScriptType` - the entry `type` (e.g.
   `scene_post_load_script`).
-- `DsonDocument_GetScenePostLoadScriptFile` — the content-relative `.dse`/`.dsa`
+- `DsonDocument_GetScenePostLoadScriptFile` - the content-relative `.dse`/`.dsa`
   path; `""` when the entry names no script.
 
 The index covers **every** `scene.extra` entry that carries a `script` string, in
-document order — the gate is the presence of the `script` reference, not the `type`
+document order - the gate is the presence of the `script` reference, not the `type`
 literal, and `type` is surfaced verbatim so a consumer can narrow to
 `scene_post_load_script` itself. This is faithful passthrough only: the parser
 neither resolves, loads, nor **executes** the script (consistent with the
 no-recursive-load boundary and R6.4), so the consumer reads the reference and
-decides — typically warning that the script's runtime effects are not captured by
+decides - typically warning that the script's runtime effects are not captured by
 the static import. An entry that carries both a `script` and a `PostLoadAddons`
 manifest (the Genesis 9 base does) appears in **both** this list and the Post-Load
 Addons list above; the two are modeled independently.
@@ -472,35 +472,35 @@ often declare `scene.materials` channels as bare `{id,type}` placeholders and pa
 the real channel values and `image_file` paths in `scene.animations` as `{url, keys}`
 keyframes, where **key 0 is initialization data** (not runtime animation). An
 animated `preset_pose` uses the same shape to carry a real multi-frame animation on
-its bone / dial channels — the two cases are distinguished by per-channel key count,
+its bone / dial channels - the two cases are distinguished by per-channel key count,
 not by `asset_info.type` (an animated pose preset is still `"preset_pose"`). The
-parser stores each entry faithfully on `Scene::animations` — the verbatim `url`
+parser stores each entry faithfully on `Scene::animations` - the verbatim `url`
 property pointer, the first key's typed value (the 1.2.0 initialization-data
 surface), and, since 2.16.0, every authored key's time plus the numeric value at
-DSON-native double precision — and exposes it:
+DSON-native double precision - and exposes it:
 
 - `DsonDocument_GetSceneAnimationCount`
-- `DsonDocument_GetSceneAnimationUrl` — the raw DSON pointer, e.g.
+- `DsonDocument_GetSceneAnimationUrl` - the raw DSON pointer, e.g.
   `Genesis9Mouth#materials/Mouth:?diffuse/image_file`.
-- `DsonDocument_GetSceneAnimationValueKind` — first-key value kind:
-  `0` null · `1` number · `2` bool · `3` string · `4` color (`-1` invalid).
-- `DsonDocument_GetSceneAnimationFloat` / `…Bool` / `…String` / `…ColorR` /
-  `…ColorG` / `…ColorB` — key 0's value, read per kind (the 1.2.0 init-data
+- `DsonDocument_GetSceneAnimationValueKind` - first-key value kind:
+  `0` null - `1` number - `2` bool - `3` string - `4` color (`-1` invalid).
+- `DsonDocument_GetSceneAnimationFloat` / `...Bool` / `...String` / `...ColorR` /
+  `...ColorG` / `...ColorB` - key 0's value, read per kind (the 1.2.0 init-data
   surface; unchanged).
-- `DsonDocument_GetSceneAnimationKeyCount` — authored key count on the channel
+- `DsonDocument_GetSceneAnimationKeyCount` - authored key count on the channel
   (all kinds; `0` on invalid handle/index). The distinguishing signal between
   an animated (`> 1`) and a static (`1`) channel.
-- `DsonDocument_GetSceneAnimationKeyTime` — one key's authored time in seconds
+- `DsonDocument_GetSceneAnimationKeyTime` - one key's authored time in seconds
   at DSON-native double precision, returned verbatim (no fps inference, no
-  snapping). Populated for **all** value kinds — DAZ times are always numeric —
+  snapping). Populated for **all** value kinds - DAZ times are always numeric -
   so the accessor works even on non-numeric channels. `0.0` on invalid, but
   `0.0` is also a legitimate value (the first key is authored at `t=0`); gate on
   `KeyCount` first.
-- `DsonDocument_GetSceneAnimationKeyFloat` — one key's numeric value at
+- `DsonDocument_GetSceneAnimationKeyFloat` - one key's numeric value at
   DSON-native double precision when `ValueKind == 1` (number); `0.0` on invalid
   or when the channel is non-numeric (call the kind-typed 1.2.0 accessor above
   for key 0's bool/string/color value; multi-key non-numeric channels are not
-  covered by this family — no such content is in evidence).
+  covered by this family - no such content is in evidence).
 
 Per **R6.4** the parser does **not** apply these onto `scene.materials`: it does not
 resolve the pointer, match the target channel, or fill an empty channel, and it leaves
@@ -508,11 +508,11 @@ the `image_file` string as the verbatim DSON path (not resolved against
 `image_library`). The consumer reads both sections and decides whether key 0 overrides
 its material, and reconstructs a multi-frame animation from the per-key surface. Every
 entry is exposed (including `image_modification`/tiling rows). Since 2.16.0 all keys
-are retained — key 0's typed value stays on the 1.2.0 fields byte-identically, and
+are retained - key 0's typed value stays on the 1.2.0 fields byte-identically, and
 the additional keys populate parallel `key_times` / (numeric-only) `key_values`
 vectors on `Scene::animations`. No cross-section merge, no interpolation-hint
 exposure (zero 3-element keys in evidence; a sample would be needed to widen scope),
-no fps/playrange inference (not authored on the file — importer-side interpretation,
+no fps/playrange inference (not authored on the file - importer-side interpretation,
 not parsing).
 
 ## Geometry And Faces
@@ -539,31 +539,31 @@ join it to a scene/library material, or replace the geometry's
 ### Polyline List (Strand / Curve Geometry)
 
 A geometry with `"type" : "polygon_mesh"` may in fact be **strand-based hair**
-(dForce Strand-Based Hair) — the discriminator is `polylist` vs `polyline_list`,
+(dForce Strand-Based Hair) - the discriminator is `polylist` vs `polyline_list`,
 never the type label. For a strand geometry `polylist.count` is `0` (so the polylist
 face family above returns nothing) and every curve lives in a sibling
 `polyline_list` block, flattened the same way as `polylist` into
 `Geometry::polyline_list` + `polyline_list_offsets`. Each entry follows the polylist
-convention — `[polygon_group_idx, material_group_idx, v0, v1, … vN-1]`, two leading
-indices then variable-length vertex indices — exposed per geometry (since 2.20.0):
+convention - `[polygon_group_idx, material_group_idx, v0, v1, ... vN-1]`, two leading
+indices then variable-length vertex indices - exposed per geometry (since 2.20.0):
 
-- `DsonDocument_GetPolylineCount` — number of polylines (strands); `0` for a polygon
+- `DsonDocument_GetPolylineCount` - number of polylines (strands); `0` for a polygon
   mesh. Paired with `GetPolylistCount`, this is the strand discriminator: a strand
   geometry reports `0` polygons and N polylines, a polygon mesh the reverse.
-- `DsonDocument_GetPolylineSegmentCount` — the authored `segment_count`, the total
+- `DsonDocument_GetPolylineSegmentCount` - the authored `segment_count`, the total
   segment count across all polylines. This has **no `polylist` counterpart** and is
-  exposed faithfully rather than derived — it is the open-polyline segment total
-  (points − 1 per line), so a consumer must not assume closed loops.
-- `DsonDocument_GetPolylineVertexCount` / `…GetPolylineVertex` — the vertex count of
+  exposed faithfully rather than derived - it is the open-polyline segment total
+  (points - 1 per line), so a consumer must not assume closed loops.
+- `DsonDocument_GetPolylineVertexCount` / `...GetPolylineVertex` - the vertex count of
   one polyline and its vertex indices by position (vertex indices start at entry
   offset `[2]`, as in the polylist family).
-- `DsonDocument_GetPolylineGroupIndex` / `…GetPolylineMaterialIndex` — the leading
+- `DsonDocument_GetPolylineGroupIndex` / `...GetPolylineMaterialIndex` - the leading
   `[0]` polygon-group and `[1]` material-group indices.
 
 Faithful/non-interpretive (R6.4): the polyline count and curve data are kept
 separate from `polygon_count` / `polylist`, so the two discriminators never bleed.
-Sentinels follow the R1 family contract — the two `*Count` accessors → `0` on
-invalid; the vertex/group/material index accessors → `-1`. Everything else a strand
+Sentinels follow the R1 family contract - the two `*Count` accessors -> `0` on
+invalid; the vertex/group/material index accessors -> `-1`. Everything else a strand
 geometry carries (vertex positions, UVs, polygon/material group names, styling morph
 deltas) already ships through its existing accessors; translating the curves into an
 engine groom is consumer work.
@@ -572,20 +572,20 @@ engine groom is consumer work.
 
 DAZ authors Genesis geometry as a **subdivision surface**: the `polylist` above is
 a low-res quad cage that DAZ Studio refines at display and render time. The cage
-is only half the story — the geometry also declares *whether* and *how* it should
+is only half the story - the geometry also declares *whether* and *how* it should
 be refined, and that declaration is exposed per geometry (since 2.19.0):
 
-- `DsonDocument_GetGeometryType` — the declared kind, verbatim: `"subdivision_surface"`
+- `DsonDocument_GetGeometryType` - the declared kind, verbatim: `"subdivision_surface"`
   or the DSON spec's other value `"polygon_mesh"`. This is the **gate**: a consumer
   refines only a geometry that declares itself a subdivision surface. The parser does
-  **not** default an absent value to `polygon_mesh` — it returns `""`, and applying
+  **not** default an absent value to `polygon_mesh` - it returns `""`, and applying
   the spec default is the consumer's rule (R6.4).
 - `DsonDocument_GetGeometryEdgeInterpolationMode` /
-  `DsonDocument_GetGeometrySubDNormalSmoothingMode` — the authored boundary and
+  `DsonDocument_GetGeometrySubDNormalSmoothingMode` - the authored boundary and
   normal subdivision rules as plain sibling strings of `type` (e.g. `"edges_only"`,
   `"smooth_all_normals"`); `""` when absent.
 - `DsonDocument_GetGeometryChannel{Count,Id,Type,Label,Group,Value,Min,Max,Clamped,StepSize,FieldPresenceMask,EnumValue{Count,}}`
-  — the geometry's `extra[]` `studio_geometry_channels` block, DAZ's
+  - the geometry's `extra[]` `studio_geometry_channels` block, DAZ's
   `/General/Mesh Resolution` channels (`SubDIALevel`, `SubDRenderLevel`,
   `SubDAlgorithmControl`, `SubDEdgeInterpolateLevel`, `SubDNormalSmoothing`).
 
@@ -593,7 +593,7 @@ This is the **first and only geometry `extra` walk** in the parser (`Node`,
 `Material`, `Modifier`, and `Scene` have their own). Shape notes that drive the
 API: each `channels[]` element is a **wrapper** whose `group` is a *sibling* of
 the nested `channel` object, not a key inside it; and the block is matched on its
-`type` string, never on its index — it sits at `extra[1]` on the Genesis 9 base
+`type` string, never on its index - it sits at `extra[1]` on the Genesis 9 base
 (after a `material_selection_sets` entry) and at `extra[0]` on the graft. Every
 matching block appends in authored order. Other geometry extras, including
 `material_selection_sets`, remain unmodeled.
@@ -603,17 +603,17 @@ authors `min`/`max`/`clamped`/`step_size` on the **int** channels only and never
 on the **enums**, while `value` is legitimately `0` (`SubDAlgorithmControl` `0` is
 `"Catmark"`; `SubDNormalSmoothing` `0` is `"Smoothed"`). On the G9 base the ints
 report mask `0x1f` and the enums `0x10`. Since `0.0`/`false` are each both a valid
-reading and the invalid sentinel, bound-check `…ChannelCount`, then query
-`…ChannelFieldPresenceMask` (`DSONPARSER_CHANNEL_FIELD_{VALUE,MIN,MAX,CLAMPED,STEP_SIZE}`)
+reading and the invalid sentinel, bound-check `...ChannelCount`, then query
+`...ChannelFieldPresenceMask` (`DSONPARSER_CHANNEL_FIELD_{VALUE,MIN,MAX,CLAMPED,STEP_SIZE}`)
 before interpreting any of them. That mask is shared across channel families and
-each family sets only the bits it models — node transform channels never set
+each family sets only the bits it models - node transform channels never set
 VALUE or STEP_SIZE.
 
 Faithful/unevaluated (R6.4). An enum's `value` is an **index into `enum_values`**
 and is not resolved; both ship raw. The parser performs no subdivision, and does
 **not** reconcile the two `edge_interpolation_mode` / `subd_normal_smoothing_mode`
 strings against the look-alike `SubDEdgeInterpolateLevel` / `SubDNormalSmoothing`
-channels — that mapping is unconfirmed, and deciding which is authoritative is a
+channels - that mapping is unconfirmed, and deciding which is authoritative is a
 consumer call, not a parsing one. Both surfaces are relayed independently.
 
 ## UV Sets
@@ -655,31 +655,31 @@ A DAZ Layered Image Editor channel stores its layers as a `map` array on the
 array, so a true layered channel is one with **two or more** layers. The parser
 retains all layers on `Image::layers` and, during the post-parse linkage, copies
 them onto the matched material channel only when the channel references the image
-by **identity** (id/url) and the image has **≥ 2** layers — a bare-path reference
+by **identity** (id/url) and the image has **>= 2** layers - a bare-path reference
 resolves to the flat base only. The C API exposes the per-channel layer surface
 for scene materials:
 
-- `DsonDocument_GetSceneMaterialChannelLayerCount` — number of LIE layers; `0` for a
-  plain single-texture channel, `N ≥ 2` for a layered one.
-- `DsonDocument_GetSceneMaterialChannelLayerTexturePath` — layer path; layer `0`
+- `DsonDocument_GetSceneMaterialChannelLayerCount` - number of LIE layers; `0` for a
+  plain single-texture channel, `N >= 2` for a layered one.
+- `DsonDocument_GetSceneMaterialChannelLayerTexturePath` - layer path; layer `0`
   equals the channel's existing `TexturePath`.
-- `DsonDocument_GetSceneMaterialChannelLayerLabel` — the LIE layer label.
-- `DsonDocument_GetSceneMaterialChannelLayer{BlendMode,Opacity,Active,Invert,ColorR,ColorG,ColorB,Rotation,ScaleX,ScaleY,OffsetX,OffsetY,MirrorX,MirrorY}` —
+- `DsonDocument_GetSceneMaterialChannelLayerLabel` - the LIE layer label.
+- `DsonDocument_GetSceneMaterialChannelLayer{BlendMode,Opacity,Active,Invert,ColorR,ColorG,ColorB,Rotation,ScaleX,ScaleY,OffsetX,OffsetY,MirrorX,MirrorY}` -
   the per-layer compositing metadata (see Per-Layer Compositing below).
 
 The same layer stack is also addressable **by image index** (the `GetImageId` index
-space), for an image referenced from outside an inline material channel — e.g. a
+space), for an image referenced from outside an inline material channel - e.g. a
 `scene.animations` `diffuse/image` binding to a base-figure LIE such as the Genesis 9
 eyes, which no channel references inline:
 
-- `DsonDocument_GetImageLayerCount` — textured-layer count of `Image::layers`. Unlike
+- `DsonDocument_GetImageLayerCount` - textured-layer count of `Image::layers`. Unlike
   the per-channel count, this is the **faithful stack size**: `1` for a plain single
   texture, `N` for a LIE, `0` for a non-array or absent `map`. A color-only base layer
   (a `map` element with no `url`) is not counted, so the Genesis 9 "Eye Color-3" stack
   (Base[no url] / Sclera / Iris) reports `2`.
-- `DsonDocument_GetImageLayerTexturePath` / `…Label` — per-layer path/label by
+- `DsonDocument_GetImageLayerTexturePath` / `...Label` - per-layer path/label by
   `(imageIndex, layerIdx)`; layer `0` is the first textured map element.
-- `DsonDocument_GetImageLayer{BlendMode,Opacity,Active,Invert,ColorR,ColorG,ColorB,Rotation,ScaleX,ScaleY,OffsetX,OffsetY,MirrorX,MirrorY}` —
+- `DsonDocument_GetImageLayer{BlendMode,Opacity,Active,Invert,ColorR,ColorG,ColorB,Rotation,ScaleX,ScaleY,OffsetX,OffsetY,MirrorX,MirrorY}` -
   the same per-layer compositing metadata by `(imageIndex, layerIdx)` (see Per-Layer
   Compositing below).
 
@@ -693,12 +693,12 @@ Per-layer compositing metadata is also modeled (1.4.0). Each `map` element's ble
 `operation`, `transparency` (opacity), `active`/`invert` flags, `color` tint, and 2D
 transform (`rotation`, `xscale`/`yscale`, `xoffset`/`yoffset`, `xmirror`/`ymirror`) are
 parsed verbatim onto `Image::layers` with DAZ-semantic defaults, and exposed by the 14
-`…Layer{BlendMode,Opacity,Active,Invert,ColorR,ColorG,ColorB,Rotation,ScaleX,ScaleY,OffsetX,OffsetY,MirrorX,MirrorY}`
+`...Layer{BlendMode,Opacity,Active,Invert,ColorR,ColorG,ColorB,Rotation,ScaleX,ScaleY,OffsetX,OffsetY,MirrorX,MirrorY}`
 accessors on **each** of the two surfaces above. The parser performs **no** compositing,
-blending, or transform evaluation (R6.4) — a downstream consumer re-composites from the
+blending, or transform evaluation (R6.4) - a downstream consumer re-composites from the
 raw values; `Opacity` is the raw `transparency` (1 = opaque). Sentinels follow the R1
 family contract (string `""`, bool `false`, numeric `0.0`, scales `1.0`), so bound-check
-the layer `Count` first — e.g. `Opacity`'s `0.0` sentinel is also a legitimate value. A
+the layer `Count` first - e.g. `Opacity`'s `0.0` sentinel is also a legitimate value. A
 color-only base layer with no `url` stays excluded from `Image::layers` (so its
 compositing fields are unreachable), unchanged from 1.3.0.
 
@@ -748,7 +748,7 @@ each TCB knot as `[input, output, tension, continuity, bias]`. These arrays are
 now retained verbatim and exposed raw via `...FormulaOperationValArrayCount` /
 `...FormulaOperationValArrayElement` on both families (since 2.1.0). When
 `...ValArrayCount > 0` the operand is array-valued; the scalar `...OperationVal`
-is `0.0` for that form and is not meaningful — the Count is the discriminator.
+is `0.0` for that form and is not meaningful - the Count is the discriminator.
 Operation fields beyond `op`/`val`/`url` are not modeled yet but are recorded in
 the unknown-key diagnostics rather than dropped.
 
@@ -757,9 +757,9 @@ the formula-bearing modifier is often a control with no `morph`/`deltas` block
 (so it is not a "morph"). The C API therefore exposes formulas on both modifier
 index spaces, not on `morphIndex`:
 
-- `DsonDocument_GetModifierFormula*` — raw `modifier_library` index (JCM/FHM
+- `DsonDocument_GetModifierFormula*` - raw `modifier_library` index (JCM/FHM
   correctives and control-morph children in their own `.dsf` files).
-- `DsonDocument_GetSceneModifierFormula*` — `scene.modifiers` index (the
+- `DsonDocument_GetSceneModifierFormula*` - `scene.modifiers` index (the
   character control-morph top node carried inline in a `.duf`).
 
 Each family exposes formula count/output/stage and per-operation
@@ -784,15 +784,15 @@ This is intended to make future DSON coverage audits easier: a clean unknown-key
 report means the current parser recognized every key in the tested files, not
 that every recognized key is necessarily stored or semantically implemented.
 
-**Channel value coercion & type-mismatch (2.2.1–2.2.2).** A modifier or material
+**Channel value coercion & type-mismatch (2.2.1-2.2.2).** A modifier or material
 `channel` value is read numerically. A JSON **bool** coerces to `1.0`/`0.0` (since
-2.2.1 — e.g. the on-by-default `JCMs On` base-joint-corrective gate now reads `1.0`,
+2.2.1 - e.g. the on-by-default `JCMs On` base-joint-corrective gate now reads `1.0`,
 not the dropped `0.0`); a number reads as-is. Any **other** present type the numeric
-read cannot represent — a string, object, or non-color array — keeps the `0.0`
+read cannot represent - a string, object, or non-color array - keeps the `0.0`
 default but, since 2.2.2, is no longer dropped silently: the parser records a
 decorated, self-describing entry of the form
 `value [channel "<id>": type=<jsontype>, used default]` into that context's trail
-(deduped, like the rest of the trail). Such an entry is *not* an unrecognized key —
+(deduped, like the rest of the trail). Such an entry is *not* an unrecognized key -
 filter on the `used default` marker to separate the two.
 
 ## API Ownership And Return Conventions

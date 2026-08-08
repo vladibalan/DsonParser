@@ -15,6 +15,10 @@ complete, verification gate green; governance now runs on the vendored cores (`D
 
 ## Done
 
+- 2026-08-08 - Legacy-doc ASCII sweep (`CHANGELOG.md`, `DsonParser_Roadmap.md`,
+  `Docs/dson-parsing-overview.md` -> 0 non-ASCII) + root `CHANGELOG.md` rotation: sealed the v1.x
+  epoch (1.0.0-1.6.0) into `Docs/CHANGELOG/1.x.md`, 465-char line wrapped; root 58.9 KB under the
+  64 KB ceiling, doc census 0 warns - dispositions and why: `Docs/DecisionLog.md`.
 - 2026-08-08 - Claude auto-memory store brought in-repo (`.claude/memory/`) via the
   `autoMemoryDirectory` binding, plus the `memory-autocommit` Stop-hook wired - dispositions and
   why: `Docs/DecisionLog.md`.
@@ -28,10 +32,6 @@ complete, verification gate green; governance now runs on the vendored cores (`D
 
 ## Known issues
 
-- Standing doc-census warns, cleanup-pending (ruled 2026-08-08): `CHANGELOG.md` 897 ln / 68.5 KB
-  (over the 64 KB universal ceiling; one 465-char line; 447 non-ASCII chars),
-  `DsonParser_Roadmap.md` (239 non-ASCII), `Docs/dson-parsing-overview.md` (178 non-ASCII).
-  Cleared by the ASCII-sweep backlog item and its follow-up ceiling re-measure.
 - Source-geometry census (2026-08-08): 34 soft COD-5 warns, COD-6 nesting clean. Oversize:
   `DsonParserAPI.cpp` 3154 ln, `DsonTest2/DsonTest2.cpp` 2925 ln, `DsonTypes.cpp` 1885 ln,
   `DsonParserAPI.h` 1003 ln (ceiling 1000); long-function warns concentrate in the harness (16,
@@ -41,9 +41,6 @@ complete, verification gate green; governance now runs on the vendored cores (`D
 
 ## Backlog
 
-- ASCII cleanup sweep across legacy/domain docs (reverses the earlier deliberate Unicode sweep,
-  `CHANGELOG.md` typography included); afterwards re-measure `CHANGELOG.md` against the 64 KB
-  ceiling and rule rotate-vs-linear. [added 2026-08-08]
 - Sweep the stale `docs/versioning.md` comment references in source to `Docs/Versioning.md`
   (grep `docs/versioning.md`: `DsonParserAPI.h`, `DsonParserVersion.h`; comment-only, needs an
   Implementer task). [added 2026-08-08]

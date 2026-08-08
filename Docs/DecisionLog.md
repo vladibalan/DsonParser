@@ -5,6 +5,45 @@ notable rejects. Cold/on-demand (off the hot-path budget) - it absorbs history s
 rules docs stay tight. Newest at top. When it crosses the doc ceiling, rotate as a dated
 append-only log (see `Docs/DocRules.md`, "Cold-doc rotation, in detail").
 
+## 2026-08-08 - Legacy-doc ASCII sweep + CHANGELOG rotation (seal v1.x)
+
+**What.** Reversed the deliberate Unicode typography in the three non-ASCII docs back to ASCII
+(`CHANGELOG.md` 447 chars, `DsonParser_Roadmap.md` 239, `Docs/dson-parsing-overview.md` 178), then
+rotated the root `CHANGELOG.md` past the 64 KB doc ceiling by sealing the v1.x capability epoch
+(1.0.0-1.6.0, 7 entries) verbatim into `Docs/CHANGELOG/1.x.md`, leaving a per-entry date index in
+root; also hard-wrapped the one 465-char line (the 2.4.0 ParseTransformVector3 note). The mapping
+was a faithful reversal traced from the sweep commits (34c460f / 35e5a45 / edbd01a): dashes -> `-`,
+plus `...`, `->`, `=>`, `!=`, `>=`, `x`, `Sum`, middle-dot/bullet -> `-`, the Laura box-drawing tree
+-> an ASCII tree (`+ \ | -`), and `[DONE]` for the check mark. Records updated: `Docs/Roadmap.md`
+(backlog -> done, doc-census known-issue cleared) and this log.
+
+**Why.** ASCII-only is a standing rule (`Docs/DocRules.md` - a cp1252 shell round-trips mojibake);
+the framework migration deferred the conversion to this sweep. The ASCII pass alone saved ~0.7 KB
+and left `CHANGELOG.md` at 67.8 KB, still over the ceiling, so the DocRules "shrink by shape" path
+applied: a dated append-only log rotates its oldest entries into a sealed volume. Cut at the v1/v2
+epoch boundary (2.0.0 is the breaking release) - the natural, non-arbitrary line that keeps the
+whole current C-ABI epoch (2.x) in root, where the downstream DsonToUnreal consumer vendors the
+CHANGELOG as C-ABI authority. Root now 58.9 KB (~5 KB headroom under the ceiling).
+
+**Verification.** Check-DocForm PASS: 30 docs, 0 hard-cap failures, 0 warnings (was 5). All three
+docs 0 non-ASCII; the ASCII diff was a balanced 661/661 in-place substitution (no line-count drift;
+a sentinel guard proved 0 unmapped codepoints). Root 793 ln / 58.9 KB, volume 129 ln / 9.9 KB, both
+under ceiling. Check-ReleaseTag PASS - the top heading stayed in root, so version detection is
+unaffected. No dangling cross-refs: a repo-wide grep found no doc link to a v1.x changelog anchor
+(only "CHANGELOG 2.1.0", retained in root); `Docs/Versioning.md`'s "CHANGELOG at repo root" +
+top-heading contract holds.
+
+**Consumer note.** The DsonToUnreal seat vendors `.../Include/CHANGELOG.md`; on its next sync it
+picks up the shorter root (all 2.x intact) and, for full v1 history, must also vendor
+`Docs/CHANGELOG/1.x.md`. Flagged for the user to carry to that seat.
+
+**Rejected / adjudicated.** Keep-linear / accept-the-warn (contradicts the rule's "never keep
+growing" and only defers; the warn grows each release - not chosen). Global `maxKB` retune (weakens
+the ceiling for all 30 docs to fit one file - not chosen). `--` for the em-dash (restores prose but
+not the accessor-list single-hyphen originals; uniform `-` matches the house ` - ` style across
+every other ASCII doc - chosen). Sealing deeper into 2.x for more headroom (arbitrary cut that
+moves current-epoch history out of the consumer's root - not chosen).
+
 ## 2026-08-08 - Claude auto-memory store brought in-repo + memory-autocommit wired
 
 **What.** Relocated the Claude per-project auto-memory store from the external harness path
