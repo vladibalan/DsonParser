@@ -1,0 +1,8 @@
+{
+  "_comment": "Local include-guard config, read by include-guard.ps1 (the byte-identical hook core) - the cpp-layer sibling of Tools/ReviewGuard.config.json. Birth-time file: fill repoDirMarker (this repo's dir-name marker, matched as /<marker>/ in an edited file's path), set sourceMarkers (path fragments identifying the source tree) and sourceExtensions. owningHeaders maps a type/template name to the header that OWNS it (tripwire A - a header that spells the type without including its owner is leaning on a transitive/PCH include); leave it {} for plain C++ (A disabled). belowCodeExempt lists include paths allowed below the first line of code (tripwire C exemptions, e.g. a platform-types closer or a generated header). The hook fires PostToolUse and no-ops until repoDirMarker is filled; wire it per MATERIALIZE. Materializes to <repo>/Tools/IncludeGuard.config.json. DsonParser note: repoDirMarker is DELIBERATELY blank - the include-guard is ruled OFF for this repo (migration checkpoint 2a, 2026-08-08); to enable, fill repoDirMarker = DsonTest2, vendor hooks/include-guard.ps1 from the framework's cpp layer into .claude/hooks/, and wire a PostToolUse entry in .claude/settings.json.",
+  "repoDirMarker": "",
+  "sourceMarkers": ["DsonParser/", "DsonTest2/", "DsonLoadTest/"],
+  "sourceExtensions": ["cpp", "h", "hpp", "cc", "cxx", "c", "inl"],
+  "owningHeaders": {},
+  "belowCodeExempt": []
+}

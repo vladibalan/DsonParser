@@ -1,0 +1,11 @@
+{
+  "_comment": "Local Check-SourceGeometry config, read by Check-SourceGeometry.ps1 (the byte-identical census core) - the source-geometry sibling of Tools/DocForm.config.json. Birth-time file: set sourceDirs (repo-relative source roots), sourceExtensions (the language's source extensions), and excludeDirs (path fragments to skip - a vendored third-party tree, generated output). The ceilings encode COD-5 (soft, warn) and COD-6 (the nesting hard cap, fail); keep the defaults unless the project deliberately retunes them. Materializes to <repo>/Tools/SourceGeometry.config.json.",
+  "sourceDirs": ["DsonParser", "DsonTest2", "DsonLoadTest"],
+  "sourceExtensions": ["h", "hpp", "cpp", "cc", "cxx", "c", "inl"],
+  "excludeDirs": ["DsonParser/include/rapidjson"],
+  "funcSignal": 60,
+  "funcSplit": 100,
+  "fileSignal": 800,
+  "fileSplit": 1000,
+  "nestingCap": 4
+}

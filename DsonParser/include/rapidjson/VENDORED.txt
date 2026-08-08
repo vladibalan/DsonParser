@@ -1,0 +1,1 @@
+VENDORED THIRD PARTY - RapidJSON 1.1.0 (Tencent/rapidjson), MIT. Pinned copy: do NOT edit or read as project source. License: THIRD_PARTY_NOTICES.md; canonical pin token: Docs/Reference.md.

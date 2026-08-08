@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/review-guard.ps1\"",
+            "timeout": 15,
+            "statusMessage": "review-guard: checking source rules (COD-1..9)..."
+          },
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/doc-guard.ps1\"",
+            "timeout": 15,
+            "statusMessage": "doc-guard: checking doc rules..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/doc-guard.ps1\"",
+            "timeout": 15,
+            "statusMessage": "doc-guard: checking doc budgets..."
+          }
+        ]
+      }
+    ]
+  }
+}

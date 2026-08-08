@@ -1,0 +1,6 @@
+{
+  "_comment": "Version-source descriptor for Check-ReleaseTag.ps1 (the versioning module close-gate, COD-11). Birth-time file: point versionSourceFile + versionSourcePattern at the single SemVer source of truth, with ONE capture group around the X.Y.Z literal. Examples: a header '#define FOO_VERSION \"1.2.3\"' -> file 'Source/Foo/FooVersion.h', pattern 'FOO_VERSION\\s+\"([^\"]+)\"'; a manifest field -> pattern '\"VersionName\"\\s*:\\s*\"([^\"]+)\"'. changelogPath defaults to CHANGELOG.md. Part of the dormant/JIT versioning set - stand it up when the project gains a downstream consumer; until then this file (and the tool) need not exist.",
+  "versionSourceFile": "DsonParser/DsonParserVersion.h",
+  "versionSourcePattern": "DSONPARSER_VERSION_STRING\\s+\"([^\"]+)\"",
+  "changelogPath": "CHANGELOG.md"
+}

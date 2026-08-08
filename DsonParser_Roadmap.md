@@ -4,7 +4,7 @@
 
 ### Summary
 
-For a code-oriented parser map, read `docs/dson-parsing-overview.md` first.
+For a code-oriented parser map, read `Docs/dson-parsing-overview.md` first.
 This roadmap tracks capability status, audit history, and planned future work.
 
 > **Versioning note.** The milestones below ("v1", "v2") are **capability
@@ -12,7 +12,7 @@ This roadmap tracks capability status, audit history, and planned future work.
 > additive capability ships as MINOR bumps within `1.x`, and only a breaking
 > C-ABI change yields `2.0.0`. Per-release C-ABI change history lives in
 > [`CHANGELOG.md`](CHANGELOG.md); the policy is in
-> [`docs/versioning.md`](docs/versioning.md).
+> [`Docs/Versioning.md`](Docs/Versioning.md).
 
 Full C++ DSON/DSF parser for DAZ Studio Genesis 9 figures, exposing all data
 required to build a UE5 `USkeletalMesh` through a stable `extern "C"` API.

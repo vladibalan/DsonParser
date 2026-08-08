@@ -7,7 +7,7 @@ DsonParser (DLL) and DsonTest2 (console) targets.
 The solution is MSBuild-only, and MSVC's cl.exe does not emit a compilation
 database. Rather than depend on a build run, this script reconstructs the
 per-target compile flags that the .vcxproj files pin for the Release|x64
-configuration -- the documented "typical build" (see CLAUDE.md "Build & test";
+configuration -- the documented "typical build" (see Docs/Tooling.md "Build & verify";
 note msbuild is not on PATH and needs resolving via vswhere to actually run):
 
     msbuild DsonTest2.sln /p:Configuration=Release /p:Platform=x64
@@ -18,21 +18,21 @@ flags (defines/-D, includes/-I, /std:c++14) correctly.
 
 Regenerate after adding/removing .cpp files or changing include dirs/defines:
 
-    pwsh -File tools/gen-compile-commands.ps1
+    pwsh -File Tools/gen-compile-commands.ps1
     # or, on Windows PowerShell:
-    powershell -ExecutionPolicy Bypass -File tools/gen-compile-commands.ps1
+    powershell -ExecutionPolicy Bypass -File Tools/gen-compile-commands.ps1
 
 Output: compile_commands.json (repo root). Do not hand-edit it.
 #>
 
 $ErrorActionPreference = 'Stop'
 
-# Repo root = parent of this script's directory (tools/..).
+# Repo root = parent of this script's directory (Tools/..).
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $repoRootFwd = $repoRoot -replace '\\', '/'
 
 # Shared flags for both targets. C++14 is deliberate (MSVC v143 default); see
-# docs/code-review-rules.md R4.1. /EHsc matches the implicit MSVC C++ default.
+# Docs/Reference.md "Effective C++ standard" (CPP-1). /EHsc matches the implicit MSVC C++ default.
 $commonFlags = @('/std:c++14', '/EHsc')
 
 # Per-target configuration mirrors the Release|x64 ItemDefinitionGroup in each

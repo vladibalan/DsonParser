@@ -1,31 +1,59 @@
-# DSON Parser Audit Prompts
+# DsonParser Audit Guide
 
-Use these prompts with Codex, Rider AI, or another LLM when you want a focused
-review of one parser area. Start each audit by asking the model to read
-`docs/dson-parsing-overview.md`, then inspect only the relevant implementation
-files.
+Routing for audit, review, debugging, and diagnostic requests - what to read and in what order so a
+review does not scan the whole tree. Cold/on-demand.
 
-## General Parser Audit
+## Read order for an audit
+
+1. `Docs/Architecture.md` (components) -> `Docs/dson-parsing-overview.md` (the authoritative file
+   map); route to the component(s) in scope - do not scan the tree.
+2. `Docs/Rulebook.md` for the rule set the review applies (COD-1..9, CPP-1..2, COD-100/101) plus
+   `Docs/NativeBinding.md` (CPP-3/4) for anything touching the C ABI.
+3. The component's interface (`DsonParserAPI.h` for the surface), then its implementation.
+
+## Compliance run
+
+A "compliance run" = a Director audit of the current repo against the documented rules
+(`Docs/Rulebook.md` + `Docs/NativeBinding.md`), not a coverage audit. Doc-only fixes commit straight
+to `main`; source fixes route through a task-file (`Docs/AgentWorkflow.md`).
+
+## Evidence sources
+
+- Build output: `x64\Release\` (DLL + test exes); build mechanics `Docs/Tooling.md`.
+- `DsonTest2.exe` harness stdout - read the PASS/FAIL lines; piped-EOF exit 255 is not a failure
+  (`Docs/Reference.md`).
+- Headless accessor verification: a PowerShell P/Invoke probe against `DsonParser.dll` and an
+  on-disk proof asset (Director-runnable; no editor needed).
+- Runtime imports are the user's editor-side check; DAZ content library: `D:/Daz_content/`
+  (plain-JSON DSON files; importer diagnostics land in `DsonHost.log`).
+
+## Audit-prompt library
+
+Reusable prompts for the common audits. Each is a Director pass; findings lead with severity +
+`file:line` (COD-9), and any source fix routes through a task-file, never a hand-edit.
+
+### General Parser Audit
 
 ```text
-Using docs/dson-parsing-overview.md as the map, audit the DSON parser for
+Using Docs/dson-parsing-overview.md as the map, audit the DSON parser for
 behavior gaps, ambiguous API semantics, and missing tests. Focus on DsonTypes.h,
 DsonTypes.cpp, DsonParserAPI.h, and DsonParserAPI.cpp. Do not suggest style-only
 changes. Report findings with file/line references, severity, and a short
 explanation of the importer-visible impact.
 ```
 
-## Scene vs Library Data
+### Scene vs Library Data
 
 ```text
 Audit whether the parser and C API correctly distinguish scene.* instance data
-from *_library definition data. Use docs/dson-parsing-overview.md first, then
-check DsonTypes.h, DsonTypes.cpp, DsonParserAPI.h, and DsonParserAPI.cpp. Look
-for index confusion, missing accessors, misleading comments, or cases where
-scene instance values could be mistaken for library defaults.
+from *_library definition data (Docs/Rulebook.md COD-101). Use
+Docs/dson-parsing-overview.md first, then check DsonTypes.h, DsonTypes.cpp,
+DsonParserAPI.h, and DsonParserAPI.cpp. Look for index confusion, missing
+accessors, misleading comments, or cases where scene instance values could be
+mistaken for library defaults.
 ```
 
-## Geometry And Polylist
+### Geometry And Polylist
 
 ```text
 Audit the geometry parsing path. Verify how vertices, polygons, polylist faces,
@@ -34,7 +62,7 @@ default_uv_set are parsed and exposed. Check for malformed DSON shapes, variable
 face length edge cases, count/value mismatches, and C API index behavior.
 ```
 
-## UV Sets
+### UV Sets
 
 ```text
 Audit the UV set parsing and API. Verify how UV coordinates, vertex_count, and
@@ -44,7 +72,7 @@ whether legacy flat data behaves safely, and whether consumers have enough data
 to expand UVs per face corner.
 ```
 
-## Materials And Images
+### Materials And Images
 
 ```text
 Audit material and image parsing. Verify top-level diffuse handling, extra[]
@@ -54,7 +82,7 @@ post-parse image_url to texture_path resolution. Look for dropped channels,
 ambiguous shader semantics, missing fallbacks, or lifetime issues in API returns.
 ```
 
-## Skin Binding
+### Skin Binding
 
 ```text
 Audit the skin binding pipeline end to end. Verify how DSON joint->vertex
@@ -64,7 +92,7 @@ and renormalized. Check for modifier index confusion, missing bounds checks,
 parallel array mismatches, zero-weight behavior, and importer-facing edge cases.
 ```
 
-## Morph Targets
+### Morph Targets
 
 ```text
 Audit morph target parsing and API access. Verify filtered morph indexing,
@@ -73,17 +101,18 @@ GetMorphGeometryId parent URL fragment extraction. Check for raw modifier index
 confusion, missing geometry association cases, and sparse delta edge cases.
 ```
 
-## API Ownership And Error Semantics
+### API Ownership And Error Semantics
 
 ```text
 Audit the public C ABI for ownership and error semantics. Verify opaque handle
 lifetime, parser-owned const char* return values, scratch-string behavior,
 invalid handle/index return conventions, last-error behavior, Clear/Destroy cache
-reset behavior, and whether comments match implementation. Report any places
-where a C or C# caller could retain invalid pointers or misinterpret failure.
+reset behavior, and whether comments match implementation (the per-family return
+contract: Docs/Reference.md). Report any places where a C or C# caller could
+retain invalid pointers or misinterpret failure.
 ```
 
-## Unknown-Key Diagnostics
+### Unknown-Key Diagnostics
 
 ```text
 Audit unknown-key diagnostics. Verify that known-key sets match the parser's
@@ -92,27 +121,28 @@ recognized-but-unparsed fields are documented honestly. Check whether a clean
 unknown-key report could be misread as full semantic support.
 ```
 
-## v2 Formula Planning
+### v2 Formula Planning
 
 ```text
-Using DsonParser_Roadmap.md and docs/dson-parsing-overview.md, audit the planned
+Using DsonParser_Roadmap.md and Docs/dson-parsing-overview.md, audit the planned
 formula parsing work before implementation. Identify the DsonTypes.h/.cpp model
 changes, C API additions, unknown-key changes, and tests needed to support
 formula operations such as push url, push val, mult, div, add, sub, pow, and
 spline_tcb. Do not implement; produce a concrete implementation checklist.
 ```
 
-## Accessor Fan-Out (C ABI Maintenance Tripwire)
+### Accessor Fan-Out (C ABI Maintenance Tripwire)
 
 ```text
 This is a maintenance-health tripwire, not a coverage audit: it watches whether
 the flat C ABI's per-field accessor fan-out is outgrowing the model it exposes,
 so the threshold for a struct-returning C ABI is caught on the trend rather than
-after the fact. Start with docs/dson-parsing-overview.md (API Ownership section)
-and docs/code-review-rules.md (R1 per-family return-value contract, R2
-API-change-is-breaking rule, R3 DRY helpers). Inspect DsonParserAPI.h,
-DsonParserAPI.cpp, DsonTypes.h, and CHANGELOG.md. Do not implement; report
-findings + a verdict.
+after the fact. Start with Docs/dson-parsing-overview.md (API Ownership section),
+Docs/Reference.md (the per-family return-value contract), Docs/Rulebook.md
+(COD-4 breaking-change rule, COD-1 DRY helpers, COD-101 scene-vs-library and
+no-cross-section-merge), and Docs/NativeBinding.md (CPP-3). Inspect
+DsonParserAPI.h, DsonParserAPI.cpp, DsonTypes.h, and CHANGELOG.md. Do not
+implement; report findings + a verdict.
 
 Measure (countable):
 1. Accessor/field ratio. Numerator = exported DsonDocument_* functions in
@@ -146,8 +176,8 @@ Measure (countable):
    compositing family exposed both as DsonDocument_GetSceneMaterialChannelLayer*
    and DsonDocument_GetImageLayer* (both read the one Image::layers stack).
    EXCLUDE families that mirror a SCHEMA over DIFFERENT data populations: those
-   are mandated by the Scene-vs-Library design (R6.3) and the no-cross-section-
-   merge rule (R6.4), not symptoms of fan-out. Excluded, do not re-litigate:
+   are mandated by the scene-vs-library design and the no-cross-section-merge
+   rule (both COD-101), not symptoms of fan-out. Excluded, do not re-litigate:
      - The library-vs-scene instance pairs: GetMaterial* / GetSceneMaterial*,
        GetMaterialChannel* / GetSceneMaterialChannel*, GetModifierFormula* /
        GetSceneModifierFormula*, the Modifier channel-dial pair, the
@@ -156,8 +186,8 @@ Measure (countable):
      - GetGeometryMaterialUVAssignment* (geometry_library) vs
        GetSceneNodeShellMaterialUVAssignment* (2.13.0, scene.nodes shell extra):
        one MaterialUVAssignment leaf, but two independent vectors sourced from
-       two different sections. R6.4 FORBIDS combining them, so two families are
-       required rather than duplicated.
+       two different sections. COD-101 FORBIDS combining them, so two families
+       are required rather than duplicated.
      - The DSON rigidity_group schema, modeled twice: flattened onto Node as
        rigid_follow_* (2.8.0, from node extra[]) and as GeometryRigidityGroup
        (2.10.0, from geometry.rigidity). Same schema, different populations ->
@@ -186,25 +216,25 @@ Measure (countable):
    of nesting, so it stays a backstop trigger in the verdict below.
 
 Judge (qualitative):
-4. R1 slips on the newest accessors. For the most recently added families, check
-   the R1 family return-value contract holds: correct sentinel for the family
-   ("" / 0 / 0.0 / false / -1), bounds-check before access, and the
-   count-accessor and value-accessor agreeing on what is valid. Recurring slips
-   on freshly added accessors mean the flat pattern is generating this bug class
-   by construction.
+4. Contract slips on the newest accessors. For the most recently added families,
+   check the per-family return-value contract holds (Docs/Reference.md): correct
+   sentinel for the family ("" / 0 / 0.0 / false / -1), bounds-check before
+   access, and the count-accessor and value-accessor agreeing on what is valid.
+   Recurring slips on freshly added accessors mean the flat pattern is
+   generating this bug class by construction.
 5. Ceremony vs logic. Across recent CHANGELOG.md releases, judge whether the bulk
    of each release is mechanical accessor/header/version fan-out rather than
-   parsing logic. (Do NOT browse .handoff/ -- it is off-limits per CLAUDE.md; use
+   parsing logic. (Do NOT browse .handoff/ -- it is off-limits per AGENTS.md; use
    CHANGELOG.md and the source.)
 
 Verdict (recurrence, not magnitude, is the trigger):
 - GREEN: no mirrored family beyond the one known (layer compositing), no accessor
-  whose index arity exceeds the depth of the DSON it reads, no R1-slip cluster on
-  new accessors.
+  whose index arity exceeds the depth of the DSON it reads, no contract-slip
+  cluster on new accessors.
 - YELLOW: a SECOND leaf family gets hand-mirrored across surfaces, OR an
   accessor's index arity exceeds the depth of the DSON it reads, OR any accessor
-  reaches 5 indices (backstop -- sanctioned nesting or not), OR R1 slips recur on
-  new accessors.
+  reaches 5 indices (backstop -- sanctioned nesting or not), OR contract slips
+  recur on new accessors.
 - RED: multiple newly mirrored families / pervasive fan-out across the surface.
 
 If YELLOW/RED and the cause is leaf-heavy structs reached from multiple paths,

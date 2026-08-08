@@ -72,7 +72,8 @@ DsonTest2/TestFiles/
 # agent discovery (see CLAUDE.md "Do NOT read" and docs/agent-workflow.md).
 .handoff/
 
-# ---- Memory-store maintenance (shared Claude memory prune manifest + routing) ----
-# Local-only working docs for pruning the shared Claude memory store; not part of
-# the library. See memory-maintenance/memory-prune-manifest.md.
-memory-maintenance/
+# ---- Framework testing module (dormant, JIT) ----
+# Machine-local test config + report output for the LLMfrmw test-runner core; only
+# the .example.json is committed once the testing module stands up (COD-8).
+Tools/TestConfig.local.json
+Saved/tests/

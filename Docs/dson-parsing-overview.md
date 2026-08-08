@@ -47,7 +47,7 @@ onto `scene.materials`, even when a channel is empty). Merging overrides,
 evaluating formulas, and collapsing instances onto definitions are left to the
 consumer, which reads the faithful sections and decides. The only resolution it
 performs is intra-material image linkage (`image_url → texture_path`). This is
-rule R6.4 in [`code-review-rules.md`](code-review-rules.md).
+rule COD-101 in [`Rulebook.md`](Rulebook.md).
 
 ### Compressed Input (gzip)
 

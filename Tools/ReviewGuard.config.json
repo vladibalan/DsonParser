@@ -1,0 +1,11 @@
+{
+  "_comment": "Local review-guard config, read by review-guard.ps1 (the byte-identical hook core) - the code-layer sibling of the text layer's Tools/DocForm.config.json and the test runner's TestConfig.local.json. Birth-time file: fill repoDirMarker (this repo's dir-name marker, matched as /<marker>/ in an edited file's path), set sourceMarkers (path fragments that identify the source tree) and sourceExtensions (the language's source file extensions), and append any project- or higher-layer rule lines to extraRules (e.g. a cpp CPP-* summary or a native-binding rule). The hook fires PreToolUse only, injecting the generic COD-1..9 self-check plus extraRules; it no-ops until repoDirMarker is filled. Materializes to <repo>/Tools/ReviewGuard.config.json.",
+  "repoDirMarker": "DsonTest2",
+  "sourceMarkers": ["DsonParser/", "DsonTest2/", "DsonLoadTest/"],
+  "sourceExtensions": ["cpp", "h", "hpp", "cc", "cxx", "c", "inl"],
+  "extraRules": [
+    "COD-100 (DsonParser-local): unused Dson value types in DsonDataTypes.{h,cpp} (Bool, Float, Vector2, Color, ChannelType, ChannelValue, IndexedIntArray, IndexedFloatArray) are intentional scaffolding - never flag or remove them as dead code.",
+    "COD-101 (DsonParser-local): faithful, non-interpretive parsing - scene.* and *_library stay separate accessors; no section's data overwrites, fills, or overrides another's (sole sanctioned exception: intra-material image_url -> texture_path against image_library); any new cross-section merge is a semantic shift needing explicit user sign-off.",
+    "CPP-3/CPP-4 (native-binding module, Docs/NativeBinding.md): DsonParserAPI.h is the single export header - the whole published surface, per-family return contract stated at the header (counts 0 on fail, value/index accessors -1, loaders 0 = success, strings empty, bools false); any change to it is breaking (COD-4, Docs/Versioning.md COD-11); copy borrowed const char* returns before the next call across the ABI."
+  ]
+}

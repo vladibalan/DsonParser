@@ -1,0 +1,15 @@
+{
+  "_comment": "Local doc-form config. Read by BOTH doc-guard.ps1 (hook) and Check-DocForm.ps1 (census) - the single source, so the two enforcers cannot drift. Birth-time file: fill pathMarker and budgets at instantiation; the four ceiling values are framework defaults, retune only under a recorded decision. Keys under budgets are repo-relative POSIX paths (forward slashes).",
+  "pathMarker": "DsonTest2",
+  "sealedDirs": [],
+  "lineSignal": 400,
+  "lineHard": 2000,
+  "maxLines": 1000,
+  "maxKB": 64,
+  "budgets": {
+    "AGENTS.md": { "lines": 60, "kb": 8 },
+    "CLAUDE.md": { "lines": 40, "kb": 6 },
+    "Docs/Intent.md": { "lines": 80, "kb": 10 },
+    "Docs/Roadmap.md": { "lines": 100, "kb": 12 }
+  }
+}

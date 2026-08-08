@@ -2,12 +2,12 @@
 
 Changes to the flat C ABI (`DsonParserAPI.h`). Ships beside the header/DLL so
 consumers see what changed without this repo's source. Newest first; stop at the
-version you already integrate against. Policy: docs/versioning.md.
+version you already integrate against. Policy: Docs/Versioning.md.
 
 SemVer with C-ABI semantics: MAJOR = breaking ABI · MINOR = additive (binary-compatible) · PATCH = internal fix (`DsonParserAPI.h` byte-identical).
 Entry sigils: `+` added · `~` changed · `-` removed/deprecated · `!` fixed.
 
-## Unreleased
+## [Unreleased]
 
 Nothing yet — new C-ABI changes land here, then move under a version heading on release.
 
