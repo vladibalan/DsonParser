@@ -17,6 +17,11 @@ importer).
 
 ## Done
 
+- 2026-08-08 - Pinned the C++ standard to C++14 via a root `Directory.Build.props`
+  (`<LanguageStandard>stdcpp14</LanguageStandard>`), covering all three projects and configs from one
+  home instead of the v143 default (CPP-1). Verified: full `/t:Rebuild` Release|x64 emits `/std:c++14`
+  for all three projects, 0 warnings. Closes the COD-102 audit's CPP-1 gap - dispositions and why:
+  `Docs/DecisionLog.md`.
 - 2026-08-08 - Retired `DsonParser_Roadmap.md`: promoted its v1 inventory + the shipped formula
   accessors into the framework `Docs/Capabilities.md` catalog slot, reframed `dson-parsing-overview.md`
   as the parse-behavior map, and dropped the roadmap's `CHANGELOG.md`-duplicated history and
@@ -51,5 +56,3 @@ importer).
   Implementer task). [added 2026-08-08]
 - Vendor the cpp-layer `Patterns.md` core at the next framework sync, once the master resolves its
   filename collision with the text-layer core (fit gap carried back). [added 2026-08-08]
-- Pin `/std:c++14` explicitly in the three `.vcxproj` files (CPP-1: pin in the build, not by the
-  v143 default; build-config change - verify with a full rebuild). [added 2026-08-08]

@@ -18,7 +18,7 @@ procedure. Pin record: `Docs/Reference.md` "Framework pin record". Cold/on-deman
 | `{{UPSTREAM_REPO}}` | `Tencent/rapidjson` (canonical pin: `Docs/Reference.md`) |
 | `{{VERSION_SOURCE_FILE}}` + pattern | `DsonParser/DsonParserVersion.h`, `DSONPARSER_VERSION_STRING\s+"([^"]+)"` |
 | `{{TEST_COMMAND}}` | dormant - no automated suite (COD-8 stays JIT) |
-| `{{CPP_STANDARD}}` | `14` (effective via the v143 default; explicit pin = Roadmap backlog) |
+| `{{CPP_STANDARD}}` | `14`, pinned `/std:c++14` via root `Directory.Build.props` (CPP-1; was v143 default) |
 | `{{SOLUTION}}` / `{{CONFIG}}` / `{{PLATFORM}}` | `DsonTest2` / `Release` / `x64` |
 | `{{VENDORED_DIR}}` | `DsonParser/include/rapidjson` |
 | include-guard `owningHeaders` | `{}` (plain C++); the hook itself is OFF (checkpoint 2a) |

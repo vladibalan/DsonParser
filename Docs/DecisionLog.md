@@ -5,6 +5,24 @@ notable rejects. Cold/on-demand (off the hot-path budget) - it absorbs history s
 rules docs stay tight. Newest at top. When it crosses the doc ceiling, rotate as a dated
 append-only log (see `Docs/DocRules.md`, "Cold-doc rotation, in detail").
 
+## 2026-08-08 - Pin the C++ standard explicitly (CPP-1); COD-102 audit Gap 1 closed
+
+**What.** Added a repo-root `Directory.Build.props` pinning `<LanguageStandard>stdcpp14</LanguageStandard>`
+for all three projects and every config, replacing reliance on the v143 toolset default. Doc sync rode
+the same change: the `Docs/FrameworkSlots.md` `{{CPP_STANDARD}}` row (default -> pinned) and
+`Docs/Roadmap.md` (backlog -> Done). Behavior-neutral - same C++14, no ABI or version change.
+
+**Why.** CPP-1 requires the standard pinned in the build, not inherited from a default a toolset move
+could silently change. The COD-102 ledger audit flagged this as the one open non-conformance (Gap 1),
+and COD-102 prefers closing a gap over arguing a divergence, so it was pinned, not deferred. Chose a
+single root `Directory.Build.props` over editing all three `.vcxproj` per-config: one home for the pin
+(any future project inherits it, no config can be missed) beats twelve parallel edits.
+
+**Verification.** Full `/t:Rebuild` Release|x64, exit 0, `Build succeeded. 0 Warning(s) 0 Error(s)`; the
+detailed log shows `/std:c++14` emitted for all three projects and no other `/std:c++` value - proving
+the props imports solution-wide and the switch reaches the compiler (a clean build alone would not, since
+C++14 was already the default).
+
 ## 2026-08-08 - Standing framework-conformance rule (COD-102)
 
 **What.** Added project-local rule **COD-102** (`Docs/Rulebook.md`, COD-100+ section): conformance to
